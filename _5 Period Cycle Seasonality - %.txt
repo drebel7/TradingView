@@ -1,0 +1,20 @@
+study("5 Period Cycle Seasonality - %")
+
+Period = input(title="Period Cycle", type=integer , defval=252)
+
+LastYear = (close[Period]-close[2 * Period])/close[2 * Period]
+TwoYearsAgo = (close [2 * Period]-close[3 * Period])/close[3 * Period]
+ThreeYearsAgo = (close [3 * Period]-close[4 * Period])/close[4 * Period]
+FourYearsAgo = (close [4 *Period]-close[5 * Period])/close[5 * Period]
+FiveYearsAgo = (close [5 * Period]-close[6 * Period])/close[6 * Period]
+
+Offset = Period
+LastYearE = (close[Period - Offset]-close [2 * Period - Offset])/close [2 * Period - Offset]
+TwoYearsAgoE = (close [2 * Period - Offset]-close [3 * Period - Offset])/close [3 * Period - Offset]
+ThreeYearsAgoE = (close [3 * Period - Offset]-close [4 * Period - Offset])/close [4 * Period - Offset]
+FourYearsAgoE = (close [4 *Period - Offset]-close [5 * Period - Offset])/close [5 * Period - Offset]
+FiveYearsAgoE = (close [5 * Period - Offset]-close [6 * Period - Offset])/close [6 * Period - Offset]
+
+plot((LastYearE + TwoYearsAgoE + ThreeYearsAgoE + FourYearsAgoE + FiveYearsAgoE) / 5, color = #00ff00, linewidth = 2, offset =  Offset)
+plot((LastYear + TwoYearsAgo + ThreeYearsAgo + FourYearsAgo + FiveYearsAgo) / 5, color = #ff0000, linewidth = 2)
+hline(0)

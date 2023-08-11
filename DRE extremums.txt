@@ -1,0 +1,26 @@
+//@version=4
+study("DRE extremes", overlay=true)
+iHighPeriod = input(title="High Period", type=input.integer, defval=20)
+iLowPeriod = input(title="Low Period", type=input.integer, defval=20)
+
+highs = highest(high, iHighPeriod)
+lows = lowest(low, iLowPeriod)
+
+hh = high == highs
+ll = low == lows
+
+
+leftBars = 10, rightBars = 10
+highPivot = pivothigh(high, leftBars, rightBars)
+highPivot := hh[rightBars] ? highPivot : na
+lowPivot = pivotlow(low, leftBars, rightBars)
+lowPivot := ll[rightBars] ? lowPivot : na
+
+//plotshape(hh, title="hh", location=location.abovebar, color=color.red, style=shape.triangledown, text="hh")
+//plotshape(ll, title="ll", location=location.belowbar, color=color.green, style=shape.triangledown, text="ll")
+plotshape(highPivot, title="hh", location=location.abovebar, color=color.red, style=shape.triangledown, text="hh", offset=-rightBars)
+plotshape(lowPivot, title="ll", location=location.belowbar, color=color.green, style=shape.triangledown, text="ll", offset=-rightBars)
+
+//plot(highPivot, title="highPivot", color=color.red, style=plot.style_line, offset=-rightBars)
+//plot(lowPivot, title="lowPivot", color=color.green, style=plot.style_line, offset=-rightBars)
+

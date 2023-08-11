@@ -1,0 +1,70 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TJ_667
+
+//@version=5
+indicator("DRE Koalafied Volume Extension Bubbles", overlay = true, max_labels_count = 500)
+
+// ---------- FUNCTIONS ---------- //
+ 
+Z_score(_src, _length, MA_sel)=>
+    _mean = MA_sel == 'SMA' ? ta.sma(_src, _length) : MA_sel == 'EMA' ? ta.ema(_src, _length) :  MA_sel == 'WMA' ? ta.wma(_src, _length) : na
+    _value = (_src - _mean) / (ta.stdev(_src-_mean, _length))
+
+timeChange(period) =>
+	ta.change(time(period))
+
+
+
+// ---------- INPUTS ---------- //
+
+var GRP1 = "INPUTS"
+len = input.int(200, "Z-Score MA Length", group = GRP1)
+MA_sel = input.string(title='MA Selection', defval='EMA', options=['SMA', 'EMA', 'WMA'], group = GRP1)
+deviation_start = input.float(4.0, "Std Dev start", step = 1.0, group = GRP1)
+deviation_delta = input.float(2.0, "Std Dev delta", step = 0.5, group = GRP1)
+offset_circles = input.bool(false, "Offset Volume Bubbles to Period Start", group = GRP1)
+bubble_size_labels = input.bool(false, "Bubble size labels", group = GRP1)
+
+var GRP2 = "COLOR SELECTION"
+_colup_ext = input.color(color.green, "Bull Extension", group = GRP2)
+_coldown_ext = input.color(color.red, "Bear Extension", group = GRP2)
+trans_circles = input.int(85, "Volume Bubble Transparency", group = GRP2)
+
+
+
+// ---------- CALCS ---------- //
+src = volume
+vol = Z_score(src, len, MA_sel) 
+extension_1 = vol > deviation_start + 0 * deviation_delta and vol < deviation_start + 1 * deviation_delta 
+extension_2 = vol > deviation_start + 1 * deviation_delta and vol < deviation_start + 2 * deviation_delta 
+extension_3 = vol > deviation_start + 2 * deviation_delta and vol < deviation_start + 3 * deviation_delta 
+extension_4 = vol > deviation_start + 3 * deviation_delta and vol
+bull = close > open
+bear = close < open
+
+_devUp = (extension_1 or extension_2 or extension_3 or extension_4) and bull
+_devDown = (extension_1 or extension_2 or extension_3 or extension_4) and bear
+
+_bubble_text = bubble_size_labels ? str.tostring(vol, "#.#") : ""
+
+// Bubble offset calcs
+
+_start = timeChange("D")
+var int count = na
+count := _start ? 0 : count + 1
+
+circ_size = extension_1 ? size.tiny : extension_2 ? size.small : extension_3 ? size.normal : extension_4 ? size.large : size.huge
+
+// ---------- PLOTS ---------- //
+
+if _devUp
+    dn1 = label.new(bar_index[offset_circles ? count : 0], ((open + close) / 2), text = _bubble_text, color = color.new(_colup_ext, trans_circles), style = label.style_circle, size = circ_size)
+if _devDown
+    dn1 = label.new(bar_index[offset_circles ? count : 0], ((open + close) / 2), text = _bubble_text, color = color.new(_coldown_ext, trans_circles), style = label.style_circle, size = circ_size)
+
+
+// ---------- Alerts ---------- //
+
+ext_alert = _devUp or _devDown
+alertcondition(ext_alert, "Volume Extension Alert",  "VOL EXT")
+

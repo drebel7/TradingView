@@ -1,0 +1,18 @@
+//@version=4
+study("MA %", precision=2)
+
+matype = input("SMA", "MA type", options=["SMA", "EMA"])
+period = input(100, "Period")
+
+float ma = na
+if matype == 'SMA'
+    ma := sma(close, period)
+if matype == 'EMA'
+    ma := ema(close, period)
+
+diff = (close - ma) / ma * 100
+
+p = plot(diff)
+hline(10)
+hline(-10)
+fill(plot(0, transp=100), p)

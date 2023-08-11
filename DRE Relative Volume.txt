@@ -1,0 +1,37 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+//input
+indicator('DRE Relative Volume', shorttitle='RV', timeframe='D', timeframe_gaps=false)
+iComparativeTickerId = input.symbol('SPX', title='Comparative Symbol', tooltip='Ticker to compare to eg. index (SPX, WIG), sector ETF (URA, XOP, GDX)')
+iLenght = input.int(30, minval=1, title='Period')
+iSmoothingLegth = input.int(3, minval=1, title='Smoothing')
+iPrintVolume = input.bool(true, title='Plot relative volume', tooltip='Uses volumes EMA(20).')
+iPrintPrice = input.bool(true, title='Plot relative price')
+iVolumeThreshold = input.float(2.0, 'Background colouring volume threshold', minval=0.0, maxval=20.0, step=0.1, tooltip='Background color changes when relative volume > threshold and: yellow when relative price < 1, green when relative price >= 1.')
+
+// relative volume
+baseSymbolVolMA = ta.ema(request.security(syminfo.tickerid, timeframe.period, volume), 20)
+comparativeSymbolVolMA = ta.ema(request.security(iComparativeTickerId, timeframe.period, volume), 20)
+float rvSmooth = na
+if iPrintVolume
+    rv = baseSymbolVolMA / baseSymbolVolMA[iLenght] / (comparativeSymbolVolMA / comparativeSymbolVolMA[iLenght])
+    rvSmooth := ta.ema(rv, iSmoothingLegth)
+
+// relative price
+baseSymbolPrice = request.security(syminfo.tickerid, timeframe.period, close)
+comparativeSymbolPrice = request.security(iComparativeTickerId, timeframe.period, close)
+float rpSmooth = na
+if iPrintPrice
+    rp = baseSymbolPrice / baseSymbolPrice[iLenght] / (comparativeSymbolPrice / comparativeSymbolPrice[iLenght])
+    rpSmooth := ta.ema(rp, iSmoothingLegth)
+
+hline(1, color=color.black, linestyle=hline.style_dotted)
+hline(iVolumeThreshold, color=color.blue, linestyle=hline.style_dotted)
+prv = plot(iPrintVolume ? rvSmooth : na, title='RV', color=color.new(color.blue, 0), linewidth=2)
+prp = plot(iPrintPrice ? rpSmooth : na, title='RP', color=rpSmooth>1.0 ? color.new(color.green, 25) : color.new(color.red, 25), style=plot.style_area, histbase=1.0)
+isGtVolThreshhold = iPrintVolume and iPrintPrice and rvSmooth > iVolumeThreshold
+//smart money indicator? much increased volume with not increased prices
+bgcolor(isGtVolThreshhold and rpSmooth < 1 ? color.new(color.orange, 70) : na)
+bgcolor(isGtVolThreshhold and rpSmooth >= 1 ? color.new(color.green, 70) : na)

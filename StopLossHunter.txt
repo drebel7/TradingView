@@ -1,0 +1,20 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=4
+study(title="DRE StopLossHunter", shorttitle="DRE StopLossHunter", overlay=true)
+
+ExtremesPeriods = input(title="Extremes search persiod", type=input.integer, defval=200)
+ExtremesDistance = input(title="Extremes min. distance", type=input.integer, defval=20)
+
+mins_size = 0
+maxs_size = 0
+float[] mins = na
+float[] maxs = na
+mins[mins_size] = min[ExtremesPeriods]
+maxs[maxs_size] = max[ExtremesPeriods]
+for offset = -1 * ExtremesPeriods to 0
+    mins[mins_size] = mins[mins_size] > min[offset] ? min[offset] : mins[mins_size]
+	maxs[maxs_size] = maxs[mins_size] < max[offset] ? max[offset] : maxs[mins_size]
+
+

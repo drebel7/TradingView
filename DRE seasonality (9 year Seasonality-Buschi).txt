@@ -1,0 +1,45 @@
+//@version=3
+study(title="DRE Seasonality-Buschi", shorttitle="Seasonality-Buschi", precision=2,  max_bars_back=5000)
+
+repeat_period_millis = 365*24*60*60*1000
+
+is_in_last_period = time >= timenow - repeat_period_millis
+
+fast_search_n(xs, x) => // xs - sorted, ascending
+    len = 2048
+    size = floor(len / 2)
+    k = size
+    for i = 0 to 15
+        size := floor(size / 2)
+        if (x <= xs[k]?1:0) * (x > xs[k+1]?1:0) > 0
+            break
+        if ((xs[k] < x)?1:0) + (na(xs[k])?1:0) > 0
+            k := k - size
+        else
+            k := k + size
+        if size == 0
+            if na(xs[k])?1:0 + (1 - (x <= xs[k] ?1:0) * (x > xs[k+1]?1:0)) > 0
+                k := na
+            break
+    k
+
+find_n_periods_ago(i) => 
+    fast_search_n(time, time - repeat_period_millis * i)
+
+n_1y = find_n_periods_ago(1)
+n_2y = find_n_periods_ago(2)
+n_3y = find_n_periods_ago(3)
+n_4y = find_n_periods_ago(4)
+n_5y = find_n_periods_ago(5)
+n_6y = find_n_periods_ago(6)
+n_7y = find_n_periods_ago(7)
+n_8y = find_n_periods_ago(8)
+
+last3y = (close + close[n_1y] + close[n_2y])/3
+last6y = (close[n_3y] + close[n_4y] + close[n_5y])/3
+last9y = (close[n_6y] + close[n_7y] + close[n_8y])/3
+
+plot(is_in_last_period ? close : na, color=green, linewidth=2, title="current value")
+plot(is_in_last_period ? last3y : na, color=#88FF00, linewidth=1, title="last 3 years")
+plot(is_in_last_period ? last6y : na, color=#FF8800, linewidth=1, title="last 6-3 years back")
+plot(is_in_last_period ? last9y : na, color=#FF0000, linewidth=1, title="last 9-6 years back")

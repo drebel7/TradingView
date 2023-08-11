@@ -1,0 +1,15 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+indicator("DRE Sesonality")
+iPeriods = input(5, 'Periods')
+iPeriods -= 1
+
+for offset = iPeriods to 0
+    timestamp(year-offset, month, day)
+int = iPeriods * 1
+
+firstDay = ta.change(time("5Y"))
+
+plot(close)

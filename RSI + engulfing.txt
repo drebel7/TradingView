@@ -1,0 +1,25 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=4
+study(title="DRE Lesson 6-8", shorttitle="DRE Swing Signals", overlay=true)
+// Get user input
+resW = input(title="EMA Timeframe", type=input.resolution, defval="W")
+rsiSource = input(title="RSI Source", type=input.source, defval=close)
+rsiLength = input(title="RSI Length", type=input.integer, defval=14)
+rsiOverbought = input(title="RSI Overbought Level", type=input.integer, defval=70)
+rsiOversold = input(title="RSI Oversold Level", type=input.integer, defval=30)
+// Get RSI value
+rsi = rsi(rsiSource, rsiLength)
+rsiM = security(syminfo.tickerid, resW, rsi, barmerge.gaps_on, barmerge.lookahead_off)
+rsiOB = rsi >= rsiOverbought
+rsiOS = rsi <= rsiOversold
+// Identify engulfing candles
+bullishEC = close > open[1] and close[1] < open[1]
+bearishEC = close < open[1] and close[1] > open[1]
+tradeSignal = ((rsiOS or rsiOS[1]) and bullishEC) or ((rsiOB or rsiOB[1]) and bearishEC)
+// Plot signals to chart
+plotshape(tradeSignal and bullishEC, title="Long", location=location.belowbar, color=color.green, transp=0, style=shape.triangleup, text="Long")
+plotshape(tradeSignal and bearishEC, title="Short", location=location.abovebar, color=color.red, transp=0, style=shape.triangledown, text="Short")
+// Send out an alert if this candle meets our conditions
+alertcondition(tradeSignal, title="RSI Trade Alert!", message="RSI Swing Signal for XXX")

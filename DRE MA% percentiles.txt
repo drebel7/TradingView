@@ -1,0 +1,38 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+indicator('DRE MA %', precision=1, max_bars_back=3000, timeframe="", timeframe_gaps=false)
+
+//iRes = input(title="Timeframe", type=input.resolution, defval="", group='moving average', options=['D', 'W', 'M'])
+iMaType = input.string('SMA', 'Type', options=['SMA', 'EMA'], group='moving average', tooltip='Moving average type [SMA/EMA]')
+iPeriod = input.int(150, 'Period', group='moving average', tooltip='Moving average period')
+iMaDiffSmooth = input.int(1, 'Smoothing', group='moving average', minval = 1, maxval = 5)
+iPercentile = input.int(4, 'Line 1/2/3', inline='pct', group='percentile', minval = 0, maxval = 50)
+iPercentile2 = input.int(2, '/', inline='pct', group='percentile', minval = 0, maxval = 50)
+iPercentile3 = input.int(1, '/', inline='pct', group='percentile', minval = 0, maxval = 50, tooltip='Percentiles of 1st 2nd 3rd line')
+iPercentYearsLookback = input.int(8, 'Years lookback', group='percentile', minval = 1, maxval = 30, tooltip='Number of years to look back to count percentiles')
+
+
+float ma = iMaType == 'SMA' ? ta.sma(close, iPeriod) : ta.ema(close, iPeriod)
+diff = (close - ma) / ma * 100
+
+p = plot(diff, color=color.new(color.green, 0))
+plot(ta.ema(diff, iMaDiffSmooth), color=color.new(color.orange, 0))
+fill(plot(0, color=color.new(color.green, 100)), p, color=color.new(color.green, 80))
+
+barsLoockback = timeframe.ismonthly ? iPercentYearsLookback * 12 : timeframe.isweekly ? iPercentYearsLookback * 52 : timeframe.isdaily ? iPercentYearsLookback * 252 : 3000
+barsLoockback := math.min(bar_index+1, barsLoockback)
+percentTop = ta.percentile_nearest_rank(diff, barsLoockback, iPercentile)
+percentTop2 = ta.percentile_nearest_rank(diff, barsLoockback, iPercentile2)
+percentTop3 = ta.percentile_nearest_rank(diff, barsLoockback, iPercentile3)
+plot(percentTop, color=color.new(color.blue, 0))
+plot(percentTop2, color=color.new(color.blue, 40))
+plot(percentTop3, color=color.new(color.blue, 80))
+
+percentBottom = ta.percentile_nearest_rank(diff, barsLoockback, 100 - iPercentile)
+percentBottom2 = ta.percentile_nearest_rank(diff, barsLoockback, 100 - iPercentile2)
+percentBottom3 = ta.percentile_nearest_rank(diff, barsLoockback, 100 - iPercentile3)
+plot(percentBottom, color=color.new(color.red, 0))
+plot(percentBottom2, color=color.new(color.red, 40))
+plot(percentBottom3, color=color.new(color.red, 80))

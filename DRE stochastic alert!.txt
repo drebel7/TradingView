@@ -1,0 +1,100 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+indicator("DRE Stochastic alert!", shorttitle="DRE Stoch!", precision=0, overlay=false)
+iTimeframe = input.timeframe('5', "Resolution", options=['5', '15', '45', '120'])
+iEntryDate = input.time(timestamp("14 Jul 2022 15:00 +0200"), "Start date")
+iStochLength = input.int(14, 'Length', group='Stochastic', tooltip = "Stochastic length for lower timeframes")
+iStochSmooth = input.int(1, 'Smoothing', minval=1, group='Stochastic', tooltip = "Number of periods for smoothing Stochastic with EMA")
+iStochHigh = input.int(80, 'High/Low', inline='stoch', minval=0, maxval=100, group='Stochastic')
+iStochLow = input.int(20, '/', inline='stoch', minval=0, maxval=100, group='Stochastic', tooltip = "High / Low reading of stochastic oscilator for 'bull zone' and 'bear zone' indication")
+iLongs = input.bool(true, 'Long', inline='dir', group='Direction')
+iShorts = input.bool(true, 'Short', inline='dir', group='Direction')
+
+stoch = ta.stoch(close, high, low, iStochLength)
+stoch5 = ta.ema(request.security(syminfo.tickerid, "5", stoch, barmerge.gaps_off, barmerge.lookahead_off), iStochSmooth)
+stoch15 = ta.ema(request.security(syminfo.tickerid, "15", stoch, barmerge.gaps_off, barmerge.lookahead_off), iStochSmooth)
+stoch45 = ta.ema(request.security(syminfo.tickerid, "45", stoch, barmerge.gaps_off, barmerge.lookahead_off), iStochSmooth)
+stoch2h = ta.ema(request.security(syminfo.tickerid, "120", stoch, barmerge.gaps_off, barmerge.lookahead_off), iStochSmooth)
+stoch4h = ta.ema(request.security(syminfo.tickerid, "240", stoch, barmerge.gaps_off, barmerge.lookahead_off), iStochSmooth)
+stoch1D = ta.ema(request.security(syminfo.tickerid, "1D", stoch, barmerge.gaps_off, barmerge.lookahead_off), iStochSmooth)
+
+//work on entry signal (eg. specific time from input, price level from input, other ta techniques)
+entrySig = time >= iEntryDate and time <= iEntryDate + 160 * 3600 * 1000
+bgcolor(entrySig ? color.new(color.green, 90) : na)
+
+bool[] stochHighSigs = array.from(stoch5 > iStochHigh, stoch15 > iStochHigh, stoch45 > iStochHigh, stoch2h > iStochHigh, stoch4h > iStochHigh, stoch1D > iStochHigh)
+bool[] stochLowSigs = array.from(stoch5 < iStochLow, stoch15 < iStochLow, stoch45 < iStochLow, stoch2h < iStochLow, stoch4h < iStochLow, stoch1D < iStochLow)
+
+isAllStochExtreme(stochExtremeSigs, entryIndex) => 
+    allTrue = true
+    for index = entryIndex to array.size(stochExtremeSigs)-1
+        allTrue := allTrue and array.get(stochExtremeSigs, index)
+    allTrue
+
+entryIndex = iTimeframe == '5' ? 0 : iTimeframe == '15' ? 1 : iTimeframe == '45' ? 2 : 3
+
+calculateStaticLvl(stochSigs, entryIndex0) =>
+    lvl = -1
+    for n = entryIndex0 to array.size(stochSigs)-1
+        if array.get(stochSigs, n)
+			lvl += 1
+		else
+			break
+	lvl
+
+staticHighLvl = calculateStaticLvl(stochHighSigs, entryIndex)
+staticLowLvl = calculateStaticLvl(stochLowSigs, entryIndex)
+
+// calulations {
+calculateRollingLvl(stochContinueSigs, stochStopSigs, prevStaticLvl) =>
+    lvl = -1
+    for n = entryIndex to array.size(stochContinueSigs)-1
+        if entrySig and prevStaticLvl == 0 and lvl[1] == -1
+            lvl := array.get(stochContinueSigs, n) ? entryIndex : -1
+            break
+    	else if lvl[1] == n and lvl[2] == n and lvl[3] == n
+    		lvl := array.get(stochContinueSigs, n) ? math.min(n+1, array.size(stochContinueSigs)-1) : array.get(stochStopSigs, n) ? -1 : n
+    		break
+    lvl
+
+int lvlLong = iLongs ? calculateRollingLvl(stochHighSigs, stochLowSigs, staticHighLvl[1]) : na
+int lvlShort = iShorts ? calculateRollingLvl(stochLowSigs, stochHighSigs, staticLowLvl[1]) : na
+// }
+
+// debug plot {
+plot(iLongs ? lvlLong : na, "lvlLong", color=color.new(color.blue, 0))
+plot(iShorts ? lvlShort : na, "lvlShort", color=color.new(color.purple, 0))
+// }
+
+isEntry(lvlSeries) => lvlSeries[1] == -1 and lvlSeries == entryIndex
+isClosedOrLast(lvlSeries, targetLvl) => barstate.islast and lvlSeries == targetLvl or lvlSeries[1] == targetLvl and lvlSeries == -1
+isLowerLevelClosed(lvlSeries, stochSigs, targetLvl) => lvlSeries > targetLvl and array.get(stochSigs, targetLvl)
+isCurrentLevelClosed(lvlSeries) => lvlSeries[1] > -1 and lvlSeries == -1
+
+// plot shape Long {
+plotshape(isEntry(lvlLong), title="sL0 - entry", location=location.belowbar, textcolor=color.new(color.green, 0), style=shape.triangleup, text="sL-e")
+plotshape(isClosedOrLast(lvlLong, 0), title="sL - still open", location=location.belowbar, textcolor=lvlLong == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangleup, text="sL 5")
+plotshape(isClosedOrLast(lvlLong, 1), title="sL - still open", location=location.belowbar, textcolor=lvlLong == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangleup, text="sL 15")
+plotshape(isClosedOrLast(lvlLong, 2), title="sL - still open", location=location.belowbar, textcolor=lvlLong == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangleup, text="sL 45")
+plotshape(isClosedOrLast(lvlLong, 3), title="sL - still open", location=location.belowbar, textcolor=lvlLong == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangleup, text="sL 2h")
+plotshape(isClosedOrLast(lvlLong, 4), title="sL - still open", location=location.belowbar, textcolor=lvlLong == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangleup, text="sL 4h")
+plotshape(isClosedOrLast(lvlLong, 5), title="sL - still open", location=location.belowbar, textcolor=lvlLong == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangleup, text="sL 1D")
+//plotshape(isLowerLevelClosed(lvlLong, stochLowSigs, 4), title="sS - lower level losed", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sL 4h closed")
+alertcondition(isLowerLevelClosed(lvlLong, stochLowSigs, 4), title="DRE Stoch Long - close 4h!", message="DRE Stoch Long - close 4h!")
+alertcondition(isCurrentLevelClosed(lvlLong), title="DRE Stoch Long - close!", message="DRE Stoch Long - close!")
+// }
+
+// plot shape Short {
+plotshape(isEntry(lvlShort), title="sS - entry", location=location.abovebar, textcolor=color.new(color.green, 0), style=shape.triangledown, text="sS-e")
+plotshape(isClosedOrLast(lvlShort, 0), title="sS - still open", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 5")
+plotshape(isClosedOrLast(lvlShort, 1), title="sS - still open", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 15")
+plotshape(isClosedOrLast(lvlShort, 2), title="sS - still open", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 45")
+plotshape(isClosedOrLast(lvlShort, 3), title="sS - still open", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 2h")
+plotshape(isClosedOrLast(lvlShort, 4), title="sS - still open", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 4h")
+plotshape(isClosedOrLast(lvlShort, 5), title="sS - still open", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 1D")
+//plotshape(isLowerLevelClosed(lvlShort, stochHighSigs, 4), title="sS - lower level losed", location=location.abovebar, textcolor=lvlShort == -1 ? color.new(color.red, 0) : color.new(color.blue, 0), style=shape.triangledown, text="sS 4h closed")
+alertcondition(isLowerLevelClosed(lvlShort, stochHighSigs, 4), title="DRE Stoch Short - close 4h!", message="DRE Stoch Short - close 4h!")
+alertcondition(isCurrentLevelClosed(lvlLong), title="DRE Stoch Short - close!", message="DRE Stoch Short - close!")
+// }

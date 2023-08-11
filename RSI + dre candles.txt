@@ -1,0 +1,59 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=4
+study(title="DRE RSI + candles", shorttitle="DRE Swing Signals 2", overlay=true)
+
+// Get user input
+res = input(title="RSI Timeframe", type=input.resolution, defval="W")
+rsiSource = input(title="RSI Source", type=input.source, defval=close)
+rsiLength = input(title="RSI Length", type=input.integer, defval=14)
+rsiOverbought = input(title="RSI Overbought Level", type=input.integer, defval=70)
+rsiOversold = input(title="RSI Oversold Level", type=input.integer, defval=30)
+
+// Get RSI value
+rsi = rsi(rsiSource, rsiLength)
+rsiRes = security(syminfo.tickerid, res, rsi, barmerge.gaps_on, barmerge.lookahead_off)
+rsiOB = rsiRes >= rsiOverbought
+rsiOS = rsiRes <= rsiOversold
+
+//candles
+//tolerance 0.1 pct
+tol = 0.001
+tol_p = 1 + tol
+tol_m = 1 - tol
+
+//candle parameters
+high_shadow = high != low ? (high - max(open, close)) / (high-low) : 0
+candle_body = high != low ? (max(open, close) - min(open, close)) / (high-low) : 0
+low_shadow = high != low ? (min(open, close) - low) / (high-low) : 0
+candle_color = close > open ? 1 : close < open ? -1 : 0
+
+//candles beariish
+spadajaca_gwiazda = high_shadow > 0.6 and low_shadow < 0.15 and low >= tol_m*max(low[1], low[2], low[3])
+objecie_bessy = candle_color == -1 and candle_color[1] == 1 and close <= open[1] and open >= close[1] and low >= low[2] and low[1] >= tol_m*max(low[2], low[3], low[4]) //bearish_engulfing
+zaslona_ciemnej_chmury = candle_color == -1 and candle_color[1] == 1 and close >= open[1] and close <= close[1] - 0.5 * candle_body[1] and open >= high[1] and low >= low[2] and low[1] >= tol_m*max(low[2], low[3], low[4]) //dark_cloud_cover
+harami_prospadkowe = candle_color <= 0 and candle_color[1] == 1 and close >= open[1] and open <= close[1] and low >= low[2] and low[1] >= tol_m*max(low[2], low[3], low[4])
+gwiazda_wieczorna = candle_color == -1 and candle_color[2] == 1 and candle_body[1] < min(candle_body, candle_body[2]) and open <= min(open[1], close[1]) and close[2] <= min(open[1], close[1]) and min(low, low[2]) >= low[3] and low[2] >= tol_m*max(low[3], low[4], low[5]) //evening_star
+bearishCandle = spadajaca_gwiazda or objecie_bessy or zaslona_ciemnej_chmury or harami_prospadkowe or gwiazda_wieczorna
+
+//candles bullish
+mlot = low_shadow > 0.6 and high_shadow < 0.15 and high <= tol_p*min(high[1], high[2], high[3]) //hammer
+objecie_hossy = candle_color == 1 and candle_color[1] == -1 and close >= open[1] and open <= close[1] and high <= high[2] and high[1] <= tol_p*min(high[2], high[3], high[4]) //bullish_engulfing
+formacja_przenikania = candle_color == 1 and candle_color[1] == -1 and close >= close[1] + 0.5 * candle_body[1] and close <= open[1] and open <= low[1] and high <= high[2] and high[1] <= tol_p*min(high[2], high[3], high[4]) //piercing_line
+harami_prowzrostowe = candle_color >= 0 and candle_color[1] == -1 and close <= open[1] and open >= close[1] and high <= high[2] and high[1] <= tol_p*min(high[2], high[3], high[4])
+gwiazda_poranna = candle_color == 1 and candle_color[2] == -1 and candle_body[1] < min(candle_body, candle_body[2]) and open >= min(open[1], close[1]) and close[2] >= min(open[1], close[1]) and max(high, high[2]) <= high[3] and high[2] <= tol_p*min(high[3], high[4], high[5]) //morning_star
+bullishCandle = mlot or objecie_hossy or formacja_przenikania or harami_prowzrostowe or gwiazda_poranna
+
+
+//signals
+bullishSignal = (rsiOS or rsiOS[1]) and bullishCandle
+bearisgSignal = (rsiOB or rsiOB[1]) and bearishCandle
+tradeSignal = bullishSignal or bearisgSignal
+
+
+// Plot signals to chart
+plotshape(bullishSignal, title="Long", location=location.belowbar, color=color.green, style=shape.triangleup, text="Long")
+plotshape(bearisgSignal, title="Short", location=location.abovebar, color=color.red, style=shape.triangledown, text="Short")
+// Send out an alert if this candle meets our conditions
+//alertcondition(tradeSignal, title="RSI Trade Alert!", message="RSI Swing Signal for XXX")

@@ -1,0 +1,72 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=4
+study(title="DRE candles", shorttitle="DRE candles", overlay=true)
+
+iSpadajacaGwiazda = input(title = "Spadajaca Gwiazda" ,defval=true) 
+iObjecieBessy = input(title = "Objecie Bessy" ,defval=true) 
+iZaslonaCiemnejChmury = input(title = "Zaslona Ciemnej Chmury" ,defval=true) 
+iHaramiSpadkowe = input(title = "Harami Spadkowe" ,defval=true) 
+iGwiazdaWieczorna = input(title = "Gwiazda Wieczorna" ,defval=true) 
+iTrzyGwiazdySpadkowe = input(title = "3 Gwiazdy Spadkowe" ,defval=true) 
+iTrzyCzarneKruki = input(title = "3 Czarne Kruki" ,defval=true)
+
+iMlot = input(title = "Mlot" ,defval=true) 
+iObjecieHossy = input(title = "Objecie Hossy" ,defval=true) 
+iFormacjaPrzenikania = input(title = "Formacja Przenikania" ,defval=true) 
+iHaramiWzrostowe = input(title = "Harami Wzrostowe" ,defval=true) 
+iGwiazdaPoranna = input(title = "Gwiazda Poranna" ,defval=true) 
+iTrzyGwiazdyWzrostowe = input(title = "3 Gwiazdy Wzrostowe" ,defval=true) 
+iTrzechBialychZolnierzy = input(title = "3 Bialych Zolnierzy" ,defval=true) 
+
+//relative candle size
+candleSizeMa = sma(high - low, 50)
+
+//tolerance 0.1 pct
+tol = 0.002
+tol_p = 1 + tol
+tol_m = 1 - tol
+
+//candle parameters
+highShadow = high != low ? (high - max(open, close)) / (high-low) : 0
+candleBody = high != low ? (max(open, close) - min(open, close)) / (high-low) : 0
+lowShadow = high != low ? (min(open, close) - low) / (high-low) : 0
+candleColor = close > open ? 1 : close < open ? -1 : 0
+
+//candles bearish
+spadajacaGwiazda = highShadow > 0.6 and lowShadow < 0.15 and high-low > candleSizeMa and low >= tol_m*max(low[1], low[2], low[3])
+objecieBessy = candleColor == -1 and candleColor[1] == 1 and candleBody > 0.6 and close <= open[1] and open >= close[1] and low >= low[2] and high-low > candleSizeMa and low[1] >= tol_m*max(low[2], low[3], low[4]) //bearish_engulfing
+zaslonaCiemnejChmury = candleColor == -1 and candleColor[1] == 1 and close >= open[1] and close <= close[1] - 0.5 * candleBody[1] and open >= high[1] and low >= low[2] and high-low > candleSizeMa and low[1] >= tol_m*max(low[2], low[3], low[4]) //dark_cloud_cover
+haramiSpadkowe = candleColor <= 0 and candleColor[1] == 1 and close >= open[1] and open <= close[1] and low >= low[2] and high-low > candleSizeMa and low[1] >= tol_m*max(low[2], low[3], low[4])
+gwiazdaWieczorna = candleColor == -1 and candleColor[2] == 1 and candleBody[1] < min(candleBody, candleBody[2]) and open <= min(open[1], close[1]) and close[2] <= min(open[1], close[1]) and min(low, low[2]) >= low[3] and high-low > candleSizeMa and low[2] >= tol_m*max(low[3], low[4], low[5]) //evening_star
+trzyGwiazdySpadkowe = candleBody <= 0.05 and candleBody[1] <= 0.05 and candleBody[2] <= 0.05 and open <= open[1] and open[1] >= open[2] and low[2] >= tol_m*max(low[3], low[4], low[5])
+trzyCzarneKruki = candleColor == -1 and candleColor[1] == -1 and candleColor[2] == -1 and candleBody > 0.6 and candleBody[1] > 0.6 and candleBody[2] > 0.6 and open >= close[1] and open <= open[1] and open[1] >= close[2] and open[1] <= open[2] and open <= open[1] and open[1] <= open[2] and low[2] >= tol_m*max(low[3], low[4], low[5]) //three_black_crows
+bearishCandle = spadajacaGwiazda or objecieBessy or zaslonaCiemnejChmury or haramiSpadkowe or gwiazdaWieczorna or trzyGwiazdySpadkowe or trzyCzarneKruki
+
+//candles bullish
+mlot = lowShadow > 0.6 and highShadow < 0.15 and high-low > candleSizeMa and high <= tol_p*min(high[1], high[2], high[3]) //hammer
+objecieHossy = candleColor == 1 and candleColor[1] == -1 and candleBody > 0.6 and close >= open[1] and open <= close[1] and high <= high[2] and high-low > candleSizeMa and high[1] <= tol_p*min(high[2], high[3], high[4]) //bullish_engulfing
+formacjaPrzenikania = candleColor == 1 and candleColor[1] == -1 and close >= close[1] + 0.5 * candleBody[1] and close <= open[1] and open <= low[1] and high <= high[2] and high-low > candleSizeMa and high[1] <= tol_p*min(high[2], high[3], high[4]) //piercing_line
+haramiWzrostowe = candleColor >= 0 and candleColor[1] == -1 and close <= open[1] and open >= close[1] and high <= high[2] and high-low > candleSizeMa and high[1] <= tol_p*min(high[2], high[3], high[4])
+gwiazdaPoranna = candleColor == 1 and candleColor[2] == -1 and candleBody[1] < min(candleBody, candleBody[2]) and open >= min(open[1], close[1]) and close[2] >= min(open[1], close[1]) and max(high, high[2]) <= high[3] and high-low > candleSizeMa and high[2] <= tol_p*min(high[3], high[4], high[5]) //morning_star
+trzyGwiazdyWzrostowe = candleBody <= 0.05 and candleBody[1] <= 0.05 and candleBody[2] <= 0.05 and open >= open[1] and open[1] <= open[2] and high[2] <= tol_p*min(high[3], high[4], high[5])
+trzechBialychZolnierzy = candleColor == 1 and candleColor[1] == 1 and candleColor[2] == 1 and candleBody > 0.6 and candleBody[1] > 0.6 and candleBody[2] > 0.6 and open >= open[1] and open <= close[1] and open[1] <= open[2] and open[1] <= close[2] and close >= close[1] and close[1] >= close[2] and high[2] <= tol_p*min(high[3], high[4], high[5]) //three_white_soldiers
+bullishCandle = mlot or objecieHossy or formacjaPrzenikania or haramiWzrostowe or gwiazdaPoranna or trzyGwiazdyWzrostowe or trzechBialychZolnierzy
+
+//plot
+plotshape(iSpadajacaGwiazda and spadajacaGwiazda, title="spadajacaGwiazda", location=location.abovebar, color=color.red, style=shape.triangledown, text="SG") //falling star
+plotshape(iObjecieBessy and objecieBessy, title="objecieBessy", location=location.abovebar, color=color.red, style=shape.triangledown, text="OB")
+plotshape(iZaslonaCiemnejChmury and zaslonaCiemnejChmury, title="zaslonaCiemnejChmury", location=location.abovebar, color=color.red, style=shape.triangledown, text="ZCH")
+plotshape(iHaramiSpadkowe and haramiSpadkowe, title="haramiSpadkowe", location=location.abovebar, color=color.red, style=shape.triangledown, text="HS")
+plotshape(iGwiazdaWieczorna and gwiazdaWieczorna, title="gwiazdaWieczorna", location=location.abovebar, color=color.red, style=shape.triangledown, text="GW")
+plotshape(iTrzyGwiazdySpadkowe and trzyGwiazdySpadkowe, title="trzyGwiazdySpadkowe", location=location.abovebar, color=color.red, style=shape.triangledown, text="3GS")
+plotshape(iTrzyCzarneKruki and trzyCzarneKruki, title="trzyCzarneKruki", location=location.abovebar, color=color.red, style=shape.triangledown, text="3CK")
+
+plotshape(iMlot and mlot, title="mlot", location=location.belowbar, color=color.green, style=shape.triangleup, text="M") //hammer
+plotshape(iObjecieHossy and objecieHossy, title="objecieHossy", location=location.belowbar, color=color.green, style=shape.triangleup, text="OH") //bullish_engulfing
+plotshape(iFormacjaPrzenikania and formacjaPrzenikania, title="formacjaPrzenikania", location=location.belowbar, color=color.green, style=shape.triangleup, text="FP") //piercing_line
+plotshape(iHaramiWzrostowe and haramiWzrostowe, title="haramiWzrostowe", location=location.belowbar, color=color.green, style=shape.triangleup, text="HW")
+plotshape(iGwiazdaPoranna and gwiazdaPoranna, title="gwiazdaPoranna", location=location.belowbar, color=color.green, style=shape.triangleup, text="GP") //morning_star
+plotshape(iTrzyGwiazdyWzrostowe and trzyGwiazdyWzrostowe, title="trzyGwiazdyWzrostowe", location=location.belowbar, color=color.green, style=shape.triangleup, text="3GW")
+plotshape(iTrzechBialychZolnierzy and trzechBialychZolnierzy, title="trzechBialychZolnierzy", location=location.belowbar, color=color.green, style=shape.triangleup, text="3BZ") //three_white_soldiers

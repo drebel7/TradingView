@@ -1,0 +1,43 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+indicator(title='DRE volume up', shorttitle='DRE volumeUP', overlay=true, timeframe='', timeframe_gaps=false)
+
+iPeriods = input.int(4, title='Number of periods', minval=2)
+iPeriods -= 1
+iVolSma = input.int(20, title='Volume SMA', minval=1)
+iVolUpPct = input.float(0.85, title='Volume Up', minval=0.0, step=0.05)
+iPriceUp = input.bool(true, title='Increasing prices', group='price moves')
+iPriceDown = input.bool(true, title='Decreasing prices', group='price moves')
+
+//volume sma
+volAvg = ta.sma(volume, iVolSma)
+
+isVolumeUp = true
+isVolumeGtMa = true
+isPriceUp = true
+isPriceDown = true
+for offset = iPeriods to 0 by 1
+    isVolumeUp := isVolumeUp and volume[offset] > iVolUpPct * volume[offset + 1] and volume > volume[offset + 2]
+    isVolumeGtMa := isVolumeGtMa and volume[offset] > iVolUpPct * volAvg[offset]
+    isPriceUp := isPriceUp and close[offset] > close[offset + 1]
+    isPriceDown := isPriceDown and close[offset] < close[offset + 1]
+    isPriceDown
+
+
+volUpSignal = isVolumeUp and volume[iPeriods / 2] > volAvg[iPeriods / 2]
+volGtMaSignal = isVolumeGtMa
+priceUpSignal = iPriceUp and isPriceUp or not iPriceUp
+priceDownSignal = iPriceDown and isPriceDown or not iPriceDown
+
+tradeUpSignal = (volUpSignal or volGtMaSignal) and priceUpSignal
+tradeDownSignal = (volUpSignal or volGtMaSignal) and priceDownSignal
+
+plotshape(tradeUpSignal, title='vol and price signal', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='volUp', textcolor=color.new(color.green, 0))
+plotshape(tradeDownSignal, title='vol and price signal', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='volUp', textcolor=color.new(color.red, 0))
+//plotshape(volUpSignal, title="vol signal", location=location.belowbar, color=color.green, style=shape.triangleup, text="volUp")
+//plotshape(priceUpSignal, title="price signal", location=location.belowbar, color=color.green, style=shape.triangleup, text="priceUp")
+alertcondition(tradeUpSignal, title='DRE VolUp! priceUp?', message='DRE VolUp! priceUp?')
+alertcondition(tradeDownSignal, title='DRE VolUp! priceDown?', message='DRE VolUp! priceDown?')
+
