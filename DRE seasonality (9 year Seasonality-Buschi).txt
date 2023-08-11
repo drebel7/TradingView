@@ -6,7 +6,7 @@ repeat_period_millis = 365 * 24 * 60 * 60 * 1000
 is_in_last_period = time >= timenow - repeat_period_millis
 
 fast_search_n(xs, x) =>  // xs - sorted, ascending
-    len = 2048
+    len = 4096
     size = math.floor(len / 2)
     k = size
     for i = 0 to 15 by 1
@@ -37,12 +37,17 @@ n_5y = find_n_periods_ago(5)
 n_6y = find_n_periods_ago(6)
 n_7y = find_n_periods_ago(7)
 n_8y = find_n_periods_ago(8)
+n_9y = find_n_periods_ago(9)
+n_10y = find_n_periods_ago(10)
+n_11y = find_n_periods_ago(11)
 
 last3y = (close + close[n_1y] + close[n_2y]) / 3
 last6y = (close[n_3y] + close[n_4y] + close[n_5y]) / 3
 last9y = (close[n_6y] + close[n_7y] + close[n_8y]) / 3
+last12y = (close[n_9y] + close[n_10y] + close[n_11y]) / 3
 
-plot(is_in_last_period ? close : na, color=color.new(color.green, 0), linewidth=2, title='current value')
+plot(is_in_last_period ? close : na, color=color.new(color.black, 0), linewidth=2, title='current value')
 plot(is_in_last_period ? last3y : na, color=color.new(#88FF00, 0), linewidth=1, title='last 3 years')
 plot(is_in_last_period ? last6y : na, color=color.new(#FF8800, 0), linewidth=1, title='last 6-3 years back')
-plot(is_in_last_period ? last9y : na, color=color.new(#FF0000, 0), linewidth=1, title='last 9-6 years back')
+plot(is_in_last_period ? last9y : na, color=color.new(#FF4400, 0), linewidth=1, title='last 9-6 years back')
+plot(is_in_last_period ? last12y : na, color=color.new(#FF0000, 0), linewidth=1, title='last 12-9 years back')
