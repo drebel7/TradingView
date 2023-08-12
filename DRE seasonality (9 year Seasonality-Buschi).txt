@@ -48,6 +48,6 @@ last12y = (close[n_9y] + close[n_10y] + close[n_11y]) / 3
 
 plot(is_in_last_period ? close : na, color=color.new(color.black, 0), linewidth=2, title='current value')
 plot(is_in_last_period ? last3y : na, color=color.new(#88FF00, 0), linewidth=1, title='last 3 years')
-plot(is_in_last_period ? last6y : na, color=color.new(#FF8800, 0), linewidth=1, title='last 6-3 years back')
-plot(is_in_last_period ? last9y : na, color=color.new(#FF4400, 0), linewidth=1, title='last 9-6 years back')
-plot(is_in_last_period ? last12y : na, color=color.new(#FF0000, 0), linewidth=1, title='last 12-9 years back')
+plot(is_in_last_period ? last6y : na, color=color.new(#FF8800, 0), linewidth=1, title='6-3 years back')
+plot(is_in_last_period ? last9y : na, color=color.new(#FF4400, 0), linewidth=1, title='9-6 years back')
+plot(is_in_last_period ? last12y : na, color=color.new(#FF0000, 0), linewidth=1, title='12-9 years back')
