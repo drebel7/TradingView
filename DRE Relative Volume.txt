@@ -4,6 +4,7 @@
 //@version=5
 //input
 indicator('DRE Relative Volume', shorttitle='RV', timeframe='D', timeframe_gaps=false)
+iAutoComparativeTickerId = input.bool(true, title='Use auto comparative ticker select', tooltip='For GPW stocks uses GPW_DLY:FW201!, for others')
 iComparativeTickerId = input.symbol('SPX', title='Comparative Symbol', tooltip='Ticker to compare to eg. index (SPX, WIG), sector ETF (URA, XOP, GDX)')
 iLenght = input.int(30, minval=1, title='Period')
 iSmoothingLegth = input.int(3, minval=1, title='Smoothing')
@@ -11,9 +12,24 @@ iPrintVolume = input.bool(true, title='Plot relative volume', tooltip='Uses volu
 iPrintPrice = input.bool(true, title='Plot relative price')
 iVolumeThreshold = input.float(2.0, 'Background colouring volume threshold', minval=0.0, maxval=20.0, step=0.1, tooltip='Background color changes when relative volume > threshold and: yellow when relative price < 1, green when relative price >= 1.')
 
+//check/print it
+getCompareSymbol(orgSymPrefix, orgSymTicker) =>
+	cmpSybol = iComparativeTickerId
+	if (orgSymPrefix == 'GPW_DLY' or orgSymPrefix == 'GPW')
+		cmpSybol := 'GPW_DLY:FW201!'
+    else if (str.contains(orgSymTicker, 'URA'))
+        cmpSybol := 'AMEX:URNM'
+    else if (str.contains(orgSymTicker, 'GOLD'))
+        cmpSybol := 'AMEX:GDX'
+    else if (str.contains(orgSymTicker, 'SILVER'))
+        cmpSybol := 'AMEX:SIL'
+    cmpSybol
+
+cmpSymbol = iAutoComparativeTickerId ? getCompareSymbol(syminfo.prefix, syminfo.ticker) : iComparativeTickerId
+
 // relative volume
 baseSymbolVolMA = ta.ema(request.security(syminfo.tickerid, timeframe.period, volume), 20)
-comparativeSymbolVolMA = ta.ema(request.security(iComparativeTickerId, timeframe.period, volume), 20)
+comparativeSymbolVolMA = ta.ema(request.security(cmpSymbol, timeframe.period, volume), 20)
 float rvSmooth = na
 if iPrintVolume
     rv = baseSymbolVolMA / baseSymbolVolMA[iLenght] / (comparativeSymbolVolMA / comparativeSymbolVolMA[iLenght])
@@ -21,7 +37,7 @@ if iPrintVolume
 
 // relative price
 baseSymbolPrice = request.security(syminfo.tickerid, timeframe.period, close)
-comparativeSymbolPrice = request.security(iComparativeTickerId, timeframe.period, close)
+comparativeSymbolPrice = request.security(cmpSymbol, timeframe.period, close)
 float rpSmooth = na
 if iPrintPrice
     rp = baseSymbolPrice / baseSymbolPrice[iLenght] / (comparativeSymbolPrice / comparativeSymbolPrice[iLenght])
