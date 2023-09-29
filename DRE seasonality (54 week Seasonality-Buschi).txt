@@ -1,0 +1,93 @@
+//@version=5
+indicator(title='DRE Seasonality-Buschi week', shorttitle='DRE Seasonality-Buschi', precision=2, max_bars_back=5000)
+
+repeat_period_millis = 7 * 24 * 60 * 60 * 1000
+
+is_in_last_period = time >= timenow - repeat_period_millis
+
+fast_search_n(xs, x) =>  // xs - sorted, ascending
+    len = 4096
+    size = math.floor(len / 2)
+    k = size
+    for i = 0 to 15 by 1
+        size := math.floor(size / 2)
+        if (x <= xs[k] ? 1 : 0) * (x > xs[k + 1] ? 1 : 0) > 0
+            break
+        if (xs[k] < x ? 1 : 0) + (na(xs[k]) ? 1 : 0) > 0
+            k -= size
+            k
+        else
+            k += size
+            k
+        if size == 0
+            if na(xs[k]) ? 1 : 0 + 1 - (x <= xs[k] ? 1 : 0) * (x > xs[k + 1] ? 1 : 0) > 0
+                k := na
+                k
+            break
+    k
+
+find_n_periods_ago(i) =>
+    fast_search_n(time, time - repeat_period_millis * i)
+
+n_1y = find_n_periods_ago(1)
+n_2y = find_n_periods_ago(2)
+n_3y = find_n_periods_ago(3)
+n_4y = find_n_periods_ago(4)
+n_5y = find_n_periods_ago(5)
+n_6y = find_n_periods_ago(6)
+n_7y = find_n_periods_ago(7)
+n_8y = find_n_periods_ago(8)
+n_9y = find_n_periods_ago(9)
+n_10y = find_n_periods_ago(10)
+n_11y = find_n_periods_ago(11)
+n_12y = find_n_periods_ago(12)
+n_13y = find_n_periods_ago(13)
+n_14y = find_n_periods_ago(14)
+n_15y = find_n_periods_ago(15)
+n_16y = find_n_periods_ago(16)
+n_17y = find_n_periods_ago(17)
+n_18y = find_n_periods_ago(18)
+n_19y = find_n_periods_ago(19)
+n_20y = find_n_periods_ago(20)
+n_21y = find_n_periods_ago(21)
+n_22y = find_n_periods_ago(22)
+n_23y = find_n_periods_ago(23)
+n_24y = find_n_periods_ago(24)
+n_25y = find_n_periods_ago(25)
+n_26y = find_n_periods_ago(26)
+n_27y = find_n_periods_ago(27)
+n_28y = find_n_periods_ago(28)
+n_29y = find_n_periods_ago(29)
+n_30y = find_n_periods_ago(30)
+n_31y = find_n_periods_ago(31)
+n_32y = find_n_periods_ago(32)
+n_33y = find_n_periods_ago(33)
+n_34y = find_n_periods_ago(34)
+n_35y = find_n_periods_ago(35)
+n_36y = find_n_periods_ago(36)
+n_37y = find_n_periods_ago(37)
+n_38y = find_n_periods_ago(38)
+n_39y = find_n_periods_ago(39)
+n_40y = find_n_periods_ago(40)
+n_41y = find_n_periods_ago(41)
+n_42y = find_n_periods_ago(42)
+n_43y = find_n_periods_ago(43)
+n_44y = find_n_periods_ago(44)
+n_45y = find_n_periods_ago(45)
+n_46y = find_n_periods_ago(46)
+n_47y = find_n_periods_ago(47)
+n_48y = find_n_periods_ago(48)
+n_49y = find_n_periods_ago(49)
+n_50y = find_n_periods_ago(50)
+n_51y = find_n_periods_ago(51)
+n_52y = find_n_periods_ago(52)
+n_53y = find_n_periods_ago(53)
+
+close_last54w = (close + close[n_1y] + close[n_2y] + close[n_3y] + close[n_4y] + close[n_5y] + close[n_6y] + close[n_7y] + close[n_8y] + close[n_9y] + close[n_10y] 
+ + close[n_11y] + close[n_12y] + close[n_13y] + close[n_14y] + close[n_15y] + close[n_16y] + close[n_17y] + close[n_18y] + close[n_19y]
+ + close[n_21y] + close[n_22y] + close[n_23y] + close[n_24y] + close[n_25y] + close[n_26y] + close[n_27y] + close[n_28y] + close[n_29y]
+ + close[n_31y] + close[n_32y] + close[n_33y] + close[n_34y] + close[n_35y] + close[n_36y] + close[n_37y] + close[n_38y] + close[n_39y]
+ + close[n_41y] + close[n_42y] + close[n_43y] + close[n_44y] + close[n_45y] + close[n_46y] + close[n_47y] + close[n_48y] + close[n_49y]
+ + close[n_51y] + close[n_52y] + close[n_53y] ) / 54
+
+plot(is_in_last_period ? close_last54w : na, color=color.new(color.purple, 0), linewidth=2, title='all 12 years back')
