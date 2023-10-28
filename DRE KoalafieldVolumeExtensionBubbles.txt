@@ -28,6 +28,7 @@ bubble_size_labels = input.bool(false, "Bubble size labels", group = GRP1)
 var GRP2 = "COLOR SELECTION"
 _colup_ext = input.color(color.green, "Bull Extension", group = GRP2)
 _coldown_ext = input.color(color.red, "Bear Extension", group = GRP2)
+_col0_ext = input.color(color.gray, "Even Extension", group = GRP2)
 trans_circles = input.int(85, "Volume Bubble Transparency", group = GRP2)
 
 
@@ -35,15 +36,17 @@ trans_circles = input.int(85, "Volume Bubble Transparency", group = GRP2)
 // ---------- CALCS ---------- //
 src = volume
 vol = Z_score(src, len, MA_sel) 
-extension_1 = vol > deviation_start + 0 * deviation_delta and vol < deviation_start + 1 * deviation_delta 
-extension_2 = vol > deviation_start + 1 * deviation_delta and vol < deviation_start + 2 * deviation_delta 
-extension_3 = vol > deviation_start + 2 * deviation_delta and vol < deviation_start + 3 * deviation_delta 
-extension_4 = vol > deviation_start + 3 * deviation_delta and vol
+extension_1 = vol > (deviation_start + 0 * deviation_delta) and vol <= (deviation_start + 1 * deviation_delta)
+extension_2 = vol > (deviation_start + 1 * deviation_delta) and vol <= (deviation_start + 2 * deviation_delta)
+extension_3 = vol > (deviation_start + 2 * deviation_delta) and vol <= (deviation_start + 3 * deviation_delta)
+extension_4 = vol > (deviation_start + 3 * deviation_delta)
 bull = close > open
 bear = close < open
+zero = close == open
 
 _devUp = (extension_1 or extension_2 or extension_3 or extension_4) and bull
 _devDown = (extension_1 or extension_2 or extension_3 or extension_4) and bear
+_devZero = (extension_1 or extension_2 or extension_3 or extension_4) and zero
 
 _bubble_text = bubble_size_labels ? str.tostring(vol, "#.#") : ""
 
@@ -59,12 +62,12 @@ circ_size = extension_1 ? size.tiny : extension_2 ? size.small : extension_3 ? s
 
 if _devUp
     dn1 = label.new(bar_index[offset_circles ? count : 0], ((open + close) / 2), text = _bubble_text, color = color.new(_colup_ext, trans_circles), style = label.style_circle, size = circ_size)
-if _devDown
+else if _devDown
     dn1 = label.new(bar_index[offset_circles ? count : 0], ((open + close) / 2), text = _bubble_text, color = color.new(_coldown_ext, trans_circles), style = label.style_circle, size = circ_size)
-
+else if _devZero
+    dn1 = label.new(bar_index[offset_circles ? count : 0], ((open + close) / 2), text = _bubble_text, color = color.new(_col0_ext, trans_circles), style = label.style_circle, size = circ_size)
 
 // ---------- Alerts ---------- //
 
-ext_alert = _devUp or _devDown
+ext_alert = _devUp or _devDown or _devZero
 alertcondition(ext_alert, "Volume Extension Alert",  "VOL EXT")
-
