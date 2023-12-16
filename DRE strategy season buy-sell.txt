@@ -2,15 +2,16 @@
 // © drebel
 
 //@version=5
+//v=16.0
 strategy("DRE season buy-sell", overlay=true, margin_long=100, margin_short=100)
-iTimeBuy = input.time(timestamp("2022-01-01"), "Annual buy date")
-iTimeSell = input.time(timestamp("2022-02-01"), "Annual sell date")
+iTimeBuy = input.time(timestamp("2022-01-01"), "Annual buy date (year ignored)")
+iTimeSell = input.time(timestamp("2022-02-01"), "Annual sell date (year ignored)")
 
 week = weekofyear(time(timeframe.period))
 day = dayofweek(time(timeframe.period))
 
-if(strategy.opentrades == 0 and week == weekofyear(iTimeBuy) and (day == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy)[1] or day == dayofweek(iTimeBuy)[2] or day == dayofweek(iTimeBuy)[3]))
+if(strategy.opentrades == 0 and week == weekofyear(iTimeBuy) and (day[1] == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy)[1]))
     strategy.entry("long", strategy.long)
 
-if(strategy.opentrades > 0 and week == weekofyear(iTimeSell) and (day == dayofweek(iTimeSell) or day == dayofweek(iTimeSell)[1] or day == dayofweek(iTimeSell)[2] or day == dayofweek(iTimeSell)[3]))
+if(strategy.opentrades > 0 and week == weekofyear(iTimeSell) and (day[1] == dayofweek(iTimeSell) or day == dayofweek(iTimeSell) or day == dayofweek(iTimeSell)[1]))
     strategy.close_all()
