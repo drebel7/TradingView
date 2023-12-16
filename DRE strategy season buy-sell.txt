@@ -2,15 +2,16 @@
 // © drebel
 
 //@version=5
-//v=16.0
-strategy("DRE season buy-sell", overlay=true, margin_long=100, margin_short=100)
-iTimeBuy = input.time(timestamp("2022-01-01"), "Annual buy date (year ignored)")
-iTimeSell = input.time(timestamp("2022-02-01"), "Annual sell date (year ignored)")
+//v26.0
+strategy("DRE season buy-sell", overlay=true, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=100, margin_short=100)
+iTimeBuy = input.time(timestamp("2022-01-01 15:00"), "Annual buy date (year ignored)")
+iTimeSell = input.time(timestamp("2022-02-01 15:00"), "Annual sell date (year ignored)")
+iYearsBack = input.int(12, "Number of years back used in calculations")
 
 week = weekofyear(time(timeframe.period))
 day = dayofweek(time(timeframe.period))
 
-if(strategy.opentrades == 0 and week == weekofyear(iTimeBuy) and (day[1] == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy)[1]))
+if(year >= year(timenow)-iYearsBack and strategy.opentrades == 0 and week == weekofyear(iTimeBuy) and (day[1] == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy)[1]))
     strategy.entry("long", strategy.long)
 
 if(strategy.opentrades > 0 and week == weekofyear(iTimeSell) and (day[1] == dayofweek(iTimeSell) or day == dayofweek(iTimeSell) or day == dayofweek(iTimeSell)[1]))
