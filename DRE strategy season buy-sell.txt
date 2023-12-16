@@ -1,0 +1,16 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+strategy("DRE season buy-sell", overlay=true, margin_long=100, margin_short=100)
+iTimeBuy = input.time(timestamp("2022-01-01"), "Annual buy date")
+iTimeSell = input.time(timestamp("2022-02-01"), "Annual sell date")
+
+week = weekofyear(time(timeframe.period))
+day = dayofweek(time(timeframe.period))
+
+if(strategy.opentrades == 0 and week == weekofyear(iTimeBuy) and (day == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy)[1] or day == dayofweek(iTimeBuy)[2] or day == dayofweek(iTimeBuy)[3]))
+    strategy.entry("long", strategy.long)
+
+if(strategy.opentrades > 0 and week == weekofyear(iTimeSell) and (day == dayofweek(iTimeSell) or day == dayofweek(iTimeSell)[1] or day == dayofweek(iTimeSell)[2] or day == dayofweek(iTimeSell)[3]))
+    strategy.close_all()
