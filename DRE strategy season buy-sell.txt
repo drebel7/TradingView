@@ -2,17 +2,57 @@
 // © drebel
 
 //@version=5
-//v26.0
+//v39.0
+//TODO: poprawic problem rozjazdem dat w przelomie miesiaca i roku
 strategy("DRE season buy-sell", overlay=true, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=100, margin_short=100)
-iTimeBuy = input.time(timestamp("2022-01-01 15:00"), "Annual buy date (year ignored)")
-iTimeSell = input.time(timestamp("2022-02-01 15:00"), "Annual sell date (year ignored)")
+iTimeBuy = input.time(timestamp("2022-01-03 12:00"), "Annual buy date (year ignored)")
+iTimeSell = input.time(timestamp("2022-02-03 12:00"), "Annual sell date (year ignored)")
 iYearsBack = input.int(12, "Number of years back used in calculations")
 
+mnth = month(time(timeframe.period))
+mnthDay = dayofmonth(time(timeframe.period))
 week = weekofyear(time(timeframe.period))
-day = dayofweek(time(timeframe.period))
+weekDay = dayofweek(time(timeframe.period))
 
-if(year >= year(timenow)-iYearsBack and strategy.opentrades == 0 and week == weekofyear(iTimeBuy) and (day[1] == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy) or day == dayofweek(iTimeBuy)[1]))
+initialBuyCondition = year >= year(timenow)-iYearsBack and strategy.opentrades == 0
+initialSellCondition = strategy.opentrades > 0
+
+//buy: exact week-day
+if(initialBuyCondition and week == weekofyear(iTimeBuy) and weekDay == dayofweek(iTimeBuy))
+    strategy.entry("long", strategy.long)
+//buy: exact week-day +- 1 day
+if(initialBuyCondition and week == weekofyear(iTimeBuy) and (weekDay[1] == dayofweek(iTimeBuy) or weekDay == dayofweek(iTimeBuy)[1]))
+    strategy.entry("long", strategy.long)
+//buy: exact week-day +- 2 day
+if(initialBuyCondition and week == weekofyear(iTimeBuy) and (weekDay[2] == dayofweek(iTimeBuy) or weekDay == dayofweek(iTimeBuy)[2]))
+    strategy.entry("long", strategy.long)
+//buy: exact month-day
+if(initialBuyCondition and mnth == month(iTimeBuy) and mnthDay == dayofmonth(iTimeBuy))
+    strategy.entry("long", strategy.long)
+//buy: exact month-day +-1
+if(initialBuyCondition and mnth == month(iTimeBuy) and (mnthDay[1] == dayofmonth(iTimeBuy) or mnthDay == dayofmonth(iTimeBuy)[1]))
+    strategy.entry("long", strategy.long)
+//buy: exact month-day +-2
+if(initialBuyCondition and mnth == month(iTimeBuy) and (mnthDay[2] == dayofmonth(iTimeBuy) or mnthDay == dayofmonth(iTimeBuy)[2]))
     strategy.entry("long", strategy.long)
 
-if(strategy.opentrades > 0 and week == weekofyear(iTimeSell) and (day[1] == dayofweek(iTimeSell) or day == dayofweek(iTimeSell) or day == dayofweek(iTimeSell)[1]))
+
+//sell: exact week-day
+if(initialSellCondition and week == weekofyear(iTimeSell) and weekDay == dayofweek(iTimeSell))
     strategy.close_all()
+//sell: exact week-day +- 1 day
+if(initialSellCondition and week == weekofyear(iTimeSell) and (weekDay[1] == dayofweek(iTimeSell) or weekDay == dayofweek(iTimeSell)[1]))
+    strategy.close_all()
+//sell: exact week-day +- 2 day
+if(initialSellCondition and week == weekofyear(iTimeSell) and (weekDay[2] == dayofweek(iTimeSell) or weekDay == dayofweek(iTimeSell)[2]))
+    strategy.close_all()
+//sell: exact month-day 
+if(initialSellCondition and mnth == month(iTimeSell) and mnthDay == dayofmonth(iTimeSell))
+    strategy.close_all()
+//sell: exact month-day +-1
+if(initialSellCondition and mnth == month(iTimeSell) and (mnthDay[1] == dayofmonth(iTimeSell) or mnthDay == dayofmonth(iTimeSell)[1]))
+    strategy.close_all()
+//sell: exact month-day +-2
+if(initialSellCondition and mnth == month(iTimeSell) and (mnthDay[2] == dayofmonth(iTimeSell) or mnthDay == dayofmonth(iTimeSell)[2]))
+    strategy.close_all()
+
