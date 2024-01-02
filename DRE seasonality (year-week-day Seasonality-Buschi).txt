@@ -212,7 +212,7 @@ is_in_last_period_m = time >= timenow - daysInMnth * repeat_period_millis
 is_in_last_period_w = time >= timenow - daysInWeek * repeat_period_millis
 is_in_last_period_d = time >= timenow - repeat_period_millis
 
-plot(iYear and (not iOnlyLastPeriod or is_in_last_period_y) ? close_last20y : na, color=color.new(color.black, 0), linewidth=2, title='20 years back')
-plot(iMnth and (not iOnlyLastPeriod or is_in_last_period_m) ? close_last24m : na, color=color.new(color.green, 0), linewidth=2, title='24 month back')
-plot(iWeek and (not iOnlyLastPeriod or is_in_last_period_w) ? close_last54w : na, color=color.new(color.blue, 0), linewidth=2, title='54 weeks back')
-plot(iDay and (not iOnlyLastPeriod or is_in_last_period_d) ? close_last54d : na, color=color.new(color.red, 0), linewidth=1, title='54 days back')
+plot(iYear and (not iOnlyLastPeriod or is_in_last_period_y) ? close_last20y : na, color=is_in_last_period_y ? color.new(color.black, 0) : color.new(color.black, 50), linewidth=2, title='20 years back')
+plot(iMnth and (not iOnlyLastPeriod or is_in_last_period_m) ? close_last24m : na, color=is_in_last_period_m ? color.new(color.green, 0) : color.new(color.green, 50), linewidth=2, title='24 month back')
+plot(iWeek and (not iOnlyLastPeriod or is_in_last_period_w) ? close_last54w : na, color=is_in_last_period_w ? color.new(color.blue, 0) : color.new(color.blue, 50), linewidth=2, title='54 weeks back')
+plot(iDay and (not iOnlyLastPeriod or is_in_last_period_d) ? close_last54d : na, color=is_in_last_period_d ? color.new(color.red, 0) : color.new(color.red, 50), linewidth=1, title='54 days back')
