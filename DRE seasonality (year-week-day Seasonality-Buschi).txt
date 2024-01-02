@@ -1,10 +1,11 @@
 //@version=5
 indicator(title='DRE Seasonality-Buschi year-week-day', shorttitle='DRE Seasonality-Buschi ywd', precision=2, max_bars_back=5000)
 
-iYear = input.bool(true, "year", group = GRP1)
-iMnth = input.bool(false, "month", group = GRP1)
-iWeek = input.bool(false, "week", group = GRP1)
-iDay = input.bool(false, "day", group = GRP1)
+iYear = input.bool(true, "year", group = "GRP1")
+iMnth = input.bool(false, "month", group = "GRP1")
+iWeek = input.bool(false, "week", group = "GRP1")
+iDay = input.bool(false, "day", group = "GRP1")
+iOnlyLastPeriod = input.bool(true, "Draw only last period")
 
 repeat_period_millis = 1 * 24 * 60 * 60 * 1000
 
@@ -190,9 +191,7 @@ n_53d = find_n_periods_ago(53)
 close_last20y = (close + close[n_1y] + close[n_2y] + close[n_3y] + close[n_4y] + close[n_5y] + close[n_6y] + close[n_7y] + close[n_8y] + close[n_9y] + close[n_10y] 
  + close[n_11y] + close[n_12y] + close[n_13y] + close[n_14y] + close[n_15y] + close[n_16y] + close[n_17y] + close[n_18y] + close[n_19y] ) / 20
 
-close_last24m = (close + close[n_1m] + close[n_2m] + close[n_3m] + close[n_4m] + close[n_5m] + close[n_6m] + close[n_7m] + close[n_8m] + close[n_9m] + close[n_10m] 
-+ close[n_11m] + close[n_12m] + close[n_13m] + close[n_14m] + close[n_15m] + close[n_16m] + close[n_17m] + close[n_18m] + close[n_19m] + close[n_20m]
-+ close[n_21m] + close[n_22m] + close[n_23m] ) / 24
+close_last24m = (close + close[n_1m] + close[n_2m] + close[n_3m] + close[n_4m] + close[n_5m] + close[n_6m] + close[n_7m] + close[n_8m] + close[n_9m] + close[n_10m] + close[n_11m] + close[n_12m] + close[n_13m] + close[n_14m] + close[n_15m] + close[n_16m] + close[n_17m] + close[n_18m] + close[n_19m] + close[n_20m] + close[n_21m] + close[n_22m] + close[n_23m] ) / 24
 
 close_last54w = (close + close[n_1w] + close[n_2w] + close[n_3w] + close[n_4w] + close[n_5w] + close[n_6w] + close[n_7w] + close[n_8w] + close[n_9w] + close[n_10w] 
  + close[n_11w] + close[n_12w] + close[n_13w] + close[n_14w] + close[n_15w] + close[n_16w] + close[n_17w] + close[n_18w] + close[n_19w]
@@ -213,7 +212,7 @@ is_in_last_period_m = time >= timenow - daysInMnth * repeat_period_millis
 is_in_last_period_w = time >= timenow - daysInWeek * repeat_period_millis
 is_in_last_period_d = time >= timenow - repeat_period_millis
 
-plot(iYear AND is_in_last_period_y ? close_last20y : na, color=color.new(color.black, 0), linewidth=2, title='20 years back')
-plot(iMnth AND is_in_last_period_m ? close_last24m : na, color=color.new(color.green, 0), linewidth=2, title='24 month back')
-plot(iWeek AND is_in_last_period_w ? close_last54w : na, color=color.new(color.blue, 0), linewidth=2, title='54 weeks back')
-plot(iDay AND is_in_last_period_d ? close_last54d : na, color=color.new(color.red, 0), linewidth=1, title='54 days back')
+plot(iYear and (not iOnlyLastPeriod or is_in_last_period_y) ? close_last20y : na, color=color.new(color.black, 0), linewidth=2, title='20 years back')
+plot(iMnth and (not iOnlyLastPeriod or is_in_last_period_m) ? close_last24m : na, color=color.new(color.green, 0), linewidth=2, title='24 month back')
+plot(iWeek and (not iOnlyLastPeriod or is_in_last_period_w) ? close_last54w : na, color=color.new(color.blue, 0), linewidth=2, title='54 weeks back')
+plot(iDay and (not iOnlyLastPeriod or is_in_last_period_d) ? close_last54d : na, color=color.new(color.red, 0), linewidth=1, title='54 days back')
