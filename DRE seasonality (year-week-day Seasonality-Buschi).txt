@@ -1,6 +1,7 @@
 //@version=5
 indicator(title='DRE Seasonality-Buschi year-week-day', shorttitle='DRE Seasonality-Buschi ywd', precision=2, max_bars_back=5000)
 
+iNumberOfPeriods = input.int(12, "Number of periods", maxval = 24)
 iYear = input.bool(true, "year", group = "GRP1")
 iMnth = input.bool(false, "month", group = "GRP1")
 iWeek = input.bool(false, "week", group = "GRP1")
@@ -34,178 +35,117 @@ find_n_periods_ago(i) =>
     fast_search_n(time, time - repeat_period_millis * i)
 
 daysInYear = 365
-n_1y = find_n_periods_ago(daysInYear * 1)
-n_2y = find_n_periods_ago(daysInYear * 2)
-n_3y = find_n_periods_ago(daysInYear * 3)
-n_4y = find_n_periods_ago(daysInYear * 4)
-n_5y = find_n_periods_ago(daysInYear * 5)
-n_6y = find_n_periods_ago(daysInYear * 6)
-n_7y = find_n_periods_ago(daysInYear * 7)
-n_8y = find_n_periods_ago(daysInYear * 8)
-n_9y = find_n_periods_ago(daysInYear * 9)
-n_10y = find_n_periods_ago(daysInYear * 10)
-n_11y = find_n_periods_ago(daysInYear * 11)
-n_12y = find_n_periods_ago(daysInYear * 12)
-n_13y = find_n_periods_ago(daysInYear * 13)
-n_14y = find_n_periods_ago(daysInYear * 14)
-n_15y = find_n_periods_ago(daysInYear * 15)
-n_16y = find_n_periods_ago(daysInYear * 16)
-n_17y = find_n_periods_ago(daysInYear * 17)
-n_18y = find_n_periods_ago(daysInYear * 18)
-n_19y = find_n_periods_ago(daysInYear * 19)
+n_1y = iNumberOfPeriods >= 1 ? find_n_periods_ago(daysInYear * 1) : na
+n_2y = iNumberOfPeriods >= 2 ? find_n_periods_ago(daysInYear * 2) : na
+n_3y = iNumberOfPeriods >= 3 ? find_n_periods_ago(daysInYear * 3) : na
+n_4y = iNumberOfPeriods >= 4 ? find_n_periods_ago(daysInYear * 4) : na
+n_5y = iNumberOfPeriods >= 5 ? find_n_periods_ago(daysInYear * 5) : na
+n_6y = iNumberOfPeriods >= 6 ? find_n_periods_ago(daysInYear * 6) : na
+n_7y = iNumberOfPeriods >= 7 ? find_n_periods_ago(daysInYear * 7) : na
+n_8y = iNumberOfPeriods >= 8 ? find_n_periods_ago(daysInYear * 8) : na
+n_9y = iNumberOfPeriods >= 9 ? find_n_periods_ago(daysInYear * 9) : na
+n_10y = iNumberOfPeriods >= 10 ? find_n_periods_ago(daysInYear * 10) : na
+n_11y = iNumberOfPeriods >= 11 ? find_n_periods_ago(daysInYear * 11) : na
+n_12y = iNumberOfPeriods >= 12 ? find_n_periods_ago(daysInYear * 12) : na
+n_13y = iNumberOfPeriods >= 13 ? find_n_periods_ago(daysInYear * 13) : na
+n_14y = iNumberOfPeriods >= 14 ? find_n_periods_ago(daysInYear * 14) : na
+n_15y = iNumberOfPeriods >= 15 ? find_n_periods_ago(daysInYear * 15) : na
+n_16y = iNumberOfPeriods >= 16 ? find_n_periods_ago(daysInYear * 16) : na
+n_17y = iNumberOfPeriods >= 17 ? find_n_periods_ago(daysInYear * 17) : na
+n_18y = iNumberOfPeriods >= 18 ? find_n_periods_ago(daysInYear * 18) : na
+n_19y = iNumberOfPeriods >= 19 ? find_n_periods_ago(daysInYear * 19) : na
+n_20y = iNumberOfPeriods >= 20 ? find_n_periods_ago(daysInYear * 20) : na
+n_21y = iNumberOfPeriods >= 21 ? find_n_periods_ago(daysInYear * 21) : na
+n_22y = iNumberOfPeriods >= 22 ? find_n_periods_ago(daysInYear * 22) : na
+n_23y = iNumberOfPeriods >= 23 ? find_n_periods_ago(daysInYear * 23) : na
 
 daysInMnth = 30
-n_1m = find_n_periods_ago(daysInMnth * 1)
-n_2m = find_n_periods_ago(daysInMnth * 2)
-n_3m = find_n_periods_ago(daysInMnth * 3)
-n_4m = find_n_periods_ago(daysInMnth * 4)
-n_5m = find_n_periods_ago(daysInMnth * 5)
-n_6m = find_n_periods_ago(daysInMnth * 6)
-n_7m = find_n_periods_ago(daysInMnth * 7)
-n_8m = find_n_periods_ago(daysInMnth * 8)
-n_9m = find_n_periods_ago(daysInMnth * 9)
-n_10m = find_n_periods_ago(daysInMnth * 10)
-n_11m = find_n_periods_ago(daysInMnth * 11)
-n_12m = find_n_periods_ago(daysInMnth * 12)
-n_13m = find_n_periods_ago(daysInMnth * 13)
-n_14m = find_n_periods_ago(daysInMnth * 14)
-n_15m = find_n_periods_ago(daysInMnth * 15)
-n_16m = find_n_periods_ago(daysInMnth * 16)
-n_17m = find_n_periods_ago(daysInMnth * 17)
-n_18m = find_n_periods_ago(daysInMnth * 18)
-n_19m = find_n_periods_ago(daysInMnth * 19)
-n_20m = find_n_periods_ago(daysInMnth * 20)
-n_21m = find_n_periods_ago(daysInMnth * 21)
-n_22m = find_n_periods_ago(daysInMnth * 22)
-n_23m = find_n_periods_ago(daysInMnth * 23)
+n_1m = iNumberOfPeriods >= 1 ? find_n_periods_ago(daysInMnth * 1) : na
+n_2m = iNumberOfPeriods >= 2 ? find_n_periods_ago(daysInMnth * 2) : na
+n_3m = iNumberOfPeriods >= 3 ? find_n_periods_ago(daysInMnth * 3) : na
+n_4m = iNumberOfPeriods >= 4 ? find_n_periods_ago(daysInMnth * 4) : na
+n_5m = iNumberOfPeriods >= 5 ? find_n_periods_ago(daysInMnth * 5) : na
+n_6m = iNumberOfPeriods >= 6 ? find_n_periods_ago(daysInMnth * 6) : na
+n_7m = iNumberOfPeriods >= 7 ? find_n_periods_ago(daysInMnth * 7) : na
+n_8m = iNumberOfPeriods >= 8 ? find_n_periods_ago(daysInMnth * 8) : na
+n_9m = iNumberOfPeriods >= 9 ? find_n_periods_ago(daysInMnth * 9) : na
+n_10m = iNumberOfPeriods >= 10 ? find_n_periods_ago(daysInMnth * 10) : na
+n_11m = iNumberOfPeriods >= 11 ? find_n_periods_ago(daysInMnth * 11) : na
+n_12m = iNumberOfPeriods >= 12 ? find_n_periods_ago(daysInMnth * 12) : na
+n_13m = iNumberOfPeriods >= 13 ? find_n_periods_ago(daysInMnth * 13) : na
+n_14m = iNumberOfPeriods >= 14 ? find_n_periods_ago(daysInMnth * 14) : na
+n_15m = iNumberOfPeriods >= 15 ? find_n_periods_ago(daysInMnth * 15) : na
+n_16m = iNumberOfPeriods >= 16 ? find_n_periods_ago(daysInMnth * 16) : na
+n_17m = iNumberOfPeriods >= 17 ? find_n_periods_ago(daysInMnth * 17) : na
+n_18m = iNumberOfPeriods >= 18 ? find_n_periods_ago(daysInMnth * 18) : na
+n_19m = iNumberOfPeriods >= 19 ? find_n_periods_ago(daysInMnth * 19) : na
+n_20m = iNumberOfPeriods >= 20 ? find_n_periods_ago(daysInMnth * 20) : na
+n_21m = iNumberOfPeriods >= 21 ? find_n_periods_ago(daysInMnth * 21) : na
+n_22m = iNumberOfPeriods >= 22 ? find_n_periods_ago(daysInMnth * 22) : na
+n_23m = iNumberOfPeriods >= 23 ? find_n_periods_ago(daysInMnth * 23) : na
 
 daysInWeek = 7
-n_1w = find_n_periods_ago(daysInWeek * 1)
-n_2w = find_n_periods_ago(daysInWeek * 2)
-n_3w = find_n_periods_ago(daysInWeek * 3)
-n_4w = find_n_periods_ago(daysInWeek * 4)
-n_5w = find_n_periods_ago(daysInWeek * 5)
-n_6w = find_n_periods_ago(daysInWeek * 6)
-n_7w = find_n_periods_ago(daysInWeek * 7)
-n_8w = find_n_periods_ago(daysInWeek * 8)
-n_9w = find_n_periods_ago(daysInWeek * 9)
-n_10w = find_n_periods_ago(daysInWeek * 10)
-n_11w = find_n_periods_ago(daysInWeek * 11)
-n_12w = find_n_periods_ago(daysInWeek * 12)
-n_13w = find_n_periods_ago(daysInWeek * 13)
-n_14w = find_n_periods_ago(daysInWeek * 14)
-n_15w = find_n_periods_ago(daysInWeek * 15)
-n_16w = find_n_periods_ago(daysInWeek * 16)
-n_17w = find_n_periods_ago(daysInWeek * 17)
-n_18w = find_n_periods_ago(daysInWeek * 18)
-n_19w = find_n_periods_ago(daysInWeek * 19)
-n_20w = find_n_periods_ago(daysInWeek * 20)
-n_21w = find_n_periods_ago(daysInWeek * 21)
-n_22w = find_n_periods_ago(daysInWeek * 22)
-n_23w = find_n_periods_ago(daysInWeek * 23)
-n_24w = find_n_periods_ago(daysInWeek * 24)
-n_25w = find_n_periods_ago(daysInWeek * 25)
-n_26w = find_n_periods_ago(daysInWeek * 26)
-n_27w = find_n_periods_ago(daysInWeek * 27)
-n_28w = find_n_periods_ago(daysInWeek * 28)
-n_29w = find_n_periods_ago(daysInWeek * 29)
-n_30w = find_n_periods_ago(daysInWeek * 30)
-n_31w = find_n_periods_ago(daysInWeek * 31)
-n_32w = find_n_periods_ago(daysInWeek * 32)
-n_33w = find_n_periods_ago(daysInWeek * 33)
-n_34w = find_n_periods_ago(daysInWeek * 34)
-n_35w = find_n_periods_ago(daysInWeek * 35)
-n_36w = find_n_periods_ago(daysInWeek * 36)
-n_37w = find_n_periods_ago(daysInWeek * 37)
-n_38w = find_n_periods_ago(daysInWeek * 38)
-n_39w = find_n_periods_ago(daysInWeek * 39)
-n_40w = find_n_periods_ago(daysInWeek * 40)
-n_41w = find_n_periods_ago(daysInWeek * 41)
-n_42w = find_n_periods_ago(daysInWeek * 42)
-n_43w = find_n_periods_ago(daysInWeek * 43)
-n_44w = find_n_periods_ago(daysInWeek * 44)
-n_45w = find_n_periods_ago(daysInWeek * 45)
-n_46w = find_n_periods_ago(daysInWeek * 46)
-n_47w = find_n_periods_ago(daysInWeek * 47)
-n_48w = find_n_periods_ago(daysInWeek * 48)
-n_49w = find_n_periods_ago(daysInWeek * 49)
-n_50w = find_n_periods_ago(daysInWeek * 50)
-n_51w = find_n_periods_ago(daysInWeek * 51)
-n_52w = find_n_periods_ago(daysInWeek * 52)
-n_53w = find_n_periods_ago(daysInWeek * 53)
+n_1w = iNumberOfPeriods >= 1 ? find_n_periods_ago(daysInWeek * 1) : na
+n_2w = iNumberOfPeriods >= 2 ? find_n_periods_ago(daysInWeek * 2) : na
+n_3w = iNumberOfPeriods >= 3 ? find_n_periods_ago(daysInWeek * 3) : na
+n_4w = iNumberOfPeriods >= 4 ? find_n_periods_ago(daysInWeek * 4) : na
+n_5w = iNumberOfPeriods >= 5 ? find_n_periods_ago(daysInWeek * 5) : na
+n_6w = iNumberOfPeriods >= 6 ? find_n_periods_ago(daysInWeek * 6) : na
+n_7w = iNumberOfPeriods >= 7 ? find_n_periods_ago(daysInWeek * 7) : na
+n_8w = iNumberOfPeriods >= 8 ? find_n_periods_ago(daysInWeek * 8) : na
+n_9w = iNumberOfPeriods >= 9 ? find_n_periods_ago(daysInWeek * 9) : na
+n_10w = iNumberOfPeriods >= 10 ? find_n_periods_ago(daysInWeek * 10) : na
+n_11w = iNumberOfPeriods >= 11 ? find_n_periods_ago(daysInWeek * 11) : na
+n_12w = iNumberOfPeriods >= 12 ? find_n_periods_ago(daysInWeek * 12) : na
+n_13w = iNumberOfPeriods >= 13 ? find_n_periods_ago(daysInWeek * 13) : na
+n_14w = iNumberOfPeriods >= 14 ? find_n_periods_ago(daysInWeek * 14) : na
+n_15w = iNumberOfPeriods >= 15 ? find_n_periods_ago(daysInWeek * 15) : na
+n_16w = iNumberOfPeriods >= 16 ? find_n_periods_ago(daysInWeek * 16) : na
+n_17w = iNumberOfPeriods >= 17 ? find_n_periods_ago(daysInWeek * 17) : na
+n_18w = iNumberOfPeriods >= 18 ? find_n_periods_ago(daysInWeek * 18) : na
+n_19w = iNumberOfPeriods >= 19 ? find_n_periods_ago(daysInWeek * 19) : na
+n_20w = iNumberOfPeriods >= 20 ? find_n_periods_ago(daysInWeek * 20) : na
+n_21w = iNumberOfPeriods >= 21 ? find_n_periods_ago(daysInWeek * 21) : na
+n_22w = iNumberOfPeriods >= 22 ? find_n_periods_ago(daysInWeek * 22) : na
+n_23w = iNumberOfPeriods >= 23 ? find_n_periods_ago(daysInWeek * 23) : na
 
-n_1d = find_n_periods_ago(1)
-n_2d = find_n_periods_ago(2)
-n_3d = find_n_periods_ago(3)
-n_4d = find_n_periods_ago(4)
-n_5d = find_n_periods_ago(5)
-n_6d = find_n_periods_ago(6)
-n_7d = find_n_periods_ago(7)
-n_8d = find_n_periods_ago(8)
-n_9d = find_n_periods_ago(9)
-n_10d = find_n_periods_ago(10)
-n_11d = find_n_periods_ago(11)
-n_12d = find_n_periods_ago(12)
-n_13d = find_n_periods_ago(13)
-n_14d = find_n_periods_ago(14)
-n_15d = find_n_periods_ago(15)
-n_16d = find_n_periods_ago(16)
-n_17d = find_n_periods_ago(17)
-n_18d = find_n_periods_ago(18)
-n_19d = find_n_periods_ago(19)
-n_20d = find_n_periods_ago(20)
-n_21d = find_n_periods_ago(21)
-n_22d = find_n_periods_ago(22)
-n_23d = find_n_periods_ago(23)
-n_24d = find_n_periods_ago(24)
-n_25d = find_n_periods_ago(25)
-n_26d = find_n_periods_ago(26)
-n_27d = find_n_periods_ago(27)
-n_28d = find_n_periods_ago(28)
-n_29d = find_n_periods_ago(29)
-n_30d = find_n_periods_ago(30)
-n_31d = find_n_periods_ago(31)
-n_32d = find_n_periods_ago(32)
-n_33d = find_n_periods_ago(33)
-n_34d = find_n_periods_ago(34)
-n_35d = find_n_periods_ago(35)
-n_36d = find_n_periods_ago(36)
-n_37d = find_n_periods_ago(37)
-n_38d = find_n_periods_ago(38)
-n_39d = find_n_periods_ago(39)
-n_40d = find_n_periods_ago(40)
-n_41d = find_n_periods_ago(41)
-n_42d = find_n_periods_ago(42)
-n_43d = find_n_periods_ago(43)
-n_44d = find_n_periods_ago(44)
-n_45d = find_n_periods_ago(45)
-n_46d = find_n_periods_ago(46)
-n_47d = find_n_periods_ago(47)
-n_48d = find_n_periods_ago(48)
-n_49d = find_n_periods_ago(49)
-n_50d = find_n_periods_ago(50)
-n_51d = find_n_periods_ago(51)
-n_52d = find_n_periods_ago(52)
-n_53d = find_n_periods_ago(53)
 
-close_last20y = (close + close[n_1y] + close[n_2y] + close[n_3y] + close[n_4y] + close[n_5y] + close[n_6y] + close[n_7y] + close[n_8y] + close[n_9y] + close[n_10y] 
- + close[n_11y] + close[n_12y] + close[n_13y] + close[n_14y] + close[n_15y] + close[n_16y] + close[n_17y] + close[n_18y] + close[n_19y] ) / 20
+n_1d = iNumberOfPeriods >= 1 ? find_n_periods_ago(1) : na
+n_2d = iNumberOfPeriods >= 2 ? find_n_periods_ago(2) : na
+n_3d = iNumberOfPeriods >= 3 ? find_n_periods_ago(3) : na
+n_4d = iNumberOfPeriods >= 4 ? find_n_periods_ago(4) : na
+n_5d = iNumberOfPeriods >= 5 ? find_n_periods_ago(5) : na
+n_6d = iNumberOfPeriods >= 6 ? find_n_periods_ago(6) : na
+n_7d = iNumberOfPeriods >= 7 ? find_n_periods_ago(7) : na
+n_8d = iNumberOfPeriods >= 8 ? find_n_periods_ago(8) : na
+n_9d = iNumberOfPeriods >= 9 ? find_n_periods_ago(9) : na
+n_10d = iNumberOfPeriods >= 10 ? find_n_periods_ago(10) : na
+n_11d = iNumberOfPeriods >= 11 ? find_n_periods_ago(11) : na
+n_12d = iNumberOfPeriods >= 12 ? find_n_periods_ago(12) : na
+n_13d = iNumberOfPeriods >= 13 ? find_n_periods_ago(13) : na
+n_14d = iNumberOfPeriods >= 14 ? find_n_periods_ago(14) : na
+n_15d = iNumberOfPeriods >= 15 ? find_n_periods_ago(15) : na
+n_16d = iNumberOfPeriods >= 16 ? find_n_periods_ago(16) : na
+n_17d = iNumberOfPeriods >= 17 ? find_n_periods_ago(17) : na
+n_18d = iNumberOfPeriods >= 18 ? find_n_periods_ago(18) : na
+n_19d = iNumberOfPeriods >= 19 ? find_n_periods_ago(19) : na
+n_20d = iNumberOfPeriods >= 20 ? find_n_periods_ago(20) : na
+n_21d = iNumberOfPeriods >= 21 ? find_n_periods_ago(21) : na
+n_22d = iNumberOfPeriods >= 22 ? find_n_periods_ago(22) : na
+n_23d = iNumberOfPeriods >= 23 ? find_n_periods_ago(23) : na
 
-close_last24m = (close + close[n_1m] + close[n_2m] + close[n_3m] + close[n_4m] + close[n_5m] + close[n_6m] + close[n_7m] + close[n_8m] + close[n_9m] + close[n_10m] + close[n_11m] + close[n_12m] + close[n_13m] + close[n_14m] + close[n_15m] + close[n_16m] + close[n_17m] + close[n_18m] + close[n_19m] + close[n_20m] + close[n_21m] + close[n_22m] + close[n_23m] ) / 24
+
+close_last20y = (close + close[n_1y] + close[n_2y] + close[n_3y] + close[n_4y] + close[n_5y] + close[n_6y] + close[n_7y] + close[n_8y] + close[n_9y] + close[n_10y] + close[n_11y] + close[n_12y] + close[n_13y] + close[n_14y] + close[n_15y] + close[n_16y] + close[n_17y] + close[n_18y] + close[n_19y] + close[n_20y] + close[n_21y] + close[n_22y] + close[n_23y] ) / iNumberOfPeriods
+
+close_last24m = (close + close[n_1m] + close[n_2m] + close[n_3m] + close[n_4m] + close[n_5m] + close[n_6m] + close[n_7m] + close[n_8m] + close[n_9m] + close[n_10m] + close[n_11m] + close[n_12m] + close[n_13m] + close[n_14m] + close[n_15m] + close[n_16m] + close[n_17m] + close[n_18m] + close[n_19m] + close[n_20m] + close[n_21m] + close[n_22m] + close[n_23m] ) / iNumberOfPeriods
 
 close_last54w = (close + close[n_1w] + close[n_2w] + close[n_3w] + close[n_4w] + close[n_5w] + close[n_6w] + close[n_7w] + close[n_8w] + close[n_9w] + close[n_10w] 
  + close[n_11w] + close[n_12w] + close[n_13w] + close[n_14w] + close[n_15w] + close[n_16w] + close[n_17w] + close[n_18w] + close[n_19w]
- + close[n_21w] + close[n_22w] + close[n_23w] + close[n_24w] + close[n_25w] + close[n_26w] + close[n_27w] + close[n_28w] + close[n_29w]
- + close[n_31w] + close[n_32w] + close[n_33w] + close[n_34w] + close[n_35w] + close[n_36w] + close[n_37w] + close[n_38w] + close[n_39w]
- + close[n_41w] + close[n_42w] + close[n_43w] + close[n_44w] + close[n_45w] + close[n_46w] + close[n_47w] + close[n_48w] + close[n_49w]
- + close[n_51w] + close[n_52w] + close[n_53w] ) / 54
+ + close[n_21w] + close[n_22w] + close[n_23w] ) / iNumberOfPeriods
  
 close_last54d = (close + close[n_1d] + close[n_2d] + close[n_3d] + close[n_4d] + close[n_5d] + close[n_6d] + close[n_7d] + close[n_8d] + close[n_9d] + close[n_10d] 
  + close[n_11d] + close[n_12d] + close[n_13d] + close[n_14d] + close[n_15d] + close[n_16d] + close[n_17d] + close[n_18d] + close[n_19d]
- + close[n_21d] + close[n_22d] + close[n_23d] + close[n_24d] + close[n_25d] + close[n_26d] + close[n_27d] + close[n_28d] + close[n_29d]
- + close[n_31d] + close[n_32d] + close[n_33d] + close[n_34d] + close[n_35d] + close[n_36d] + close[n_37d] + close[n_38d] + close[n_39d]
- + close[n_41d] + close[n_42d] + close[n_43d] + close[n_44d] + close[n_45d] + close[n_46d] + close[n_47d] + close[n_48d] + close[n_49d]
- + close[n_51d] + close[n_52d] + close[n_53d] ) / 54
+ + close[n_21d] + close[n_22d] + close[n_23d] ) / iNumberOfPeriods
 
 is_in_last_period_y = time >= timenow - daysInYear * repeat_period_millis
 is_in_last_period_m = time >= timenow - daysInMnth * repeat_period_millis
