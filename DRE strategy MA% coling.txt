@@ -40,7 +40,8 @@ initialBuyCondition = strategy.opentrades == 0
 initialSellCondition = strategy.opentrades > 0
 
 //buy
-if(initialBuyCondition and consecutiveCoiledDays >= 5 and diff123_hilo >= 3)
+consecutiveOverMas = ta.barssince(diff123_hilo >= 3)
+if(initialBuyCondition and consecutiveCoiledDays >= 3 and consecutiveOverMas >= 3)
     strategy.entry("long", strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
