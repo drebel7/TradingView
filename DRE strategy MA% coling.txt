@@ -1,0 +1,52 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=5
+strategy("DRE MA coiling", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=100, margin_short=100)
+
+//iRes = input(title="Timeframe", type=input.resolution, defval="", group='moving average', options=['D', 'W', 'M'])
+iMaType = input.string('SMA', 'Type', options=['SMA', 'EMA'], group='moving average', tooltip='Moving average type [SMA/EMA]')
+iPeriod1 = input.int(50, 'Period 1', group='moving average', tooltip='Moving average period 1')
+iPeriod2 = input.int(100, 'Period 2', group='moving average', tooltip='Moving average period 2')
+iPeriod3 = input.int(200, 'Period 3', group='moving average', tooltip='Moving average period 3')
+iCoilPct = input.float(4.5, 'MA Coil %', group='moving average', minval = 1, maxval = 10, step=0.5)
+iStopLossPct = input.float(6, 'Stop loss % (from entry)', minval = 1, maxval = 12, step=1)
+
+float ma0 = iMaType == 'SMA' ? ta.sma(close, 20) : ta.ema(close, 20)
+float ma1 = iMaType == 'SMA' ? ta.sma(close, iPeriod1) : ta.ema(close, iPeriod1)
+float ma2 = iMaType == 'SMA' ? ta.sma(close, iPeriod2) : ta.ema(close, iPeriod2)
+float ma3 = iMaType == 'SMA' ? ta.sma(close, iPeriod3) : ta.ema(close, iPeriod3)
+min_ma123 = math.min(ma1, ma2, ma3)
+
+diff1_pct = (close - ma1) / ma1 * 100
+diff2_pct = (close - ma2) / ma2 * 100
+diff3_pct = (close - ma3) / ma3 * 100
+diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) / 3
+
+diff1_hilo = close > ma1 ? 1 : close == ma1 ? 0 : -1
+diff2_hilo = close > ma2 ? 1 : close == ma2 ? 0 : -1
+diff3_hilo = close > ma3 ? 1 : close == ma3 ? 0 : -1
+diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
+
+p_diff123_pct = plot(diff123_pct, color=color.new(color.green, 0))
+hline(iCoilPct, color=color.new(color.black, 0), linestyle=hline.style_dashed)
+//p_diff123_hilo = plot(diff123_hilo, color=color.new(color.red, 0))
+
+//fill(plot(0, color=color.new(color.red, 100)), p_diff123_hilo, color=color.new(color.red, 80))
+consecutiveCoiledDays = ta.barssince(diff123_pct > iCoilPct)
+plot(consecutiveCoiledDays, color=color.new(color.black, 0))
+
+initialBuyCondition = strategy.opentrades == 0
+initialSellCondition = strategy.opentrades > 0
+
+//buy
+if(initialBuyCondition and consecutiveCoiledDays >= 5 and diff123_hilo >= 3)
+    strategy.entry("long", strategy.long)
+
+currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
+hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
+movingStopLossLvl = close > 3 * currEntryPrice ? ma0 : close > 2 * currEntryPrice ? ma1 : close > 1.5 * currEntryPrice ? ma2 : min_ma123 * (1 - iStopLossPct / 2 / 100)
+
+//sell
+if(initialSellCondition and (close <= hardStopLossLvl or (close > hardStopLossLvl and close <= movingStopLossLvl)))
+    strategy.close_all()
