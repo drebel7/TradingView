@@ -1,0 +1,80 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+//inspired by @GotfrydKarol from X
+
+//@version=5
+strategy("DRE ATH play", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=100, margin_short=100)
+
+//iTimeframe = input.timeframe('D', "Resolution")
+iYearsAth = input.int(defval=3, title="Years of ATH", minval=1, maxval=10, step=1)
+iMaPeriod1 = input.int(20, 'MA Period 1', group='moving average', tooltip='Moving average period 1')
+iMaPeriod2 = input.int(50, 'MA Period 2', group='moving average', tooltip='Moving average period 2')
+iMaPeriod3 = input.int(100, 'MA Period 3', group='moving average', tooltip='Moving average period 3')
+iMaPeriod4 = input.int(150, 'MA Period 4', group='moving average', tooltip='Moving average period 4')
+iThighteningPct1 = input.int(100, 'Tightening % 1', group='sell parameters', tooltip='Pct gain on witch 1st stop loss tightening occurs')
+iThighteningPct2 = input.int(200, 'Tightening % 2', group='sell parameters', tooltip='Pct gain on witch 2nd stop loss tightening occurs')
+iStopLossPct = input.int(7, 'Stop loss % (from entry)', group='sell parameters', minval = 1, maxval = 15, step=1, tooltip='Hard stop loss from entry')
+
+ma1 = ta.sma(close, iMaPeriod1)
+ma2 = ta.sma(close, iMaPeriod2)
+ma3 = ta.sma(close, iMaPeriod3)
+ma4 = ta.sma(close, iMaPeriod4)
+
+//Kupujemy wybicie do co najmniej 3-letniego maksimum notowań. Roczny maks to za mało. Petrolinvest raz w swojej karierze
+//na GPW zrobił roczne maksimum, co eliminuje pomysł kupowania wg. tego kryterium na wieki wieków.
+//Preferujemy spółki wychodzące na ATH, gdzie nie ma nad głową nawisu ludzi którzy chcą sprzedać i wyjść na zero. Na ATH
+//wszyscy są zarobieni i zadowoleni.
+//Wielokrotnie wracamy do silnych papierów, kupując na coraz wyższych poziomach. To nie jest żaden wstyd. Trejder powinien
+//być bezwstydny jak luksusowa kurtyzana. Jak nie wracasz do papierów to jak chciałbyś zarabiać na długotrwałych trendach, 
+//na Kętach czy Budimexie?
+//Po kupnie możemy ewentualnie sprawdzić czym się spółka zajmuje, jakie są tam fundamenty, itp., ale powtarzam, dopiero
+//po kupnie.
+//Można wyznaczyć sobie limit liczby spółek w portfelu (np. 20) i maksymalnej liczby kupionych spółek w tygodniu (np. 4).
+//Trochę to chroni przed władowaniem się na miny tuż przed głębszą korektą na dojrzałej hossie.
+
+initialBuyCondition = strategy.opentrades == 0
+initialSellCondition = strategy.opentrades > 0
+
+tradingDaysInYear = 250
+nYearHighLvl = ta.highest(close, iYearsAth * tradingDaysInYear)
+oneYearHighLvl = ta.highest(close, tradingDaysInYear)
+nYearHighSig = na(nYearHighLvl) ? close >= oneYearHighLvl : close >= nYearHighLvl
+longEntryName = (na(nYearHighLvl) ? '1' : str.tostring(iYearsAth)) + 'year high'
+
+//plot(initialBuyCondition ? 1 : 0, title='initialBuyCondition', color=color.green)
+//plot(athSig ? 1 : 0, title='athSig', color=color.blue)
+//plot(initialBuyCondition and athSig ? 1 : 0, title='initialBuyCondition', color=color.red)
+
+//buy
+if (initialBuyCondition and nYearHighSig)
+    strategy.entry(id=longEntryName, direction=strategy.long)
+
+
+//Najpierw z góry ustalamy, która średnia będzie nas prowadzić. Na dobrze trendujących, mniejszych spółkach może to być
+//MA100, na większych MA150. To musi być uczciwe ustalone od razu i gdzieś zapisane.
+currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
+closingMa = ta.sma(close * volume, 10) < 50000 ? ma3 : ma4
+
+//Sprzedajemy w 3 sytuacjach
+//1. Papier zamknął dzień poniżej z góry ustalonej średniej. Nie kombinujemy, nie pytamy dlaczego, dlaczego ja, nie
+//czekamy na odbicie, nie sprawdzamy newsów. Papier stracił impet i jak stracił MA100, to bardziej prawdopodobne, że
+//będzie testował MA200, niż że pójdzie od razu na ATH.
+//2. Czasem instrument odejdzie wysoko w górę i wtedy zabezpieczamy się zacieśniając kryteria sprzedaży. Ja jak mam 100%
+//zysku na papierze to przechodzę na średnią MA50, jak 200% to średnia MA20.
+movingStopLossLvl = close > (1 + iThighteningPct2 / 100) * currEntryPrice ? ma1 : close > (1 + iThighteningPct1 / 100) * currEntryPrice ? ma2 : closingMa
+movingStopLossSig = close <= movingStopLossLvl
+
+//3. Papier robi co najmniej 10-dniowe maksimum, zawraca w ciągu dnia i zamyka się na minusie. Wszystko na wolumenie 
+//najwyższym od co najmniej 10 dni. Ja wtedy zamykam całą pozycję.
+vShortHighestHigh = ta.highest(high, 10)
+vShortHighestVol = ta.highest(volume, 10)
+topCloseSig = high > vShortHighestHigh and close < close[1] and volume > vShortHighestVol
+
+//moj (DRE) warunek hard stop
+hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
+hardStopLossSig = close < hardStopLossLvl
+
+//sell
+if (initialSellCondition and (hardStopLossSig or movingStopLossSig or topCloseSig))
+    txt = hardStopLossSig ? 'hard sl' : movingStopLossSig ? 'moving sl' : 'top'
+    strategy.close(id=longEntryName, comment=txt)
