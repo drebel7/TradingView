@@ -38,16 +38,20 @@ plot(consecutiveCoiledDays, color=color.new(color.black, 0))
 
 initialBuyCondition = strategy.opentrades == 0
 initialSellCondition = strategy.opentrades > 0
+entryId = "ma coil"
 
 //buy
 consecutiveOverMas = ta.barssince(diff123_hilo >= 3)
 if(initialBuyCondition and consecutiveCoiledDays >= 3 and consecutiveOverMas >= 3)
-    strategy.entry("long", strategy.long)
+    strategy.entry(id="coil long", direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
 hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
+hardStopLossSig = close <= hardStopLossLvl
 movingStopLossLvl = close > 3 * currEntryPrice ? ma0 : close > 2 * currEntryPrice ? ma1 : close > 1.5 * currEntryPrice ? ma2 : min_ma123 * (1 - iStopLossPct / 2 / 100)
+movingStopLossSig = close <= movingStopLossLvl
 
 //sell
-if(initialSellCondition and (close <= hardStopLossLvl or (close > hardStopLossLvl and close <= movingStopLossLvl)))
-    strategy.close_all()
+if(initialSellCondition and (hardStopLossSig or movingStopLossSig))
+    txt = hardStopLossSig ? 'hard sl' : 'moving sl'
+    strategy.close(id="coil long", comment=txt)
