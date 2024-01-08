@@ -1,0 +1,94 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+//trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %
+
+//@version=5
+strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
+
+iObvMaType = input.string(title='MA type', group='OBV', defval='SMMA (RMA)', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+iObvMaLength = input.int(title='MA Length', group='OBV', defval=100, minval=1, maxval=250)
+
+iMaCoilMaType = input.string(title='MA type', defval='SMA', group='MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+iMaCoilMaLength1 = input.int(title='MA Length 1', defval=50, group='MA coil', tooltip='Moving average length 1')
+iMaCoilMaLength2 = input.int(title='MA Length 2', defval=100, group='MA coil', tooltip='Moving average length 2')
+iMaCoilMaLength3 = input.int(title='MA Length 3', defval=200, group='MA coil', tooltip='Moving average length 3')
+iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='MA coil' , minval = 1, maxval = 10, step=0.5)
+
+iMaPctMaType = input.string(title='MA type', group='MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+iMaPctMaLength = input.int(title='Period', defval=200, group='MA %', tooltip='Moving average length')
+
+iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1)
+
+ma(source, length, type) =>
+    switch type
+        "SMA" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+        "SMMA (RMA)" => ta.rma(source, length)
+        "WMA" => ta.wma(source, length)
+        "VWMA" => ta.vwma(source, length)
+
+//OBV
+var cumVol = 0.
+cumVol += nz(volume)
+if barstate.islast and cumVol == 0
+    runtime.error("No volume is provided by the data vendor.")
+src = close
+obv = ta.cum(math.sign(ta.change(src)) * volume)
+obcMa = ma(obv, iObvMaLength, iObvMaType)
+//plot(obv, color=#2962FF, title="OnBalanceVolume")
+//plot(smoothingLine, title="Smoothing Line", color=#f37f20, display=display.none)
+obvSig = obv > obcMa
+plot(obvSig ? 1 : 0, title='obvSig')
+
+//MA coiling
+ma0 = ma(close, 20, iMaCoilMaType)
+ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
+ma2 = ma(close, iMaCoilMaLength2, iMaCoilMaType)
+ma3 = ma(close, iMaCoilMaLength3, iMaCoilMaType)
+min_ma123 = math.min(ma1, ma2, ma3)
+
+diff1_pct = (close - ma1) / ma1 * 100
+diff2_pct = (close - ma2) / ma2 * 100
+diff3_pct = (close - ma3) / ma3 * 100
+diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) / 3
+
+diff1_hilo = close > ma1 ? 1 : close == ma1 ? 0 : -1
+diff2_hilo = close > ma2 ? 1 : close == ma2 ? 0 : -1
+diff3_hilo = close > ma3 ? 1 : close == ma3 ? 0 : -1
+diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
+
+//p_diff123_pct = plot(diff123_pct, color=color.new(color.green, 0))
+//hline(iMaCoilPct, color=color.new(color.black, 0), linestyle=hline.style_dashed)
+//p_diff123_hilo = plot(diff123_hilo, color=color.new(color.red, 0))
+
+//fill(plot(0, color=color.new(color.red, 100)), p_diff123_hilo, color=color.new(color.red, 80))
+//consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
+//plot(consecutiveCoiledDays, color=color.new(color.black, 0))
+maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
+maCoilSig = maCoilSituations >= 10
+plot(maCoilSig ? 3 : 2, title='maCoilSig')
+
+//MA %
+maPctMa = ma(close, iMaPctMaLength, iMaPctMaType)
+maPctDiff = (close - maPctMa) / maPctMa * 100
+maPctSig = maPctDiff > 0
+plot(maPctSig ? 5 : 4, title='maPctSig')
+
+initialBuyCondition = strategy.opentrades == 0
+initialSellCondition = strategy.opentrades > 0
+entryId = "trippleSig"
+
+//buy
+if(initialBuyCondition and obvSig and maCoilSig and maPctSig)
+    strategy.entry(id=entryId, direction=strategy.long)
+
+currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
+hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
+hardStopLossSig = close <= hardStopLossLvl
+movingStopLossLvl = close > 3 * currEntryPrice ? ma0 : close > 2 * currEntryPrice ? ma1 : close > 1.5 * currEntryPrice ? ma2 : min_ma123 * (1 - iStopLossPct / 2 / 100)
+movingStopLossSig = close <= movingStopLossLvl
+
+//sell
+if(initialSellCondition and (hardStopLossSig or movingStopLossSig))
+    txt = hardStopLossSig ? 'hard sl' : 'moving sl'
+    strategy.close(id=entryId, comment=txt)
