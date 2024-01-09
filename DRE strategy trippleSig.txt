@@ -1,23 +1,9 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © drebel
-//trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %
 
 //@version=5
+//trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %
 strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
-
-iObvMaType = input.string(title='MA type', group='OBV', defval='SMMA (RMA)', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
-iObvMaLength = input.int(title='MA Length', group='OBV', defval=100, minval=1, maxval=250)
-
-iMaCoilMaType = input.string(title='MA type', defval='SMA', group='MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
-iMaCoilMaLength1 = input.int(title='MA Length 1', defval=50, group='MA coil', tooltip='Moving average length 1')
-iMaCoilMaLength2 = input.int(title='MA Length 2', defval=100, group='MA coil', tooltip='Moving average length 2')
-iMaCoilMaLength3 = input.int(title='MA Length 3', defval=200, group='MA coil', tooltip='Moving average length 3')
-iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='MA coil' , minval = 1, maxval = 10, step=0.5)
-
-iMaPctMaType = input.string(title='MA type', group='MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
-iMaPctMaLength = input.int(title='Period', defval=200, group='MA %', tooltip='Moving average length')
-
-iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1)
 
 ma(source, length, type) =>
     switch type
@@ -27,7 +13,12 @@ ma(source, length, type) =>
         "WMA" => ta.wma(source, length)
         "VWMA" => ta.vwma(source, length)
 
+
 //OBV
+iObvSigActive = input.bool(title='OBV Signal Active', defval=true, group='Sig1: OBV')
+iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='Sig1: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
+iObvMaLength = input.int(title='Len', defval=100, group='Sig1: OBV', minval=1, maxval=250, inline='obv1')
+
 var cumVol = 0.
 cumVol += nz(volume)
 if barstate.islast and cumVol == 0
@@ -38,9 +29,19 @@ obcMa = ma(obv, iObvMaLength, iObvMaType)
 //plot(obv, color=#2962FF, title="OnBalanceVolume")
 //plot(smoothingLine, title="Smoothing Line", color=#f37f20, display=display.none)
 obvSig = obv > obcMa
-plot(obvSig ? 1 : 0, title='obvSig')
+obvSig2 = iObvSigActive and obvSig or not iObvSigActive
+p1 = plot(obvSig2 ? 1 : 0, title='obvSig', color=color.new(color.purple, 0))
+fill(plot1=plot(0, color=color.new(color.black, 100)), plot2=p1, color=color.new(color.purple, 80))
+
 
 //MA coiling
+iMaCoilSigActive = input.bool(title='MA Coil Signal active', defval=true, group='Sig2: MA coil')
+iMaCoilMaType = input.string(title='MA type', defval='SMA', group='Sig2: MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='Sig2: MA coil', tooltip='Moving average length 1', inline='ma coil mas')
+iMaCoilMaLength2 = input.int(title='', defval=100, group='Sig2: MA coil', tooltip='Moving average length 2', inline='ma coil mas')
+iMaCoilMaLength3 = input.int(title='', defval=200, group='Sig2: MA coil', tooltip='Moving average length 3', inline='ma coil mas')
+iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='Sig2: MA coil' , minval = 1, maxval = 10, step=0.5)
+
 ma0 = ma(close, 20, iMaCoilMaType)
 ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
 ma2 = ma(close, iMaCoilMaLength2, iMaCoilMaType)
@@ -65,21 +66,35 @@ diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
 //consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
 //plot(consecutiveCoiledDays, color=color.new(color.black, 0))
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
-maCoilSig = maCoilSituations >= 10
-plot(maCoilSig ? 3 : 2, title='maCoilSig')
+maCoilSig = maCoilSituations >= 5
+maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
+p2 = plot(maCoilSig2 ? 3 : 2, title='maCoilSig', color=color.new(color.blue, 0))
+fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.blue, 80))
 
 //MA %
+iMaPctSigActive = input.bool(title='MA % Signal active', defval=true, group='Sig3: MA %')
+iMaPctMaType = input.string(title='MA type', group='Sig3: MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='ma% ma')
+iMaPctMaLength = input.int(title='Len', defval=200, group='Sig3: MA %', inline='ma% ma')
+
 maPctMa = ma(close, iMaPctMaLength, iMaPctMaType)
 maPctDiff = (close - maPctMa) / maPctMa * 100
 maPctSig = maPctDiff > 0
-plot(maPctSig ? 5 : 4, title='maPctSig')
+maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
+p3 = plot(maPctSig2 ? 5 : 4, title='maPctSig', color=color.new(color.orange, 0))
+fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.orange, 80))
+
+//position close parameters
+iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1)
+
 
 initialBuyCondition = strategy.opentrades == 0
 initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
+bgcolor(initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 ? color.new(color.green, 80) : na)
+bgcolor(initialBuyCondition and not obvSig2 and maCoilSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
 //buy
-if(initialBuyCondition and obvSig and maCoilSig and maPctSig)
+if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2)
     strategy.entry(id=entryId, direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
@@ -89,6 +104,7 @@ movingStopLossLvl = close > 3 * currEntryPrice ? ma0 : close > 2 * currEntryPric
 movingStopLossSig = close <= movingStopLossLvl
 
 //sell
-if(initialSellCondition and (hardStopLossSig or movingStopLossSig))
+if (initialSellCondition and (hardStopLossSig or movingStopLossSig))
     txt = hardStopLossSig ? 'hard sl' : 'moving sl'
     strategy.close(id=entryId, comment=txt)
+
