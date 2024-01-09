@@ -3,6 +3,7 @@
 
 //@version=5
 //trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %
+//TODO strategy entries not working... why?
 strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
 
 ma(source, length, type) =>
