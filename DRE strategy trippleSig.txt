@@ -67,7 +67,7 @@ diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
 //consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
 //plot(consecutiveCoiledDays, color=color.new(color.black, 0))
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
-maCoilSig = maCoilSituations >= 5
+maCoilSig = maCoilSituations >= 4 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
 p2 = plot(maCoilSig2 ? 3 : 2, title='maCoilSig', color=color.new(color.blue, 0))
 fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.blue, 80))
@@ -84,6 +84,12 @@ maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
 p3 = plot(maPctSig2 ? 5 : 4, title='maPctSig', color=color.new(color.orange, 0))
 fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.orange, 80))
 
+
+//breakouts - sig4
+breakoutHighSig = close > ta.highest(close[1], 10)
+p4 = plot(breakoutHighSig ? 7 : 6, title='breakoutSig', color=color.new(color.red, 0))
+fill(plot1=plot(6, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.red, 80))
+
 //position close parameters
 iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1)
 
@@ -92,10 +98,10 @@ initialBuyCondition = strategy.opentrades == 0
 initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
-bgcolor(initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 ? color.new(color.green, 80) : na)
-bgcolor(initialBuyCondition and not obvSig2 and maCoilSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
+bgcolor(initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 ? color.new(color.green, 70) : na)
+//bgcolor(initialBuyCondition and not obvSig2 and maCoilSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
 //buy
-if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2)
+if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 and breakoutHighSig)
     strategy.entry(id=entryId, direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
