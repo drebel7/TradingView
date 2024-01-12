@@ -4,6 +4,8 @@
 //@version=5
 //trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %
 //TODO strategy entries not working... why?
+//TODO add text for every sig
+//TODO make better entry closing
 strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
 
 ma(source, length, type) =>
@@ -16,9 +18,9 @@ ma(source, length, type) =>
 
 
 //OBV
-iObvSigActive = input.bool(title='OBV Signal Active', defval=true, group='Sig1: OBV')
-iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='Sig1: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
-iObvMaLength = input.int(title='Len', defval=100, group='Sig1: OBV', minval=1, maxval=250, inline='obv1')
+iObvSigActive = input.bool(title='OBV signal active', defval=true, group='sig1: OBV')
+iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='sig1: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
+iObvMaLength = input.int(title='Len', defval=100, group='sig1: OBV', minval=1, maxval=250, inline='obv1')
 
 var cumVol = 0.
 cumVol += nz(volume)
@@ -36,12 +38,12 @@ fill(plot1=plot(0, color=color.new(color.black, 100)), plot2=p1, color=color.new
 
 
 //MA coiling
-iMaCoilSigActive = input.bool(title='MA Coil Signal active', defval=true, group='Sig2: MA coil')
-iMaCoilMaType = input.string(title='MA type', defval='SMA', group='Sig2: MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
-iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='Sig2: MA coil', tooltip='Moving average length 1', inline='ma coil mas')
-iMaCoilMaLength2 = input.int(title='', defval=100, group='Sig2: MA coil', tooltip='Moving average length 2', inline='ma coil mas')
-iMaCoilMaLength3 = input.int(title='', defval=200, group='Sig2: MA coil', tooltip='Moving average length 3', inline='ma coil mas')
-iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='Sig2: MA coil' , minval = 1, maxval = 10, step=0.5)
+iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='sig2: MA coil')
+iMaCoilMaType = input.string(title='MA type', defval='SMA', group='sig2: MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='sig2: MA coil', inline='ma coil mas')
+iMaCoilMaLength2 = input.int(title='', defval=100, group='sig2: MA coil', inline='ma coil mas')
+iMaCoilMaLength3 = input.int(title='', defval=200, group='sig2: MA coil', inline='ma coil mas')
+iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='sig2: MA coil' , minval = 1, maxval = 10, step=0.5)
 
 ma0 = ma(close, 20, iMaCoilMaType)
 ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
@@ -67,15 +69,15 @@ diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
 //consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
 //plot(consecutiveCoiledDays, color=color.new(color.black, 0))
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
-maCoilSig = maCoilSituations >= 4 and diff123_pct <= 2 * iMaCoilPct
+maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
 p2 = plot(maCoilSig2 ? 3 : 2, title='maCoilSig', color=color.new(color.blue, 0))
 fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.blue, 80))
 
 //MA %
-iMaPctSigActive = input.bool(title='MA % Signal active', defval=true, group='Sig3: MA %')
-iMaPctMaType = input.string(title='MA type', group='Sig3: MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='ma% ma')
-iMaPctMaLength = input.int(title='Len', defval=200, group='Sig3: MA %', inline='ma% ma')
+iMaPctSigActive = input.bool(title='MA % signal active', defval=true, group='sig3: MA %')
+iMaPctMaType = input.string(title='MA type', group='sig3: MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='ma% ma')
+iMaPctMaLength = input.int(title='Len', defval=200, group='sig3: MA %', inline='ma% ma')
 
 maPctMa = ma(close, iMaPctMaLength, iMaPctMaType)
 maPctDiff = (close - maPctMa) / maPctMa * 100
@@ -86,22 +88,26 @@ fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new
 
 
 //breakouts - sig4
-breakoutHighSig = close > ta.highest(close[1], 10)
-p4 = plot(breakoutHighSig ? 7 : 6, title='breakoutSig', color=color.new(color.red, 0))
+iBoSigActive = input.bool(title='Breakout Signal active', defval=true, group='sig4: breakout')
+boSig = close > ta.highest(close[1], 10)
+boSig2 = iBoSigActive and boSig or not iBoSigActive
+p4 = plot(boSig2 ? 7 : 6, title='breakoutSig', color=color.new(color.red, 0))
 fill(plot1=plot(6, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.red, 80))
 
 //position close parameters
-iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1)
+iBullBg = input.bool(title='Bullish background', defval=true, group='general')
+iBaerBg = input.bool(title='Bearish background', defval=false, group='general')
+iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1, group='general')
 
 
 initialBuyCondition = strategy.opentrades == 0
 initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
-bgcolor(initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 ? color.new(color.green, 70) : na)
-//bgcolor(initialBuyCondition and not obvSig2 and maCoilSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
+bgcolor(iBullBg and initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 and boSig2 ? color.new(color.green, 70) : na)
+bgcolor(iBaerBg and initialBuyCondition and not obvSig2 and maCoilSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
 //buy
-if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 and breakoutHighSig)
+if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 and boSig2)
     strategy.entry(id=entryId, direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
