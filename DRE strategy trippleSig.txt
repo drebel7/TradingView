@@ -6,6 +6,7 @@
 //TODO strategy entries not working... why?
 //TODO add text for every sig
 //TODO make better entry closing
+//TODO blad w poczatkowym okresie (bear background) zawsze po zakonczeniu 200 swiec
 strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
 
 ma(source, length, type) =>
@@ -112,8 +113,8 @@ initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
+bgcolor(isEnoughData and iBullBg and obvSig2 and maPctSig2 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBaerBg and not obvSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
 //buy
 if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 and boSig2)
     strategy.entry(id=entryId, direction=strategy.long)
