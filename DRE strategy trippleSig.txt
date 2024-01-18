@@ -18,7 +18,8 @@ ma(source, length, type) =>
 
 
 //OBV
-iObvSigActive = input.bool(title='OBV signal active', defval=true, group='sig1: OBV')
+iObvSigActive = input.bool(title='OBV signal active', defval=true, group='sig1: OBV', inline='obv0')
+iObvSigDumper = input.float(title='dumper %', defval=0, minval=0, maxval=5, step=0.5, group='sig1: OBV', inline='obv0')
 iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='sig1: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
 iObvMaLength = input.int(title='Len', defval=100, group='sig1: OBV', minval=1, maxval=250, inline='obv1')
 
@@ -31,19 +32,37 @@ obv = ta.cum(math.sign(ta.change(src)) * volume)
 obcMa = ma(obv, iObvMaLength, iObvMaType)
 //plot(obv, color=#2962FF, title="OnBalanceVolume")
 //plot(smoothingLine, title="Smoothing Line", color=#f37f20, display=display.none)
-obvSig = obv > obcMa
+obvSigL = obv > (1 + iObvSigDumper/100) * obcMa
+obvSigS = obv < (1 - iObvSigDumper/100) * obcMa
+obvSig = ta.barssince(obvSigL) < ta.barssince(obvSigS)
 obvSig2 = iObvSigActive and obvSig or not iObvSigActive
 p1 = plot(obvSig2 ? 1 : 0, title='obvSig', color=color.new(color.purple, 0))
 fill(plot1=plot(0, color=color.new(color.black, 100)), plot2=p1, color=color.new(color.purple, 80))
 
 
+//MA %
+iMaPctSigActive = input.bool(title='MA % signal active', defval=true, group='sig2: MA %', inline='ma%0')
+iMaPctSigDumper = input.float(title='dumper %', defval=0, minval=0, maxval=5, step=0.5, group='sig2: MA %', inline='ma%0')
+iMaPctMaType = input.string(title='MA type', group='sig2: MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='ma%1')
+iMaPctMaLength = input.int(title='Len', defval=200, group='sig2: MA %', inline='ma%1')
+
+maPctMa = ma(close, iMaPctMaLength, iMaPctMaType)
+maPctDiff = (close - maPctMa) / maPctMa * 100
+maPctSigL = maPctDiff > 0 + iMaPctSigDumper
+maPctSigS = maPctDiff < 0 - iMaPctSigDumper
+maPctSig = ta.barssince(maPctSigL) < ta.barssince(maPctSigS)
+maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
+p3 = plot(maPctSig2 ? 3 : 2, title='maPctSig', color=color.new(color.orange, 0))
+fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.orange, 80))
+
+
 //MA coiling
-iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='sig2: MA coil')
-iMaCoilMaType = input.string(title='MA type', defval='SMA', group='sig2: MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
-iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='sig2: MA coil', inline='ma coil mas')
-iMaCoilMaLength2 = input.int(title='', defval=100, group='sig2: MA coil', inline='ma coil mas')
-iMaCoilMaLength3 = input.int(title='', defval=200, group='sig2: MA coil', inline='ma coil mas')
-iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='sig2: MA coil' , minval = 1, maxval = 10, step=0.5)
+iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='sig3: MA coil')
+iMaCoilMaType = input.string(title='MA type', defval='SMA', group='sig3: MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='sig3: MA coil', inline='ma coil mas')
+iMaCoilMaLength2 = input.int(title='', defval=100, group='sig3: MA coil', inline='ma coil mas')
+iMaCoilMaLength3 = input.int(title='', defval=200, group='sig3: MA coil', inline='ma coil mas')
+iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='sig3: MA coil' , minval = 1, maxval = 10, step=0.5)
 
 ma0 = ma(close, 20, iMaCoilMaType)
 ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
@@ -71,20 +90,8 @@ diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
 maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
-p2 = plot(maCoilSig2 ? 3 : 2, title='maCoilSig', color=color.new(color.blue, 0))
-fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.blue, 80))
-
-//MA %
-iMaPctSigActive = input.bool(title='MA % signal active', defval=true, group='sig3: MA %')
-iMaPctMaType = input.string(title='MA type', group='sig3: MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='ma% ma')
-iMaPctMaLength = input.int(title='Len', defval=200, group='sig3: MA %', inline='ma% ma')
-
-maPctMa = ma(close, iMaPctMaLength, iMaPctMaType)
-maPctDiff = (close - maPctMa) / maPctMa * 100
-maPctSig = maPctDiff > 0
-maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
-p3 = plot(maPctSig2 ? 5 : 4, title='maPctSig', color=color.new(color.orange, 0))
-fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.orange, 80))
+p2 = plot(maCoilSig2 ? 5 : 4, title='maCoilSig', color=color.new(color.blue, 0))
+fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.blue, 80))
 
 
 //breakouts - sig4
