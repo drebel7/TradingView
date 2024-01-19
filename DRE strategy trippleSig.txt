@@ -6,7 +6,6 @@
 //TODO strategy entries not working... why?
 //TODO add text for every sig
 //TODO make better entry closing
-//TODO blad w poczatkowym okresie (bear background) zawsze po zakonczeniu 200 swiec
 strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
 
 ma(source, length, type) =>
@@ -22,17 +21,15 @@ ma(source, length, type) =>
 iObvSigActive = input.bool(title='OBV signal active', defval=true, group='sig1: OBV', inline='obv0')
 iObvSigDumper = input.float(title='dumper %', defval=0.5, minval=0, maxval=5, step=0.5, group='sig1: OBV', inline='obv0')
 iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='sig1: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
-iObvMaLength = input.int(title='Len', defval=100, group='sig1: OBV', minval=1, maxval=250, inline='obv1')
+iObvMaLength = input.int(title='Len', defval=100, group='sig1: OBV', minval=10, maxval=250, inline='obv1')
 
 var cumVol = 0.
 cumVol += nz(volume)
 if barstate.islast and cumVol == 0
     runtime.error("No volume is provided by the data vendor.")
-src = close
-obv = ta.cum(math.sign(ta.change(src)) * volume)
+obv = ta.cum(math.sign(ta.change(close)) * volume)
 obcMa = ma(obv, iObvMaLength, iObvMaType)
 //plot(obv, color=#2962FF, title="OnBalanceVolume")
-//plot(smoothingLine, title="Smoothing Line", color=#f37f20, display=display.none)
 obvSigL = obv > (1 + iObvSigDumper/100) * obcMa
 obvSigS = obv < (1 - iObvSigDumper/100) * obcMa
 obvSig = ta.barssince(obvSigL) < ta.barssince(obvSigS)
@@ -53,8 +50,8 @@ maPctSigL = maPctDiff > 0 + iMaPctSigDumper
 maPctSigS = maPctDiff < 0 - iMaPctSigDumper
 maPctSig = ta.barssince(maPctSigL) < ta.barssince(maPctSigS)
 maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
-p3 = plot(maPctSig2 ? 3 : 2, title='maPctSig', color=color.new(color.orange, 0))
-fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.orange, 80))
+p2 = plot(maPctSig2 ? 3 : 2, title='maPctSig', color=color.new(color.orange, 0))
+fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.orange, 80))
 
 
 //MA coiling
@@ -76,35 +73,18 @@ diff2_pct = (close - ma2) / ma2 * 100
 diff3_pct = (close - ma3) / ma3 * 100
 diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) / 3
 
-diff1_hilo = close > ma1 ? 1 : close == ma1 ? 0 : -1
-diff2_hilo = close > ma2 ? 1 : close == ma2 ? 0 : -1
-diff3_hilo = close > ma3 ? 1 : close == ma3 ? 0 : -1
-diff123_hilo = diff1_hilo + diff2_hilo + diff2_hilo
-
-//p_diff123_pct = plot(diff123_pct, color=color.new(color.green, 0))
-//hline(iMaCoilPct, color=color.new(color.black, 0), linestyle=hline.style_dashed)
-//p_diff123_hilo = plot(diff123_hilo, color=color.new(color.red, 0))
-
-//fill(plot(0, color=color.new(color.red, 100)), p_diff123_hilo, color=color.new(color.red, 80))
 //consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
 //plot(consecutiveCoiledDays, color=color.new(color.black, 0))
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
 maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
-p2 = plot(maCoilSig2 ? 5 : 4, title='maCoilSig', color=color.new(color.blue, 0))
-fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.blue, 80))
+p3 = plot(maCoilSig2 ? 5 : 4, title='maCoilSig', color=color.new(color.blue, 0))
+fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
 
-
-//breakouts - sig4
-iBoSigActive = input.bool(title='Breakout Signal active', defval=true, group='sig4: breakout')
-boSig = close > ta.highest(close[1], 10)
-boSig2 = iBoSigActive and boSig or not iBoSigActive
-p4 = plot(boSig2 ? 7 : 6, title='breakoutSig', color=color.new(color.red, 0))
-fill(plot1=plot(6, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.red, 80))
 
 //position close parameters
 iBullBg = input.bool(title='Bullish background', defval=true, group='general')
-iBaerBg = input.bool(title='Bearish background', defval=false, group='general')
+iBaerBg = input.bool(title='Bearish background', defval=true, group='general')
 iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1, group='general')
 
 
@@ -113,10 +93,10 @@ initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
-bgcolor(isEnoughData and iBullBg and obvSig2 and maPctSig2 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBaerBg and not obvSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
 //buy
-if (initialBuyCondition and obvSig2 and maCoilSig2 and maPctSig2 and boSig2)
+if (initialBuyCondition and obvSig2 and maPctSig2 and maCoilSig2)
     strategy.entry(id=entryId, direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
@@ -129,4 +109,3 @@ movingStopLossSig = close <= movingStopLossLvl
 if (initialSellCondition and (hardStopLossSig or movingStopLossSig))
     txt = hardStopLossSig ? 'hard sl' : 'moving sl'
     strategy.close(id=entryId, comment=txt)
-
