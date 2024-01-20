@@ -91,7 +91,7 @@ if barstate.islast
 //Mansfield Relative Strength
 iMrsSigActive = input.bool(title='MRS signal active', defval=true, group='sig4: MRS')
 iMrsIndex = input.symbol(title='Index', defval='GPW:FW201!', group='sig4: MRS')
-iMrsMaType = input.string(title='MA type', group='sig4: MRS', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='mrs1')
+iMrsMaType = input.string(title='MA type', group='sig4: MRS', defval='EMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='mrs1')
 iMrsMaLen = input.int(title='Len', defval=200, group='sig4: MRS', inline='mrs1')
 
 calc_mrs_func(x, ind, length, maType) =>
