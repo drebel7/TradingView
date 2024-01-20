@@ -88,6 +88,24 @@ if barstate.islast
     label.new(x=last_bar_index, y=4, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
 
 
+//Mansfield Relative Strength
+iMrsSigActive = input.bool(title='MRS signal active', defval=true, group='sig4: MRS')
+iMrsIndex = input.symbol(title='Index', defval='GPW:FW201!', group='sig4: MRS')
+iMrsMaType = input.string(title='MA type', group='sig4: MRS', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='mrs1')
+iMrsMaLen = input.int(title='Len', defval=200, group='sig4: MRS', inline='mrs1')
+
+calc_mrs_func(x, ind, length, maType) =>
+    (x / request.security(ind, timeframe.period, x) / ma(x / request.security(ind, timeframe.period, x), length, maType) - 1) * 10
+
+mrsIndex = calc_mrs_func(close, iMrsIndex, iMrsMaLen, iMrsMaType)
+mrsSig = mrsIndex > 0
+mrsSig2 = iMrsSigActive and mrsSig or not iMrsSigActive
+p4 = plot(mrsSig2 ? 7 : 6, title='mrsSig', color=color.new(color.black, 0))
+fill(plot1=plot(7, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.black, 80))
+if barstate.islast
+    label.new(x=last_bar_index, y=6, text="MRS", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.black, 0))
+
+
 //position close parameters
 iBullBg = input.bool(title='Bullish background', defval=true, group='general')
 iBaerBg = input.bool(title='Bearish background', defval=true, group='general')
@@ -99,10 +117,10 @@ initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 ? color.new(color.red, 80) : na)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 and mrsSig2 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 and not mrsSig2 ? color.new(color.red, 80) : na)
 //buy
-if (initialBuyCondition and obvSig2 and maPctSig2 and maCoilSig2)
+if (initialBuyCondition and obvSig2 and maPctSig2 and maCoilSig2 and mrsSig2)
     strategy.entry(id=entryId, direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
