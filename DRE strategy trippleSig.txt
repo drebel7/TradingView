@@ -35,7 +35,8 @@ obvSig = ta.barssince(obvSigL) < ta.barssince(obvSigS)
 obvSig2 = iObvSigActive and obvSig or not iObvSigActive
 p1 = plot(obvSig2 ? 1 : 0, title='obvSig', color=color.new(color.purple, 0))
 fill(plot1=plot(0, color=color.new(color.black, 100)), plot2=p1, color=color.new(color.purple, 80))
-label.new(x=last_bar_index, y=0, text="OBV", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.purple, 0))
+if barstate.islast
+    label.new(x=last_bar_index, y=0, text="OBV", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.purple, 0))
 
 
 //MA %
@@ -52,7 +53,8 @@ maPctSig = ta.barssince(maPctSigL) < ta.barssince(maPctSigS)
 maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
 p2 = plot(maPctSig2 ? 3 : 2, title='maPctSig', color=color.new(color.orange, 0))
 fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.orange, 80))
-label.new(x=last_bar_index, y=2, text="MA", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.orange, 0))
+if barstate.islast
+    label.new(x=last_bar_index, y=2, text="MA", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.orange, 0))
 
 
 //MA coiling
@@ -61,7 +63,7 @@ iMaCoilMaType = input.string(title='MA type', defval='SMA', group='sig3: MA coil
 iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='sig3: MA coil', inline='ma coil mas')
 iMaCoilMaLength2 = input.int(title='', defval=100, group='sig3: MA coil', inline='ma coil mas')
 iMaCoilMaLength3 = input.int(title='', defval=200, group='sig3: MA coil', inline='ma coil mas')
-iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='sig3: MA coil' , minval = 1, maxval = 10, step=0.5)
+iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='sig3: MA coil' , minval = 0, maxval = 10, step=0.2)
 
 ma0 = ma(close, 20, iMaCoilMaType)
 ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
@@ -81,7 +83,9 @@ maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
 p3 = plot(maCoilSig2 ? 5 : 4, title='maCoilSig', color=color.new(color.blue, 0))
 fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
-label.new(x=last_bar_index, y=4, text="MA coil", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.blue, 0))
+maCoil10Pct = ta.percentile_nearest_rank(diff123_pct, math.min(2000, math.max(bar_index, iObvMaLength, iMaPctMaLength)), 10)
+if barstate.islast
+    label.new(x=last_bar_index, y=4, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
 
 
 //position close parameters
