@@ -18,7 +18,7 @@ ma(source, length, type) =>
 
 //OBV
 iObvSigActive = input.bool(title='OBV signal active', defval=true, group='sig1: OBV', inline='obv0')
-iObvSigDumper = input.float(title='dumper %', defval=0.5, minval=0, maxval=5, step=0.5, group='sig1: OBV', inline='obv0')
+iObvSigDumper = input.float(title='dumper %', defval=0.0, minval=0, maxval=5, step=0.2, group='sig1: OBV', inline='obv0')
 iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='sig1: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
 iObvMaLength = input.int(title='Len', defval=100, group='sig1: OBV', minval=10, maxval=250, inline='obv1')
 
