@@ -57,6 +57,31 @@ if barstate.islast
     label.new(x=last_bar_index, y=2, text="MA", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.orange, 0))
 
 
+//Ichimoku cloud
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+
+iIchimokuSigActive = input.bool(title='Ichimoku signal active', defval=true, group='sig: Ichi', inline='ichi0')
+conversionPeriods = 9
+basePeriods = 26
+laggingSpan2Periods = 52
+displacement = 26
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+//plot(leadLine1 > leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = "Kumo Cloud Upper Line", display = display.none) 
+plot(leadLine1 < leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = "Kumo Cloud Lower Line", display = display.none) 
+ichimokuSigL = close > math.max(leadLine1[displacement], leadLine2[displacement])
+ichimokuSigS = close < math.min(leadLine1[displacement], leadLine2[displacement])
+ichimokuSig = ta.barssince(ichimokuSigL) < ta.barssince(ichimokuSigS)
+ichimokuSig2 = iIchimokuSigActive and ichimokuSig or not iIchimokuSigActive
+pIchi = plot(ichimokuSig2 ? 5 : 4, title='ichimokuSig', color=color.new(color.lime, 0))
+fill(plot1=plot(4, color=color.new(color.lime, 100)), plot2=pIchi, color=color.new(color.lime, 80))
+if barstate.islast
+    label.new(x=last_bar_index, y=4, text="Ichimoku", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.lime, 0))
+
+
+
 //MA coiling
 iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='sig3: MA coil')
 iMaCoilMaType = input.string(title='MA type', defval='SMA', group='sig3: MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
@@ -81,11 +106,11 @@ diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) 
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
 maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
-p3 = plot(maCoilSig2 ? 5 : 4, title='maCoilSig', color=color.new(color.blue, 0))
-fill(plot1=plot(4, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
+p3 = plot(maCoilSig2 ? 7 : 6, title='maCoilSig', color=color.new(color.blue, 0))
+fill(plot1=plot(6, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
 maCoil10Pct = ta.percentile_nearest_rank(diff123_pct, math.min(2000, math.max(bar_index, iObvMaLength, iMaPctMaLength)), 10)
 if barstate.islast
-    label.new(x=last_bar_index, y=4, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
+    label.new(x=last_bar_index, y=6, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
 
 
 //Mansfield Relative Strength
@@ -100,10 +125,10 @@ calc_mrs_func(x, ind, length, maType) =>
 mrsIndex = calc_mrs_func(close, iMrsIndex, iMrsMaLen, iMrsMaType)
 mrsSig = mrsIndex > 0
 mrsSig2 = iMrsSigActive and mrsSig or not iMrsSigActive
-p4 = plot(mrsSig2 ? 7 : 6, title='mrsSig', color=color.new(color.black, 0))
-fill(plot1=plot(6, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.black, 80))
+p4 = plot(mrsSig2 ? 9 : 8, title='mrsSig', color=color.new(color.black, 0))
+fill(plot1=plot(8, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.black, 80))
 if barstate.islast
-    label.new(x=last_bar_index, y=6, text="MRS", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.black, 0))
+    label.new(x=last_bar_index, y=8, text="MRS", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.black, 0))
 
 
 //position close parameters
@@ -117,10 +142,10 @@ initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 and mrsSig2 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 and not mrsSig2 ? color.new(color.red, 80) : na)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 and ichimokuSig2 and mrsSig2 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 and not ichimokuSig2 and not mrsSig2 ? color.new(color.red, 80) : na)
 //buy
-if (initialBuyCondition and obvSig2 and maPctSig2 and maCoilSig2 and mrsSig2)
+if (initialBuyCondition and obvSig2 and maPctSig2 and ichimokuSig2 and mrsSig2)
     strategy.entry(id=entryId, direction=strategy.long)
 
 currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
