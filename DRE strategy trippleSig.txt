@@ -143,8 +143,11 @@ initialSellCondition = strategy.opentrades > 0
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and obvSig2 and maPctSig2 and ichimokuSig2 and mrsSig2 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and not obvSig2 and not maPctSig2 and not ichimokuSig2 and not mrsSig2 ? color.new(color.red, 80) : na)
+sigLSum = (obvSig2 ? 1 : 0) + (maPctSig2 ? 1 : 0) + (ichimokuSig2 ? 1 : 0) + (mrsSig2 ? 1 : 0)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 4 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 3 ? color.new(color.green, 80) : na)
+bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 1 ? color.new(color.red, 80) : na)
+bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 0 ? color.new(color.red, 70) : na)
 //buy
 if (initialBuyCondition and obvSig2 and maPctSig2 and ichimokuSig2 and mrsSig2)
     strategy.entry(id=entryId, direction=strategy.long)
