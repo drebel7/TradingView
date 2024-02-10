@@ -17,6 +17,7 @@ ma(source, length, type) =>
 
 
 //OBV
+plotNo = 0
 iObvSigActive = input.bool(title='OBV signal active', defval=true, group='sig: OBV', inline='obv0')
 iObvMaType = input.string(title='MA Type', defval='SMMA (RMA)', group='sig: OBV', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='obv1')
 iObvMaLength = input.int(title='Len', defval=100, group='sig: OBV', minval=10, maxval=250, inline='obv1')
@@ -30,13 +31,14 @@ obcMa = ma(obv, iObvMaLength, iObvMaType)
 //plot(obv, color=#2962FF, title="OnBalanceVolume")
 obvSig = obv > obcMa
 obvSig2 = iObvSigActive and obvSig or not iObvSigActive
-p1 = plot(obvSig2 ? 1 : 0, title='obvSig', color=color.new(color.purple, 0))
-fill(plot1=plot(0, color=color.new(color.black, 100)), plot2=p1, color=color.new(color.purple, 80))
+p1 = plot(obvSig2 ? 2*plotNo+1 : 2*plotNo, title='obvSig', color=color.new(color.purple, 0))
+fill(plot1=plot(2*plotNo, color=color.new(color.black, 100)), plot2=p1, color=color.new(color.purple, 80))
 if barstate.islast
-    label.new(x=last_bar_index, y=0, text="OBV", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.purple, 0))
+    label.new(x=last_bar_index, y=2*plotNo, text="OBV", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.purple, 0))
 
 
 //MA %
+plotNo += 1
 iMaPctSigActive = input.bool(title='MA % signal active', defval=true, group='sig: MA %', inline='ma%0')
 iMaPctMaType = input.string(title='MA type', group='sig: MA %', defval='SMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='ma%1')
 iMaPctMaLength = input.int(title='Len', defval=200, group='sig: MA %', inline='ma%1')
@@ -45,13 +47,14 @@ maPctMa = ma(close, iMaPctMaLength, iMaPctMaType)
 maPctDiff = (close - maPctMa) / maPctMa * 100
 maPctSig = maPctDiff > 0
 maPctSig2 = iMaPctSigActive and maPctSig or not iMaPctSigActive
-p2 = plot(maPctSig2 ? 3 : 2, title='maPctSig', color=color.new(color.orange, 0))
-fill(plot1=plot(2, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.orange, 80))
+p2 = plot(maPctSig2 ? 2*plotNo+1 : 2*plotNo, title='maPctSig', color=color.new(color.orange, 0))
+fill(plot1=plot(2*plotNo, color=color.new(color.black, 100)), plot2=p2, color=color.new(color.orange, 80))
 if barstate.islast
-    label.new(x=last_bar_index, y=2, text="MA", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.orange, 0))
+    label.new(x=last_bar_index, y=2*plotNo, text="MA", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.orange, 0))
 
 
 //Ichimoku cloud
+plotNo += 1
 donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
 
 iIchimokuSigActive = input.bool(title='Ichimoku signal active', defval=true, group='sig: Ichi', inline='ichi0')
@@ -69,14 +72,15 @@ ichimokuSigL = close > math.max(leadLine1[displacement], leadLine2[displacement]
 ichimokuSigS = close < math.min(leadLine1[displacement], leadLine2[displacement])
 ichimokuSig = ta.barssince(ichimokuSigL) < ta.barssince(ichimokuSigS)
 ichimokuSig2 = iIchimokuSigActive and ichimokuSig or not iIchimokuSigActive
-pIchi = plot(ichimokuSig2 ? 5 : 4, title='ichimokuSig', color=color.new(color.lime, 0))
-fill(plot1=plot(4, color=color.new(color.lime, 100)), plot2=pIchi, color=color.new(color.lime, 80))
+pIchi = plot(ichimokuSig2 ? 2*plotNo+1 : 2*plotNo, title='ichimokuSig', color=color.new(color.lime, 0))
+fill(plot1=plot(2*plotNo, color=color.new(color.lime, 100)), plot2=pIchi, color=color.new(color.lime, 80))
 if barstate.islast
-    label.new(x=last_bar_index, y=4, text="Ichimoku", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.lime, 0))
+    label.new(x=last_bar_index, y=2*plotNo, text="Ichimoku", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.lime, 0))
 
 
 
 //Mansfield Relative Strength
+plotNo += 1
 iMrsSigActive = input.bool(title='MRS signal active', defval=true, group='sig: MRS')
 iMrsIndex = input.symbol(title='Index', defval='GPW:FW201!', group='sig: MRS')
 iMrsMaType = input.string(title='MA type', group='sig: MRS', defval='WMA', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], inline='mrs1')
@@ -88,14 +92,15 @@ calc_mrs_func(x, ind, length, maType) =>
 mrsIndex = calc_mrs_func(close, iMrsIndex, iMrsMaLen, iMrsMaType)
 mrsSig = mrsIndex > 0
 mrsSig2 = iMrsSigActive and mrsSig or not iMrsSigActive
-p4 = plot(mrsSig2 ? 7 : 6, title='mrsSig', color=color.new(color.black, 0))
-fill(plot1=plot(6, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.black, 80))
+p4 = plot(mrsSig2 ? 2*plotNo+1 : 2*plotNo, title='mrsSig', color=color.new(color.black, 0))
+fill(plot1=plot(2*plotNo, color=color.new(color.black, 100)), plot2=p4, color=color.new(color.black, 80))
 if barstate.islast
-    label.new(x=last_bar_index, y=6, text="MRS", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.black, 0))
+    label.new(x=last_bar_index, y=2*plotNo, text="MRS", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.black, 0))
 
 
 
 //MA coiling
+plotNo += 1
 iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='MA coil')
 iMaCoilMaType = input.string(title='MA type', defval='SMA', group='MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
 iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='MA coil', inline='ma coil mas')
@@ -119,11 +124,11 @@ diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) 
 maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
 maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
 maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
-p3 = plot(maCoilSig2 ? 9 : 8, title='maCoilSig', color=color.new(color.blue, 0))
-fill(plot1=plot(8, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
+p3 = plot(maCoilSig2 ? 2*plotNo+1 : 2*plotNo, title='maCoilSig', color=color.new(color.blue, 0))
+fill(plot1=plot(2*plotNo, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
 maCoil10Pct = ta.percentile_nearest_rank(diff123_pct, math.min(2000, math.max(bar_index, iObvMaLength, iMaPctMaLength)), 10)
 if barstate.islast
-    label.new(x=last_bar_index, y=8, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
+    label.new(x=last_bar_index, y=2*plotNo, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
 
 
 
