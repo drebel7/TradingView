@@ -2,10 +2,10 @@
 // © drebel
 
 //@version=5
-//trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %
+//trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %, sygnal z MRS, sygnal z VWAP
 //TODO strategy entries not working... why?
 //TODO make better entry closing
-strategy("DRE trippleSig", overlay=false, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
+strategy("DRE trippleSig", overlay=false, calc_on_every_tick = true, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
 
 ma(source, length, type) =>
     switch type
@@ -100,35 +100,49 @@ if barstate.islast
 
 
 //MA coiling
+// plotNo += 1
+// iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='MA coil')
+// iMaCoilMaType = input.string(title='MA type', defval='SMA', group='MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+// iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='MA coil', inline='ma coil mas')
+// iMaCoilMaLength2 = input.int(title='', defval=100, group='MA coil', inline='ma coil mas')
+// iMaCoilMaLength3 = input.int(title='', defval=200, group='MA coil', inline='ma coil mas')
+// iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='MA coil' , minval = 0, maxval = 10, step=0.2)
+
+// ma0 = ma(close, 20, iMaCoilMaType)
+// ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
+// ma2 = ma(close, iMaCoilMaLength2, iMaCoilMaType)
+// ma3 = ma(close, iMaCoilMaLength3, iMaCoilMaType)
+// min_ma123 = math.min(ma1, ma2, ma3)
+
+// diff1_pct = (close - ma1) / ma1 * 100
+// diff2_pct = (close - ma2) / ma2 * 100
+// diff3_pct = (close - ma3) / ma3 * 100
+// diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) / 3
+
+// //consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
+// //plot(consecutiveCoiledDays, color=color.new(color.black, 0))
+// maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
+// maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
+// maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
+// p3 = plot(maCoilSig2 ? 2*plotNo+1 : 2*plotNo, title='maCoilSig', color=color.new(color.blue, 0))
+// fill(plot1=plot(2*plotNo, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
+// maCoil10Pct = ta.percentile_nearest_rank(diff123_pct, math.min(2000, math.max(bar_index, iObvMaLength, iMaPctMaLength)), 10)
+// if barstate.islast
+//     label.new(x=last_bar_index, y=2*plotNo, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
+
+
+
+//VWAP - all time Volume Weighted Average Price
 plotNo += 1
-iMaCoilSigActive = input.bool(title='MA Coil signal active', defval=true, group='MA coil')
-iMaCoilMaType = input.string(title='MA type', defval='SMA', group='MA coil', options=['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
-iMaCoilMaLength1 = input.int(title='MA Lengths', defval=50, group='MA coil', inline='ma coil mas')
-iMaCoilMaLength2 = input.int(title='', defval=100, group='MA coil', inline='ma coil mas')
-iMaCoilMaLength3 = input.int(title='', defval=200, group='MA coil', inline='ma coil mas')
-iMaCoilPct = input.float(title='MA Coil %', defval=4.5, group='MA coil' , minval = 0, maxval = 10, step=0.2)
+iVwapSigActive = input.bool(title='VWAP signal active', defval=true, group='VWAP')
 
-ma0 = ma(close, 20, iMaCoilMaType)
-ma1 = ma(close, iMaCoilMaLength1, iMaCoilMaType)
-ma2 = ma(close, iMaCoilMaLength2, iMaCoilMaType)
-ma3 = ma(close, iMaCoilMaLength3, iMaCoilMaType)
-min_ma123 = math.min(ma1, ma2, ma3)
-
-diff1_pct = (close - ma1) / ma1 * 100
-diff2_pct = (close - ma2) / ma2 * 100
-diff3_pct = (close - ma3) / ma3 * 100
-diff123_pct = (math.abs(diff1_pct) + math.abs(diff2_pct) + math.abs(diff3_pct)) / 3
-
-//consecutiveCoiledDays = ta.barssince(diff123_pct > iMaCoilPct)
-//plot(consecutiveCoiledDays, color=color.new(color.black, 0))
-maCoilSituations = math.sum(diff123_pct <= iMaCoilPct ? 1 : 0, 50)
-maCoilSig = maCoilSituations >= 1 and diff123_pct <= 2 * iMaCoilPct
-maCoilSig2 = iMaCoilSigActive and maCoilSig or not iMaCoilSigActive
-p3 = plot(maCoilSig2 ? 2*plotNo+1 : 2*plotNo, title='maCoilSig', color=color.new(color.blue, 0))
-fill(plot1=plot(2*plotNo, color=color.new(color.black, 100)), plot2=p3, color=color.new(color.blue, 80))
-maCoil10Pct = ta.percentile_nearest_rank(diff123_pct, math.min(2000, math.max(bar_index, iObvMaLength, iMaPctMaLength)), 10)
+vwap = ta.vwap(ohlc4, barstate.isfirst)
+vwapSig = close > vwap
+vwapSig2 = iVwapSigActive and vwapSig or not iVwapSigActive
+p5 = plot(vwapSig2 ? 2*plotNo+1 : 2*plotNo, title='VwapSig', color=color.new(color.red, 0))
+fill(plot1=plot(2*plotNo, color=color.new(color.red, 100)), plot2=p5, color=color.new(color.red, 80))
 if barstate.islast
-    label.new(x=last_bar_index, y=2*plotNo, text="MA coil " + str.tostring(maCoil10Pct, '#.#'), xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_right, textcolor=color.new(color.blue, 0))
+    label.new(x=last_bar_index, y=2*plotNo, text="VWAP", xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textalign=text.align_left, textcolor=color.new(color.red, 0))
 
 
 
@@ -138,27 +152,27 @@ iBaerBg = input.bool(title='Bearish background', defval=true, group='general')
 iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1, group='general')
 
 
-initialBuyCondition = strategy.opentrades == 0
-initialSellCondition = strategy.opentrades > 0
+initialBuyCondition = (strategy.opentrades == 0)
+initialSellCondition = (strategy.opentrades > 0)
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
-sigLSum = (obvSig2 ? 1 : 0) + (maPctSig2 ? 1 : 0) + (ichimokuSig2 ? 1 : 0) + (mrsSig2 ? 1 : 0)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 4 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 3 ? color.new(color.green, 85) : na)
+sigLSum = (obvSig2 ? 1 : 0) + (maPctSig2 ? 1 : 0) + (ichimokuSig2 ? 1 : 0) + (mrsSig2 ? 1 : 0) + (vwapSig2 ? 1 : 0)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 5 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 4 ? color.new(color.green, 85) : na)
 bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 1 ? color.new(color.red, 85) : na)
 bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 0 ? color.new(color.red, 70) : na)
-//buy
-if (initialBuyCondition and obvSig2 and maPctSig2 and ichimokuSig2 and mrsSig2)
-    strategy.entry(id=entryId, direction=strategy.long)
+// buy
+if (isEnoughData and initialBuyCondition and sigLSum >= 4)
+    strategy.entry(id=entryId, comment='buy', direction=strategy.long)
 
-currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
-hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
-hardStopLossSig = close <= hardStopLossLvl
-movingStopLossLvl = close > 3 * currEntryPrice ? ma0 : close > 2 * currEntryPrice ? ma1 : close > 1.5 * currEntryPrice ? ma2 : min_ma123 * (1 - iStopLossPct / 2 / 100)
-movingStopLossSig = close <= movingStopLossLvl
+// currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
+// hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
+// hardStopLossSig = close <= hardStopLossLvl
+// movingStopLossLvl = close > 3 * currEntryPrice ? ma0 : close > 2 * currEntryPrice ? ma1 : close > 1.5 * currEntryPrice ? ma2 : min_ma123 * (1 - iStopLossPct / 2 / 100)
+// movingStopLossSig = close <= movingStopLossLvl
 
-//sell
-if (initialSellCondition and (hardStopLossSig or movingStopLossSig))
-    txt = hardStopLossSig ? 'hard sl' : 'moving sl'
-    strategy.close(id=entryId, comment=txt)
+// sell
+if (isEnoughData and initialSellCondition and sigLSum <= 1)
+    // txt = hardStopLossSig ? 'hard sl' : 'moving sl'
+    strategy.close(id=entryId, comment='sell')
