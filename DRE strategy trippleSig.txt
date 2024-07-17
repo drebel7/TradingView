@@ -132,11 +132,14 @@ if barstate.islast
 
 
 
-//VWAP - all time Volume Weighted Average Price
+//VWAP - a very long (like 3year) vwma or all time Volume Weighted Average Price when not enough data available
 plotNo += 1
 iVwapSigActive = input.bool(title='VWAP signal active', defval=true, group='VWAP')
+iVwapMaLength = input.int(title='MA Length', defval=750, group='VWAP')
 
-vwap = ta.vwap(ohlc4, barstate.isfirst)
+atvwap = ta.vwap(ohlc4, barstate.isfirst)
+vwma = ta.vwma(ohlc4, iVwapMaLength)
+vwap = bar_index > iVwapMaLength ? vwma : atvwap
 vwapSig = close > vwap
 vwapSig2 = iVwapSigActive and vwapSig or not iVwapSigActive
 p5 = plot(vwapSig2 ? 2*plotNo+1 : 2*plotNo, title='VwapSig', color=color.new(color.red, 0))
