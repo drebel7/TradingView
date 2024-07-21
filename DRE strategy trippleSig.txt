@@ -132,7 +132,7 @@ if barstate.islast
 
 
 
-//VWAP - a very long (like 3year) vwma or all time Volume Weighted Average Price when not enough data available
+//VWAP - a very long (eg. 3year) vwma or all time Volume Weighted Average Price when not enough data available
 plotNo += 1
 iVwapSigActive = input.bool(title='VWAP signal active', defval=true, group='VWAP')
 iVwapMaLength = input.int(title='MA Length', defval=750, group='VWAP')
@@ -152,7 +152,7 @@ if barstate.islast
 //position close parameters
 iBullBg = input.bool(title='Bullish background', defval=true, group='general')
 iBaerBg = input.bool(title='Bearish background', defval=true, group='general')
-iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1, group='general')
+// iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1, group='general')
 
 
 initialBuyCondition = (strategy.opentrades == 0)
