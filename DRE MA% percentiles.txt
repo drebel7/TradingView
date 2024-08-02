@@ -5,7 +5,7 @@
 indicator('DRE MA %', precision=1, max_bars_back=3000, timeframe="", timeframe_gaps=false)
 
 //iRes = input(title="Timeframe", type=input.resolution, defval="", group='moving average', options=['D', 'W', 'M'])
-iMaType = input.string('SMA', 'Type', options=['SMA', 'EMA'], group='moving average', tooltip='Moving average type [SMA/EMA]')
+iMaType = input.string('SMA', 'Type', options=['SMA', 'EMA', 'VWMA'], group='moving average', tooltip='Moving average type [SMA/EMA/VWMA]')
 iPeriod = input.int(150, 'Period', group='moving average', tooltip='Moving average period')
 iMaDiffSmooth = input.int(1, 'Smoothing', group='moving average', minval = 1, maxval = 5)
 iPercentileShow = input.bool(true, "Show extreeme percentiles", group='percentile')
@@ -15,7 +15,7 @@ iPercentile3 = input.int(1, '/', inline='pct', group='percentile', minval = 0, m
 iPercentYearsLookback = input.int(8, 'Years lookback', group='percentile', minval = 1, maxval = 30, tooltip='Number of years to look back to count percentiles')
 
 
-float ma = iMaType == 'SMA' ? ta.sma(close, iPeriod) : ta.ema(close, iPeriod)
+float ma = iMaType == 'SMA' ? ta.sma(close, iPeriod) : (iMaType == 'EMA' ? ta.ema(close, iPeriod) : ta.vwma(close, iPeriod))
 diff = (close - ma) / ma * 100
 
 p = plot(diff, color=color.new(color.green, 0))
