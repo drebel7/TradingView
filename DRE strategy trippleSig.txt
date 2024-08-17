@@ -154,7 +154,7 @@ iSharpeSigActive = input.bool(title='Sharpe Ratio signal active', defval=true, g
 iSharpeLength = input.int(title='Length', defval=150, group='Sharpe')
 iSharpe0RiskGain = input.int(title='0 risk gain [%]', defval=4, group='Sharpe')
 
-R_p = 100 * ((close - close[iSharpeLength]) / close[iSharpeLength] - 1)
+R_p = 100 * ((close - close[iSharpeLength]) / close[iSharpeLength])
 sigma_p = ta.stdev(close, iSharpeLength)
 
 sharpeRatio = (R_p - iSharpe0RiskGain) / sigma_p
