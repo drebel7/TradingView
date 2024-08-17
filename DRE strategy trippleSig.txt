@@ -151,8 +151,8 @@ if barstate.islast
 //Sharpe Ratio > 1?
 plotNo += 1
 iSharpeSigActive = input.bool(title='Sharpe Ratio signal active', defval=true, group='Sharpe')
-iSharpeLength = input.int(title='Length', defval=150, group='Sharpe')
-iSharpe0RiskGain = input.int(title='0 risk gain [%]', defval=4, group='Sharpe')
+iSharpeLength = input.int(title='Length', defval=125, group='Sharpe')
+iSharpe0RiskGain = input.int(title='0 risk gain [%]', defval=5, group='Sharpe')
 iSharpeSigLvl = input.float(title = 'Sig level', defval=1.0, minval=-1.0, maxval=3.0, step=0.1, group='Sharpe')
 
 //R_p = (close - close[iSharpeLength]) / close[iSharpeLength]
