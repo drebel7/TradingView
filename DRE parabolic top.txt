@@ -15,4 +15,5 @@ barsSinceVolDown = ta.barssince(volMa < volMa[3])
 
 topSig = barsSinceVolDown > 15 and close > iMultipleGain * ta.lowest(close, iMultipleInDays) and volume < volume[iVolDownDaysAfterTop] and open < close[iDownDaysAfterTop]
 
+alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
 plotshape(topSig, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
