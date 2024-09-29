@@ -187,6 +187,14 @@ bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 4 ? colo
 bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 2 ? color.new(color.red, 85) : na)
 bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 1 ? color.new(color.red, 70) : na)
 bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 0 ? color.new(color.red, 55) : na)
+
+wentGreen = sigLSum >= 4 and sigLSum[1] < 4
+wentBelowGreen = sigLSum < 4 and sigLSum[1] >= 4
+
+alertcondition(wentGreen, title='DRE trippleSig - green', message='trippleSig - green')
+alertcondition(wentBelowGreen, title='DRE trippleSig - below green', message='trippleSig - below green')
+alertcondition(wentBelowGreen and ta.barssince(wentGreen) > ta.barssince(wentBelowGreen), title='DRE trippleSig - green and backtest', message='trippleSig - green and backtest')
+
 // buy
 if (isEnoughData and initialBuyCondition and sigLSum >= 5)
     strategy.entry(id=entryId, comment='buy', direction=strategy.long)
