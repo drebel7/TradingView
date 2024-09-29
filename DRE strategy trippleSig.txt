@@ -191,10 +191,12 @@ bgcolor(isEnoughData and iBaerBg and sigLSum == 0 ? color.new(color.red, 55) : n
 
 wentGreen = sigLSum >= 4 and sigLSum[1] < 4
 wentBelowGreen = sigLSum < 4 and sigLSum[1] >= 4
+wentRed = sigLSum <= 2 and sigLSum[1] > 2
 
 alertcondition(wentGreen, title='DRE trippleSig - green', message='trippleSig - green')
 alertcondition(wentBelowGreen, title='DRE trippleSig - below green', message='trippleSig - below green')
 alertcondition(wentBelowGreen and ta.barssince(wentGreen) > ta.barssince(wentBelowGreen), title='DRE trippleSig - green and backtest', message='trippleSig - green and backtest')
+alertcondition(wentRed, title='DRE trippleSig - red', message='trippleSig - red')
 
 // buy
 //if (isEnoughData and initialBuyCondition and sigLSum >= 5)
