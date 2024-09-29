@@ -5,7 +5,8 @@
 //trippleSig, czyli: sygnal z OBV, sygnal z MA coiling, sygnal z MA %, sygnal z MRS, sygnal z VWAP
 //TODO strategy entries not working... why?
 //TODO make better entry closing
-strategy("DRE trippleSig", overlay=false, calc_on_every_tick = true, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
+//strategy("DRE trippleSig", overlay=false, calc_on_every_tick = true, initial_capital=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.29, margin_long=10000, margin_short=10000)
+indicator("DRE trippleSig", overlay=false, max_bars_back = 3000)
 
 ma(source, length, type) =>
     switch type
@@ -175,18 +176,18 @@ iBaerBg = input.bool(title='Bearish background', defval=true, group='general')
 // iStopLossPct = input.float(title='Stop loss % (from entry)', defval=6 , minval = 1, maxval = 12, step=1, group='general')
 
 
-initialBuyCondition = (strategy.opentrades == 0)
-initialSellCondition = (strategy.opentrades > 0)
+//initialBuyCondition = (strategy.opentrades == 0)
+//initialSellCondition = (strategy.opentrades > 0)
 entryId = "trippleSig"
 
 isEnoughData = bar_index > math.max(iObvMaLength, iMaPctMaLength)
 sigLSum = (obvSig2 ? 1 : 0) + (maPctSig2 ? 1 : 0) + (ichimokuSig2 ? 1 : 0) + (mrsSig2 ? 1 : 0) + (vwapSig2 ? 1 : 0) + (sharpeSig2 ? 1 : 0)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 6 ? color.new(color.green, 55) : na)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 5 ? color.new(color.green, 70) : na)
-bgcolor(isEnoughData and iBullBg and initialBuyCondition and sigLSum == 4 ? color.new(color.green, 85) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 2 ? color.new(color.red, 85) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 1 ? color.new(color.red, 70) : na)
-bgcolor(isEnoughData and iBaerBg and initialBuyCondition and sigLSum == 0 ? color.new(color.red, 55) : na)
+bgcolor(isEnoughData and iBullBg and sigLSum == 6 ? color.new(color.green, 55) : na)
+bgcolor(isEnoughData and iBullBg and sigLSum == 5 ? color.new(color.green, 70) : na)
+bgcolor(isEnoughData and iBullBg and sigLSum == 4 ? color.new(color.green, 85) : na)
+bgcolor(isEnoughData and iBaerBg and sigLSum == 2 ? color.new(color.red, 85) : na)
+bgcolor(isEnoughData and iBaerBg and sigLSum == 1 ? color.new(color.red, 70) : na)
+bgcolor(isEnoughData and iBaerBg and sigLSum == 0 ? color.new(color.red, 55) : na)
 
 wentGreen = sigLSum >= 4 and sigLSum[1] < 4
 wentBelowGreen = sigLSum < 4 and sigLSum[1] >= 4
@@ -196,8 +197,8 @@ alertcondition(wentBelowGreen, title='DRE trippleSig - below green', message='tr
 alertcondition(wentBelowGreen and ta.barssince(wentGreen) > ta.barssince(wentBelowGreen), title='DRE trippleSig - green and backtest', message='trippleSig - green and backtest')
 
 // buy
-if (isEnoughData and initialBuyCondition and sigLSum >= 5)
-    strategy.entry(id=entryId, comment='buy', direction=strategy.long)
+//if (isEnoughData and initialBuyCondition and sigLSum >= 5)
+//    strategy.entry(id=entryId, comment='buy', direction=strategy.long)
 
 // currEntryPrice = strategy.opentrades.entry_price(strategy.opentrades - 1)
 // hardStopLossLvl = currEntryPrice * (1 - iStopLossPct / 100)
@@ -206,6 +207,6 @@ if (isEnoughData and initialBuyCondition and sigLSum >= 5)
 // movingStopLossSig = close <= movingStopLossLvl
 
 // sell
-if (isEnoughData and initialSellCondition and sigLSum <= 1)
+//if (isEnoughData and initialSellCondition and sigLSum <= 1)
     // txt = hardStopLossSig ? 'hard sl' : 'moving sl'
-    strategy.close(id=entryId, comment='sell')
+//    strategy.close(id=entryId, comment='sell')
