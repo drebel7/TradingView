@@ -4,10 +4,10 @@
 //@version=5
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 3000, timeframe = 'D', timeframe_gaps = false)
 
-iMultipleGain = input.float(defval=2.0, title='Multiple Gain Since Low', minval=1.2, maxval=4, step=0.2)
-iMultipleInDays = input.int(defval=50, title='Number Of Days To Multiple', minval=5, maxval=100, step=5)
-iDownDaysAfterTop = input.int(defval=2, title='Down Days After Top', minval=1, maxval=5)
-iVolDownDaysAfterTop = input.int(defval=2, title='Down Days After Top (Volume)', minval=1, maxval=5)
+iMultipleGain = input.float(defval=2.0, title='Multiple Gain Since Low', minval=1.2, maxval=4, step=0.2, group='parabolic top')
+iMultipleInDays = input.int(defval=50, title='Number Of Days To Multiple', minval=5, maxval=100, step=5, group='parabolic top')
+iDownDaysAfterTop = input.int(defval=2, title='Down Days After Top', minval=1, maxval=5, group='parabolic top')
+iVolDownDaysAfterTop = input.int(defval=2, title='Down Days After Top (Volume)', minval=1, maxval=5, group='parabolic top')
 
 volMa = ta.sma(volume, 30)
 closeMa = ta.sma(close, 20)
@@ -17,3 +17,17 @@ topSig = barsSinceVolDown > 15 and close > iMultipleGain * ta.lowest(close, iMul
 
 alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
 plotshape(topSig, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
+
+
+iKicker = input.bool(defval=true, title='Show bullish Kicker', group='bullish kicker')
+iConsecutiveDown = input.int(defval=10, title='Down Days', minval=4, maxval=20, group='bullish kicker')
+iMinBearishCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.2, maxval=2.0, step=0.1, group='bullish kicker')
+iMinBodySize = input.float(defval=0.5, title='Min body size of bearish candle', minval=0.2, maxval=0.9, step=0.1, group='bullish kicker')
+
+avgCandleSize = ta.sma(high-low, 50)
+bodySize = math.abs((open-close)/(high-low))
+isKicker = open[1]>close[1] and open>open[1] and close>open
+kickerSig = isKicker and bodySize>iMinBodySize and (high-low)/avgCandleSize>iMinBearishCandleSize and low[1] == ta.lowest(low, iConsecutiveDown)
+
+alertcondition(kickerSig, title='DRE Bullish Kicker sig', message='bullish kicker')
+plotshape(kickerSig, title='bullish kicker', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='kick', textcolor=color.new(color.green, 0))
