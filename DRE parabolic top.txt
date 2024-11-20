@@ -25,7 +25,7 @@ iMinBearishCandleSize = input.float(defval=0.5, title='Min size of bearish candl
 iMinBodySize = input.float(defval=0.5, title='Min body size of bearish candle', minval=0.2, maxval=0.9, step=0.1, group='bullish kicker')
 
 avgCandleSize = ta.sma(high-low, 50)
-bodySize = math.abs((open-close)/(high-low))
+bodySize = math.abs((open[1]-close[1])/(high[1]-low[1]))
 isKicker = open[1]>close[1] and open>open[1] and close>open
 kickerSig = isKicker and bodySize>iMinBodySize and (high-low)/avgCandleSize>iMinBearishCandleSize and low[1] == ta.lowest(low, iConsecutiveDown)
 
