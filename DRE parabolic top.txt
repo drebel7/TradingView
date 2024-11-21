@@ -20,14 +20,22 @@ plotshape(topSig, title='parabolic top', location=location.abovebar, color=color
 
 
 iKicker = input.bool(defval=true, title='Show bullish Kicker', group='bullish kicker')
-iConsecutiveDown = input.int(defval=8, title='Down Days', minval=4, maxval=20, group='bullish kicker')
-iMinBearishCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.2, maxval=2.0, step=0.1, group='bullish kicker')
-iMinBodySize = input.float(defval=0.5, title='Min body size of bearish candle', minval=0.2, maxval=0.9, step=0.1, group='bullish kicker')
+iConsecutiveDown = input.int(defval=8, title='Down Days', minval=1, maxval=20, group='bullish kicker')
+iMinBearishCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.0, maxval=2.0, step=0.1, group='bullish kicker')
+iMinBodySize = input.float(defval=0.5, title='Min body size of bearish candle', minval=0.0, maxval=1.0, step=0.1, group='bullish kicker')
 
 avgCandleSize = ta.sma(high-low, 50)
 bodySize = math.abs((open[1]-close[1])/(high[1]-low[1]))
-isKicker = open[1]>close[1] and open>open[1] and close>open and volume>0.9*volume[1]
+isKicker = open[1]>close[1] and open>open[1] and close>open and volume>0.95*volume[1]
 kickerSig = isKicker and bodySize>iMinBodySize and (high-low)/avgCandleSize>iMinBearishCandleSize and low[1] == ta.lowest(low, iConsecutiveDown)
 
 alertcondition(kickerSig, title='DRE Bullish Kicker sig', message='bullish kicker')
-plotshape(kickerSig and iKicker, title='bullish kicker', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='kick', textcolor=color.new(color.green, 0))
+plotshape(kickerSig and iKicker, title='bullish kicker', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='kicker', textcolor=color.new(color.green, 0))
+
+
+iBullEngulfing = input.bool(defval=true, title='Show bullish Engulfing', group='bullish engulfing')
+
+bullishEngulfingSig = open[1]>close[1] and open<close and open<close[1] and close>open[1] and low == ta.lowest(low, 5)
+
+alertcondition(bullishEngulfingSig, title='DRE Bullish Engulfing sig', message='bullish engulfing')
+plotshape(bullishEngulfingSig and iBullEngulfing, title='bullish engulfing', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='engulfing', textcolor=color.new(color.green, 0))
