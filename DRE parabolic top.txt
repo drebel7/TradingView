@@ -35,7 +35,19 @@ plotshape(kickerSig and iKicker, title='bullish kicker', location=location.below
 
 iBullEngulfing = input.bool(defval=true, title='Show bullish Engulfing', group='bullish engulfing')
 
-bullishEngulfingSig = open[1]>close[1] and open<close and open<close[1] and close>open[1] and low == ta.lowest(low, 5)
+bullishEngulfingSig = open[1]>close[1] and open<close and open<close[1] and close>open[1] and low == ta.lowest(low, 8)
 
 alertcondition(bullishEngulfingSig, title='DRE Bullish Engulfing sig', message='bullish engulfing')
 plotshape(bullishEngulfingSig and iBullEngulfing, title='bullish engulfing', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='engulfing', textcolor=color.new(color.green, 0))
+
+
+iBearEngulfing = input.bool(defval=true, title='Show bearish Engulfing', group='bearish engulfing')
+
+bearishEngulfingSig = open[1]<close[1] and open>close and open>close[1] and close<open[1] and high == ta.highest(high, 8)
+
+alertcondition(bearishEngulfingSig, title='DRE Bearish Engulfing sig', message='bearish engulfing')
+plotshape(bearishEngulfingSig and iBearEngulfing, title='bearish engulfing', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='engulfing', textcolor=color.new(color.red, 0))
+
+
+alertcondition(topSig or bearishEngulfingSig, title='DRE Bearish pattern sig', message='bearish pattern')
+alertcondition(kickerSig or bullishEngulfingSig, title='DRE Bullish pattern sig', message='bullish pattern')
