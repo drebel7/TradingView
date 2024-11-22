@@ -2,7 +2,7 @@
 // © drebel
 
 //@version=5
-indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 3000, timeframe = 'D', timeframe_gaps = false)
+indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 3000)
 
 iMultipleGain = input.float(defval=1.6, title='Multiple Gain Since Low', minval=1.2, maxval=4, step=0.2, group='parabolic top')
 iMultipleInDays = input.int(defval=100, title='Number Of Days To Multiple', minval=5, maxval=150, step=5, group='parabolic top')
@@ -50,5 +50,20 @@ alertcondition(bearishEngulfingSig, title='DRE Bearish Engulfing sig', message='
 plotshape(bearishEngulfingSig and iBearEngulfing, title='bearish engulfing', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='engulfing', textcolor=color.new(color.red, 0))
 
 
-alertcondition(topSig or bearishEngulfingSig, title='DRE Bearish pattern sig', message='bearish pattern')
-alertcondition(kickerSig or bullishEngulfingSig, title='DRE Bullish pattern sig', message='bullish pattern')
+iBearish3Wicks = input.bool(defval=true, title='Show bearish 3 wicks', group='bearish wicks')
+avgHighWick = ta.sma(high - math.max(open, close), 3)
+avgLowWick = ta.sma(math.min(open, close) - low, 3)
+bearish3WicksSig = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and ta.highest(high, 3) == ta.highest(high, 8) and avgHighWick > 2.5*avgLowWick
+alertcondition(bearish3WicksSig, title='DRE Bearish 3 wicks sig', message='bearish wicks')
+plotshape(bearish3WicksSig and iBearish3Wicks, title='bearish wicks', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='wicks', textcolor=color.new(color.red, 0))
+
+
+iBullsh3Wicks = input.bool(defval=true, title='Show bullish 3 wicks', group='bullish wicks')
+bullish3WicksSig = ta.highest(low, 3) < math.min(open, close, open[1], close[1], open[2], close[2]) and ta.lowest(low, 3) == ta.lowest(low, 8) and avgLowWick > 2.5*avgHighWick
+alertcondition(bullish3WicksSig, title='DRE Bullish 3 wicks sig', message='bullish wicks')
+plotshape(bullish3WicksSig and iBullsh3Wicks, title='bullish wicks', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='wicks', textcolor=color.new(color.green, 0))
+
+
+
+alertcondition(topSig or bearishEngulfingSig or bearish3WicksSig, title='DRE Bearish pattern sig', message='bearish pattern')
+alertcondition(kickerSig or bullishEngulfingSig or bullish3WicksSig, title='DRE Bullish pattern sig', message='bullish pattern')
