@@ -17,11 +17,11 @@ barsSinceVolDown = ta.barssince(volMa < volMa[3])
 topSig = barsSinceVolDown > 15 and close > iMultipleGain * ta.lowest(close, iMultipleInDays) and volume < volume[iVolDownDaysAfterTop] and open < close[iDownDaysAfterTop]
 
 alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
-plotshape(topSig, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
+plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
 
 
-iBullishKicker = input.bool(defval=true, title='Show bullish Kicker', group='kicker')
-iBearishKicker = input.bool(defval=true, title='Show bearish Kicker', group='kicker')
+iBullishKicker = input.bool(defval=true, title='bullish', group='kicker', inline = 'kicker1')
+iBearishKicker = input.bool(defval=true, title='bearish', group='kicker', inline = 'kicker1')
 iKicker1stCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.0, maxval=2.0, step=0.1, group='kicker')
 iKicker2ndCandleMinBodySize = input.float(defval=0.5, title='Min body size of bearish candle', minval=0.0, maxval=1.0, step=0.1, group='kicker')
 
@@ -38,35 +38,29 @@ plotshape(bullishKickerSig and iBullishKicker, title='bullish kicker', location=
 plotshape(bearishKickerSig and iBearishKicker, title='bearish kicker', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='kicker', textcolor=color.new(color.red, 0))
 
 
-iBullEngulfing = input.bool(defval=true, title='Show bullish Engulfing', group='bullish engulfing')
+iBullEngulfing = input.bool(defval=true, title='bullish', group='engulfing', inline = 'engulf1')
+iBearEngulfing = input.bool(defval=true, title='bearish', group='engulfing', inline = 'engulf1')
 
 avgVolume = ta.sma(volume, 10)
 bullishEngulfingSig = open[1]>close[1] and open<close and open<close[1] and close>open[1] and low == ta.lowest(low, 8) and volume > avgVolume
-
-alertcondition(bullishEngulfingSig, title='DRE Bullish Engulfing sig', message='bullish engulfing')
-plotshape(bullishEngulfingSig and iBullEngulfing, title='bullish engulfing', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='engulfing', textcolor=color.new(color.green, 0))
-
-
-iBearEngulfing = input.bool(defval=true, title='Show bearish Engulfing', group='bearish engulfing')
-
 bearishEngulfingSig = open[1]<close[1] and open>close and open>close[1] and close<open[1] and high == ta.highest(high, 8) and volume > avgVolume
 
+alertcondition(bullishEngulfingSig, title='DRE Bullish Engulfing sig', message='bullish engulfing')
 alertcondition(bearishEngulfingSig, title='DRE Bearish Engulfing sig', message='bearish engulfing')
+plotshape(bullishEngulfingSig and iBullEngulfing, title='bullish engulfing', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='engulfing', textcolor=color.new(color.green, 0))
 plotshape(bearishEngulfingSig and iBearEngulfing, title='bearish engulfing', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='engulfing', textcolor=color.new(color.red, 0))
 
 
-iBearish3Wicks = input.bool(defval=true, title='Show bearish 3 wicks', group='bearish wicks')
+iBullsh3Wicks = input.bool(defval=true, title='bullish', group='wicks', inline = 'wicks1')
+iBearish3Wicks = input.bool(defval=true, title='bearish', group='wicks', inline = 'wicks1')
 avgHighWick = ta.sma(high - math.max(open, close), 3)
 avgLowWick = ta.sma(math.min(open, close) - low, 3)
-bearish3WicksSig = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and ta.highest(high, 3) == ta.highest(high, 8) and avgHighWick > 2.5*avgLowWick
-alertcondition(bearish3WicksSig, title='DRE Bearish 3 wicks sig', message='bearish wicks')
-plotshape(bearish3WicksSig and iBearish3Wicks, title='bearish wicks', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='wicks', textcolor=color.new(color.red, 0))
-
-
-iBullsh3Wicks = input.bool(defval=true, title='Show bullish 3 wicks', group='bullish wicks')
 bullish3WicksSig = ta.highest(low, 3) < math.min(open, close, open[1], close[1], open[2], close[2]) and ta.lowest(low, 3) == ta.lowest(low, 8) and avgLowWick > 2.5*avgHighWick
+bearish3WicksSig = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and ta.highest(high, 3) == ta.highest(high, 8) and avgHighWick > 2.5*avgLowWick
 alertcondition(bullish3WicksSig, title='DRE Bullish 3 wicks sig', message='bullish wicks')
+alertcondition(bearish3WicksSig, title='DRE Bearish 3 wicks sig', message='bearish wicks')
 plotshape(bullish3WicksSig and iBullsh3Wicks, title='bullish wicks', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='wicks', textcolor=color.new(color.green, 0))
+plotshape(bearish3WicksSig and iBearish3Wicks, title='bearish wicks', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='wicks', textcolor=color.new(color.red, 0))
 
 
 
