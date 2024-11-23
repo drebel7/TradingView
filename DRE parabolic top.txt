@@ -23,14 +23,14 @@ plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abo
 iBullishKicker = input.bool(defval=true, title='bullish', group='kicker', inline = 'kicker1')
 iBearishKicker = input.bool(defval=true, title='bearish', group='kicker', inline = 'kicker1')
 iKicker1stCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.0, maxval=2.0, step=0.1, group='kicker')
-iKicker2ndCandleMinBodySize = input.float(defval=0.5, title='Min body size of bearish candle', minval=0.0, maxval=1.0, step=0.1, group='kicker')
+iKicker2ndCandleMinBodySize = input.float(defval=0.2, title='Min body size of bearish candle', minval=0.0, maxval=1.0, step=0.1, group='kicker')
 
 avgCandleSize50 = ta.sma(high-low, 50)
-bodySize = math.abs((open[1]-close[1])/(high[1]-low[1]))
+bodySize = math.abs((open-close)/(high-low))
 isBullishKicker = open[1]>close[1] and open>open[1] and close>open and volume>0.95*volume[1]
 isBaerishKicker = open[1]<close[1] and open<open[1] and close<open and volume>0.95*volume[1]
-bullishKickerSig = isBullishKicker and bodySize>iKicker2ndCandleMinBodySize and (high-low)/avgCandleSize50>iKicker1stCandleSize and low[1] == ta.lowest(low, 8)
-bearishKickerSig = isBaerishKicker and bodySize>iKicker2ndCandleMinBodySize and (high-low)/avgCandleSize50>iKicker1stCandleSize and high[1] == ta.highest(high, 8)
+bullishKickerSig = isBullishKicker and bodySize[1]>iKicker2ndCandleMinBodySize and (high-low)/avgCandleSize50>iKicker1stCandleSize and low[1] == ta.lowest(low, 8)
+bearishKickerSig = isBaerishKicker and bodySize[1]>iKicker2ndCandleMinBodySize and (high-low)/avgCandleSize50>iKicker1stCandleSize and high[1] == ta.highest(high, 8)
 
 alertcondition(bullishKickerSig, title='DRE Bullish Kicker sig', message='bullish kicker')
 alertcondition(bearishKickerSig, title='DRE Bearish Kicker sig', message='bearish kicker')
@@ -64,6 +64,31 @@ plotshape(bullish3WicksSig and iBullsh3Wicks, title='bullish wicks', location=lo
 plotshape(bearish3WicksSig and iBearish3Wicks, title='bearish wicks', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='wicks', textcolor=color.new(color.red, 0))
 
 
+iBullishTwizzer = input.bool(defval=true, title='bullish', group='twizzer', inline = 'twizz1')
+iBearishTwizzer = input.bool(defval=true, title='bearish', group='twizzer', inline = 'twizz1')
+//sth not good here calculating coverage
+coverage = math.abs((1.0*math.min(open[1], close) - math.max(close[1], open)) / (math.max(open[1], close) - math.min(close[1], open)))
+bullishTwizzerSig = open[1]>close[1] and open<close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.lowest(low, 2) == ta.lowest(low, 8) and coverage > 0.8
+bearishTwizzerSig = open[1]<close[1] and open>close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.highest(high, 2) == ta.highest(high, 8) and coverage > 0.8
+alertcondition(bullishTwizzerSig, title='DRE Bullish twizzer sig', message='bullish twizzer')
+alertcondition(bearishTwizzerSig, title='DRE Bearish twizzer sig', message='bearish twizzer')
+plotshape(bullishTwizzerSig and iBullishTwizzer, title='bullish twizzer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='twizzer', textcolor=color.new(color.green, 0))
+plotshape(bearishTwizzerSig and iBearishTwizzer, title='bearish twizzer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='twizzer', textcolor=color.new(color.red, 0))
 
-alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig, title='DRE Bearish pattern sig', message='bearish pattern')
-alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig, title='DRE Bullish pattern sig', message='bullish pattern')
+
+
+iBullishHammer = input.bool(defval=true, title='bullish', group='hammer / morning star', inline = 'hammer1')
+iBearishHammer = input.bool(defval=true, title='bearish', group='hammer / morning star', inline = 'hammer1')
+upperWickSize = math.abs((high-math.max(open, close))/(high-low))
+lowerWickSize = math.abs((low-math.min(open, close))/(high-low))
+bullishHammerSig = bodySize < 0.2 and lowerWickSize > 0.7 and low == ta.lowest(low, 8) and (high-low)/avgCandleSize50>1
+bearishHammerSig = bodySize < 0.2 and upperWickSize > 0.7 and high == ta.highest(high, 8) and (high-low)/avgCandleSize50>1
+alertcondition(bullishHammerSig, title='DRE Bullish hammer sig', message='bullish hammer')
+alertcondition(bearishHammerSig, title='DRE Bearish hammer sig', message='bearish hammer')
+plotshape(bullishHammerSig and iBullishHammer, title='bullish hammer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='hammer', textcolor=color.new(color.green, 0))
+plotshape(bearishHammerSig and iBearishHammer, title='bearish hammer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='m.star', textcolor=color.new(color.red, 0))
+
+
+
+alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig, title='DRE Bearish pattern sig', message='bearish pattern')
+alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig, title='DRE Bullish pattern sig', message='bullish pattern')
