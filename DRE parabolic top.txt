@@ -96,7 +96,7 @@ iVolUpPct = input.float(0.9, title='Volume Up', minval=0.0, step=0.05, group='vo
 
 volAvg = ta.sma(volume, 40)
 consVolUp = ta.barssince(not(volume > iVolUpPct * volume[1] and volume > volume[2]))
-consVolGtMa = ta.barssince(volume <= iVolUpPct * volAvg)
+consVolGtMa = ta.barssince(volume <= 1.25 * volAvg)
 consPriceUp = ta.barssince(close <= close[1])
 consPriceDn = ta.barssince(close >= close[1])
 
