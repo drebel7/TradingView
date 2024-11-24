@@ -90,7 +90,7 @@ plotshape(bearishHammerSig and iBearishHammer, title='bearish hammer', location=
 
 
 iConsecutivePriceUpVolUp = input.bool(defval=true, title='bullish', group='vol. up', inline = 'vup1')
-iConsecutivePriceDnVolUp = input.bool(defval=true, title='bullish', group='vol. up', inline = 'vup1')
+iConsecutivePriceDnVolUp = input.bool(defval=true, title='bearish', group='vol. up', inline = 'vup1')
 iConsPeriods = input.int(5, title='Number of periods', minval=2, group='vol. up')
 iVolUpPct = input.float(0.9, title='Volume Up', minval=0.0, step=0.05, group='vol. up')
 
