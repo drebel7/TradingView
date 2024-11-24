@@ -113,3 +113,5 @@ plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', 
 
 alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig or volUpPriceUpSig, title='DRE Bearish pattern sig', message='bearish pattern')
 alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig or volUpPriceDnSig, title='DRE Bullish pattern sig', message='bullish pattern')
+
+alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig or volUpPriceUpSig or bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
