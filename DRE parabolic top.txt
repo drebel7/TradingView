@@ -89,6 +89,27 @@ plotshape(bullishHammerSig and iBullishHammer, title='bullish hammer', location=
 plotshape(bearishHammerSig and iBearishHammer, title='bearish hammer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='m.star', textcolor=color.new(color.red, 0))
 
 
+iConsecutivePriceUpVolUp = input.bool(defval=true, title='bullish', group='vol. up', inline = 'vup1')
+iConsecutivePriceDnVolUp = input.bool(defval=true, title='bullish', group='vol. up', inline = 'vup1')
+iConsPeriods = input.int(5, title='Number of periods', minval=2, group='vol. up')
+iVolUpPct = input.float(0.9, title='Volume Up', minval=0.0, step=0.05, group='vol. up')
 
-alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig, title='DRE Bearish pattern sig', message='bearish pattern')
-alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig, title='DRE Bullish pattern sig', message='bullish pattern')
+volAvg = ta.sma(volume, 40)
+consVolUp = ta.barssince(volume > iVolUpPct * volume[1] and volume > volume[2])
+consVolGtMa = ta.barssince(volume > iVolUpPct * volAvg)
+consPriceUp = ta.barssince(close > close[1])
+consPriceDn = ta.barssince(close < close[1])
+
+volUpSig = (consVolUp >= iConsPeriods and volume[iConsPeriods / 2] > volAvg[iConsPeriods / 2]) or consVolGtMa >= iConsPeriods
+volUpPriceUpSig = volUpSig and consPriceUp >= iConsPeriods
+volUpPriceDnSig = volUpSig and consPriceDn >= iConsPeriods
+
+alertcondition(volUpPriceUpSig, title='DRE Bullish vol up price up', message='vol up')
+alertcondition(volUpPriceDnSig, title='DRE Bearish vol up price dn', message='vol up')
+plotshape(volUpPriceUpSig and iConsecutivePriceUpVolUp, title='bullish vol up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='vol up', textcolor=color.new(color.green, 0))
+plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='vol up', textcolor=color.new(color.red, 0))
+
+
+
+alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig or volUpPriceUpSig, title='DRE Bearish pattern sig', message='bearish pattern')
+alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig or volUpPriceDnSig, title='DRE Bullish pattern sig', message='bullish pattern')
