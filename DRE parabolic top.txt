@@ -69,8 +69,8 @@ iBearishTwizzer = input.bool(defval=true, title='bearish', group='twizzer', inli
 //sth not good here calculating coverage
 coverageBullish = (math.min(open[1], close) - math.max(close[1], open)) / (math.max(high[1], high) - math.min(low[1], low))
 coverageBearish = (math.max(open[1], close) - math.min(close[1], open)) / (math.max(high[1], high) - math.min(low[1], low))
-bullishTwizzerSig = open[1]>close[1] and open<close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.lowest(low, 2) == ta.lowest(low, 8) and coverageBullish > 0.85
-bearishTwizzerSig = open[1]<close[1] and open>close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.highest(high, 2) == ta.highest(high, 8) and coverageBearish > 0.85
+bullishTwizzerSig = open[1]>close[1] and open<close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.lowest(low, 2) == ta.lowest(low, 8) and coverageBullish >= 0.8
+bearishTwizzerSig = open[1]<close[1] and open>close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.highest(high, 2) == ta.highest(high, 8) and coverageBearish >= 0.8
 alertcondition(bullishTwizzerSig, title='DRE Bullish twizzer sig', message='bullish twizzer')
 alertcondition(bearishTwizzerSig, title='DRE Bearish twizzer sig', message='bearish twizzer')
 plotshape(bullishTwizzerSig and iBullishTwizzer, title='bullish twizzer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='twizzer', textcolor=color.new(color.green, 0))
