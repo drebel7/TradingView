@@ -20,6 +20,19 @@ alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
 plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
 
 
+iStarter = input.bool(defval=true, title='Bull starter', group='starter')
+iStarterMinDecliningDays = input.int(defval=150, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
+iStarterMaxIncliningDays = input.int(defval=40, title='Number of SMA inclining day', minval=0, maxval=100, group='starter')
+
+starterMa = ta.sma(close, 200)
+starterDeclining = ta.barssince(starterMa > starterMa[1])
+starterInclining = ta.barssince(starterDeclining == 0 and starterDeclining[1] > iStarterMinDecliningDays)
+starterSig = starterInclining < iStarterMaxIncliningDays and math.min(low, close[1]) <= starterMa and close > starterMa
+
+alertcondition(starterSig, title='DRE starter sig', message='starter')
+plotshape(starterSig and iStarter, title='starter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='starter', textcolor=color.new(color.green, 0))
+
+
 iBullishKicker = input.bool(defval=true, title='bullish', group='kicker', inline = 'kicker1')
 iBearishKicker = input.bool(defval=true, title='bearish', group='kicker', inline = 'kicker1')
 iKicker1stCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.0, maxval=2.0, step=0.1, group='kicker')
