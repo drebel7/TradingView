@@ -21,8 +21,8 @@ plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abo
 
 
 iStarter = input.bool(defval=true, title='Bull starter', group='starter')
-iStarterMinDecliningDays = input.int(defval=150, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
-iStarterMaxIncliningDays = input.int(defval=40, title='Number of SMA inclining day', minval=0, maxval=100, group='starter')
+iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
+iStarterMaxIncliningDays = input.int(defval=100, title='Number of SMA inclining day', minval=0, maxval=200, group='starter')
 
 starterMa = ta.sma(close, 200)
 starterDeclining = ta.barssince(starterMa > starterMa[1])
