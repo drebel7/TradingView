@@ -27,7 +27,7 @@ iStarterMaxIncliningDays = input.int(defval=100, title='Number of SMA inclining 
 starterMa = ta.sma(close, 200)
 starterDeclining = ta.barssince(starterMa > starterMa[1])
 starterInclining = ta.barssince(starterDeclining == 0 and starterDeclining[1] > iStarterMinDecliningDays)
-starterSig = starterInclining < iStarterMaxIncliningDays and math.min(low, close[1]) <= starterMa and close > starterMa
+starterSig = starterInclining < iStarterMaxIncliningDays and math.min(low, close[1]) <= starterMa and close > starterMa and starterMa >= starterMa[starterInclining]
 
 alertcondition(starterSig, title='DRE starter sig', message='starter')
 plotshape(starterSig and iStarter, title='starter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='starter', textcolor=color.new(color.green, 0))
