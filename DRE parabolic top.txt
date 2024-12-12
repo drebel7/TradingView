@@ -24,8 +24,9 @@ iStarter = input.bool(defval=true, title='Bull starter', group='starter')
 iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
 iStarterMaxIncliningDays = input.int(defval=100, title='Number of SMA inclining day', minval=0, maxval=200, group='starter')
 
-starterMa = ta.sma(close, 200)
-starterDeclining = ta.barssince(starterMa > starterMa[1])
+starterMaLen = 200
+starterMa = ta.sma(close, starterMaLen)
+starterDeclining = ta.barssince(starterMa > starterMa[1] or bar_index < starterMaLen)
 starterInclining = ta.barssince(starterDeclining == 0 and starterDeclining[1] > iStarterMinDecliningDays)
 starterSig = starterInclining < iStarterMaxIncliningDays and math.min(low, close[1]) <= starterMa and close > starterMa and starterMa >= starterMa[starterInclining]
 
