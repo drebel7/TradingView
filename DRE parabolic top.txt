@@ -22,7 +22,7 @@ plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abo
 
 iStarter = input.bool(defval=true, title='Bull starter', group='starter')
 iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
-iStarterMaxIncliningDays = input.int(defval=100, title='Number of SMA inclining day', minval=0, maxval=200, group='starter')
+iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining day', minval=0, maxval=300, group='starter')
 iStarterSmaSmoothing = input.bool(defval = true, title='SMA smoothing', group='starter')
 
 starterMaLen = 200
