@@ -25,11 +25,13 @@ iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining 
 iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining day', minval=0, maxval=300, group='starter')
 iStarterSmaSmoothing = input.bool(defval = true, title='SMA smoothing', group='starter')
 
-starterMaLen = 200
-starterMa = iStarterSmaSmoothing ? ta.sma(ta.sma(close, starterMaLen), 3) : ta.sma(close, starterMaLen)
-starterDeclining = ta.barssince(starterMa > starterMa[1] or bar_index < starterMaLen)
-starterInclining = ta.barssince(starterDeclining == 0 and starterDeclining[1] > iStarterMinDecliningDays)
-starterSig = starterInclining < iStarterMaxIncliningDays and math.min(low, close[1]) <= starterMa and close > starterMa and starterMa >= starterMa[starterInclining]
+func_starter_sig(maLen, minDeclining, maxInclining, smoothing) =>
+    starterMa = smoothing ? ta.sma(ta.sma(close, maLen), 3) : ta.sma(close, maLen)
+    starterDeclining = ta.barssince(starterMa > starterMa[1] or bar_index < maLen)
+    starterInclining = ta.barssince(starterDeclining == 0 and starterDeclining[1] > minDeclining)
+    ret = starterInclining < maxInclining and math.min(low, close[1]) <= starterMa and close > starterMa and starterMa >= starterMa[starterInclining]
+
+starterSig = func_starter_sig(200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 
 alertcondition(starterSig, title='DRE starter sig', message='starter')
 plotshape(starterSig and iStarter, title='starter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='starter', textcolor=color.new(color.green, 0))
