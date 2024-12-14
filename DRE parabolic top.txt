@@ -60,6 +60,23 @@ plotshape(bullishStarterSig and iBullishStarter, title='bullish starter', locati
 plotshape(bearishStarterSig and iBearishStarter, title='bearish starter', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='starter', textcolor=color.new(color.red, 0))
 
 
+iLonger = input.bool(defval=true, title='bullish', group='longer', inline = 'longer1')
+iLongerShortMaLength = input.int(defval=200, title='Short MA length', minval=10, maxval=500, group='longer')
+iLongerLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='longer')
+iLongerOffset = input.float(defval=0.0, title='Price offset (atr multiple)', minval=-2.0, maxval=2.0, step=0.5, group='longer')
+
+func_sig_longer(shortMaLength, longMaLength, offset) =>
+    shortMa = ta.sma(close, shortMaLength)
+    longMa = ta.sma(close, longMaLength)
+    atr = ta.atr(shortMaLength)
+    ret = longMa > longMa[1] and func_crossover(shortMa + offset * atr)
+
+longerSig = func_sig_longer(iLongerShortMaLength, iLongerLongMaLength, iLongerOffset)
+
+alertcondition(longerSig, title='DRE longer sig', message='longer')
+plotshape(longerSig and iLonger, title='longer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='longer', textcolor=color.new(color.green, 0))
+
+
 iBullishKicker = input.bool(defval=true, title='bullish', group='kicker', inline = 'kicker1')
 iBearishKicker = input.bool(defval=true, title='bearish', group='kicker', inline = 'kicker1')
 iKicker1stCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.0, maxval=2.0, step=0.1, group='kicker')
@@ -104,8 +121,8 @@ plotshape(bullish3WicksSig and iBullsh3Wicks, title='bullish wicks', location=lo
 plotshape(bearish3WicksSig and iBearish3Wicks, title='bearish wicks', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='wicks', textcolor=color.new(color.red, 0))
 
 
-iBullishTwizzer = input.bool(defval=true, title='bullish', group='twizzer', inline = 'twizz1')
-iBearishTwizzer = input.bool(defval=true, title='bearish', group='twizzer', inline = 'twizz1')
+iBullishTwizzer = input.bool(defval=false, title='bullish', group='twizzer', inline = 'twizz1')
+iBearishTwizzer = input.bool(defval=false, title='bearish', group='twizzer', inline = 'twizz1')
 //sth not good here calculating coverage
 coverRatio = 0.7
 coverageBullish = (math.min(open[1], close) - math.max(close[1], open)) / (math.max(high[1], high) - math.min(low[1], low))
