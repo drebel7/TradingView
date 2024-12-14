@@ -67,7 +67,7 @@ iLongerOffset = input.float(defval=0.0, title='Price offset (atr multiple)', min
 
 func_sig_longer(shortMaLength, longMaLength, offset) =>
     shortMa = ta.sma(close, shortMaLength)
-    longMa = ta.sma(close, longMaLength)
+    longMa = ta.ema(close, longMaLength)
     atr = ta.atr(shortMaLength)
     ret = longMa > longMa[1] and func_crossover(shortMa + offset * atr)
 
