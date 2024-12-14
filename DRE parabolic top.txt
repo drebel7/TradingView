@@ -20,24 +20,39 @@ alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
 plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
 
 
+func_crossover(middle) =>
+    math.min(low, close[1]) <= middle and close > middle
+func_crossunder(middle) =>
+    math.max(high, close[1]) >= middle and close < middle
+
+
+iJunior = input.bool(defval=true, title='bullish', group='junior')
+iJuniorOffset = input.int(defval=1, title='Offset', minval=0, maxval=200, group='junior')
+
+func_sig_junior(offset) =>
+    vwap = ta.vwap(ohlc4, bar_index == offset)
+    ret = func_crossover(vwap)
+
+juniorSig = func_sig_junior(iJuniorOffset)
+
+alertcondition(juniorSig, title='DRE junior sig', message='junior')
+plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='junior', textcolor=color.new(color.green, 0))
+
+
 iBullishStarter = input.bool(defval=true, title='bullish', group='starter', inline = 'starter1')
 iBearishStarter = input.bool(defval=false, title='bearish', group='starter', inline = 'starter1')
 iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
 iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining day', minval=0, maxval=300, group='starter')
 iStarterSmaSmoothing = input.bool(defval = true, title='SMA smoothing', group='starter')
 
-func_crossover(middle) =>
-    math.min(low, close[1]) <= middle and close > middle
-func_crossunder(middle) =>
-    math.max(high, close[1]) >= middle and close < middle
-func_starter_sig(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
+func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
     ma = isSmoothing ? ta.sma(ta.sma(close, maLen), 3) : ta.sma(close, maLen)
     move1 = ta.barssince((isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < maLen)
     move2 = ta.barssince(move1 == 0 and (isBullish ? move1[1] > minMove1Len : move1[1] < minMove1Len))
     ret = move2 < maxMove2Len and (isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
 
-bullishStarterSig = func_starter_sig(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
-bearishStarterSig = func_starter_sig(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bearishStarterSig = func_sig_starter(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 
 alertcondition(bullishStarterSig, title='DRE bullish starter sig', message='bullish starter')
 alertcondition(bearishStarterSig, title='DRE bearish starter sig', message='bearish starter')
