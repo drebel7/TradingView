@@ -41,6 +41,25 @@ alertcondition(juniorSig, title='DRE junior sig', message='junior')
 plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='junior', textcolor=color.new(color.green, 0))
 
 
+iCoil = input.bool(defval=true, title='bullish', group='coil')
+iCoilShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='coil')
+iCoilMediumMaLength = input.int(defval=200, title='Short MA length', minval=15, maxval=500, group='coil')
+iCoilLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='coil')
+iCoilPercent = input.int(defval=5, title='Max percentile rank distance from MAs', minval=1, maxval=20, group='coil')
+
+func_sig_coil(shortMaLen, mediumMaLen, longMaLen, distancePercentRank) =>
+    shortMa = ta.sma(close, shortMaLen)
+    mediumMa = ta.sma(close, mediumMaLen)
+    longMa = ta.sma(close, longMaLen)
+    distance = math.sqrt(math.pow(shortMa - close, 2) + math.pow(mediumMa - close, 2) + math.pow(longMa - close, 2))
+    ret = ta.percentrank(distance, 3 * longMaLen) < distancePercentRank and func_crossover(mediumMa)
+
+coilBullishSig = func_sig_coil(iCoilShortMaLength, iCoilMediumMaLength, iCoilLongMaLength, iCoilPercent)
+
+alertcondition(coilBullishSig, title='DRE coil sig', message='coil')
+plotshape(coilBullishSig and iCoil, title='coil', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='coil', textcolor=color.new(color.green, 0))
+
+
 iBullishStarter = input.bool(defval=true, title='bullish', group='starter', inline = 'starter1')
 iBearishStarter = input.bool(defval=false, title='bearish', group='starter', inline = 'starter1')
 iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=20, maxval=1000, group='starter')
@@ -100,7 +119,7 @@ plotshape(volUpPriceUpSig and iConsecutivePriceUpVolUp, title='bullish vol up', 
 plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='vol up', textcolor=color.new(color.red, 0))
 
 
-alertcondition(juniorSig or bullishStarterSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
+alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
 alertcondition(topSig or bearishStarterSig or volUpPriceDnSig, title='DRE Bearish pattern sig', message='bearish pattern')
 
-alertcondition(juniorSig or bullishStarterSig or longerSig or volUpPriceUpSig or topSig or bearishStarterSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
+alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig or topSig or bearishStarterSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
