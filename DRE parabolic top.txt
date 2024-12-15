@@ -100,7 +100,7 @@ func_sig_longer(shortMaLength, longMaLength, offset) =>
     shortMa = ta.sma(close, shortMaLength)
     longMa = ta.sma(close, longMaLength)
     atr = ta.atr(shortMaLength)
-    ret = shortMa > shortMa[1] and longMa > longMa[1] and shortMa > longMa and (func_crossover(shortMa + offset * atr) or func_crossover(longMa + offset * atr))
+    ret = shortMa > shortMa[1] and longMa > longMa[1] and shortMa > longMa and func_crossover(shortMa + offset * atr)
 
 longerSig = func_sig_longer(iLongerShortMaLength, iLongerLongMaLength, iLongerOffset)
 
