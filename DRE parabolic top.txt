@@ -52,7 +52,8 @@ func_ma_distance(shortMaLen, mediumMaLen, longMaLen) =>
     shortMa = ta.sma(close, shortMaLen)
     mediumMa = ta.sma(close, mediumMaLen)
     longMa = ta.sma(close, longMaLen)
-    distance = math.sqrt(math.pow(shortMa - close, 2) + math.pow(mediumMa - close, 2) + math.pow(longMa - close, 2))
+    lenSum = shortMaLen + mediumMaLen + longMaLen
+    distance = math.sqrt((lenSum-shortMaLen)*math.pow(shortMa - close, 2) + (lenSum-mediumMaLen)*math.pow(mediumMa - close, 2) + (lenSum-longMaLen)*math.pow(longMa - close, 2))
 
 func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
     ret = ta.percentrank(distance, 3 * longMaLen) < distancePercentRank and func_crossover(ta.sma(close, mediumMaLen))
