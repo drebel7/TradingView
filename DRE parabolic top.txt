@@ -41,23 +41,32 @@ alertcondition(juniorSig, title='DRE junior sig', message='junior')
 plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='junior', textcolor=color.new(color.green, 0))
 
 
-iCoil = input.bool(defval=true, title='bullish', group='coil')
-iCoilShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='coil')
-iCoilMediumMaLength = input.int(defval=200, title='Short MA length', minval=15, maxval=500, group='coil')
-iCoilLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='coil')
-iCoilPercent = input.int(defval=5, title='Max percentile rank distance from MAs', minval=1, maxval=20, group='coil')
+iCoil = input.bool(defval=true, title='bullish', group='coil_n_strech')
+iCoilStrech = input.bool(defval=false, title='bearish', group='coil_n_strech')
+iCoilShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='coil_n_strech')
+iCoilMediumMaLength = input.int(defval=200, title='Short MA length', minval=15, maxval=500, group='coil_n_strech')
+iCoilLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='coil_n_strech')
+iCoilPercent = input.int(defval=5, title='Percentile rank distance from MAs', minval=1, maxval=20, group='coil_n_strech')
 
-func_sig_coil(shortMaLen, mediumMaLen, longMaLen, distancePercentRank) =>
+func_ma_distance(shortMaLen, mediumMaLen, longMaLen) =>
     shortMa = ta.sma(close, shortMaLen)
     mediumMa = ta.sma(close, mediumMaLen)
     longMa = ta.sma(close, longMaLen)
     distance = math.sqrt(math.pow(shortMa - close, 2) + math.pow(mediumMa - close, 2) + math.pow(longMa - close, 2))
-    ret = ta.percentrank(distance, 3 * longMaLen) < distancePercentRank and func_crossover(mediumMa)
 
-coilBullishSig = func_sig_coil(iCoilShortMaLength, iCoilMediumMaLength, iCoilLongMaLength, iCoilPercent)
+func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
+    ret = ta.percentrank(distance, 3 * longMaLen) < distancePercentRank and func_crossover(ta.sma(close, mediumMaLen))
+
+func_sig_strech(distance, longMaLen, distancePercentRank) =>
+    ret = ta.percentrank(distance, 3 * longMaLen) > 100 - distancePercentRank and close > close[longMaLen] and close > close[1]
+
+coilBullishSig = func_sig_coil(func_ma_distance(iCoilShortMaLength, iCoilMediumMaLength, iCoilLongMaLength), iCoilLongMaLength, iCoilMediumMaLength, iCoilPercent)
+strechBearishSig = func_sig_strech(func_ma_distance(iCoilShortMaLength, iCoilMediumMaLength, iCoilLongMaLength), iCoilLongMaLength, iCoilPercent)
 
 alertcondition(coilBullishSig, title='DRE coil sig', message='coil')
+alertcondition(strechBearishSig, title='DRE strech sig', message='strech')
 plotshape(coilBullishSig and iCoil, title='coil', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='coil', textcolor=color.new(color.green, 0))
+plotshape(strechBearishSig and iCoilStrech, title='strech', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='strech', textcolor=color.new(color.red, 0))
 
 
 iBullishStarter = input.bool(defval=true, title='bullish', group='starter', inline = 'starter1')
@@ -120,6 +129,6 @@ plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', 
 
 
 alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
-alertcondition(topSig or bearishStarterSig or volUpPriceDnSig, title='DRE Bearish pattern sig', message='bearish pattern')
+alertcondition(topSig or bearishStarterSig or strechBearishSig or volUpPriceDnSig, title='DRE Bearish pattern sig', message='bearish pattern')
 
-alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig or topSig or bearishStarterSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
+alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig or topSig or bearishStarterSig or strechBearishSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
