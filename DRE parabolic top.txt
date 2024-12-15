@@ -41,12 +41,12 @@ plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, col
 
 iBullishStarter = input.bool(defval=true, title='bullish', group='starter', inline = 'starter1')
 iBearishStarter = input.bool(defval=false, title='bearish', group='starter', inline = 'starter1')
-iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=100, maxval=1000, group='starter')
+iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=20, maxval=1000, group='starter')
 iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining day', minval=0, maxval=300, group='starter')
 iStarterSmaSmoothing = input.int(defval = 3, title='SMA smoothing', minval=0, maxval=10, group='starter')
 
 func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
-    ma = isSmoothing > 0 ? ta.sma(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
+    ma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
     move1 = ta.barssince((isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < maLen)
     move2 = ta.barssince(move1 == 0 and (isBullish ? move1[1] > minMove1Len : move1[1] < minMove1Len))
     ret = move2 < maxMove2Len and (isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
