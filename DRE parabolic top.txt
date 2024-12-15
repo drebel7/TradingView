@@ -10,11 +10,13 @@ iMultipleInDays = input.int(defval=100, title='Number Of Days To Multiple', minv
 iDownDaysAfterTop = input.int(defval=2, title='Down Days After Top', minval=1, maxval=5, group='parabolic top')
 iVolDownDaysAfterTop = input.int(defval=2, title='Down Days After Top (Volume)', minval=1, maxval=5, group='parabolic top')
 
-volMa = ta.sma(volume, 30)
-closeMa = ta.sma(close, 20)
-barsSinceVolDown = ta.barssince(volMa < volMa[3])
+func_sig_parabolic_top(volumeMaLen, closeMaLen, volumeDownDaysAfterTop, closeDownDaysAfterTop, prevPeriodGainLen, prevPeriodGainMultiple) =>
+    volMa = ta.sma(volume, volumeMaLen)
+    closeMa = ta.sma(close, closeMaLen)
+    barsSinceVolDown = ta.barssince(volMa < volMa[3])
+    ret = barsSinceVolDown > 15 and close > prevPeriodGainMultiple * ta.lowest(close, prevPeriodGainLen) and volume < volume[volumeDownDaysAfterTop] and open < close[closeDownDaysAfterTop]
 
-topSig = barsSinceVolDown > 15 and close > iMultipleGain * ta.lowest(close, iMultipleInDays) and volume < volume[iVolDownDaysAfterTop] and open < close[iDownDaysAfterTop]
+topSig = func_sig_parabolic_top(30, 20, iVolDownDaysAfterTop, iDownDaysAfterTop, iMultipleInDays, iMultipleGain)
 
 alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
 plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
@@ -77,77 +79,6 @@ alertcondition(longerSig, title='DRE longer sig', message='longer')
 plotshape(longerSig and iLonger, title='longer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='longer', textcolor=color.new(color.green, 0))
 
 
-iBullishKicker = input.bool(defval=true, title='bullish', group='kicker', inline = 'kicker1')
-iBearishKicker = input.bool(defval=true, title='bearish', group='kicker', inline = 'kicker1')
-iKicker1stCandleSize = input.float(defval=0.5, title='Min size of bearish candle compared to previous candles', minval=0.0, maxval=2.0, step=0.1, group='kicker')
-iKicker2ndCandleMinBodySize = input.float(defval=0.2, title='Min body size of bearish candle', minval=0.0, maxval=1.0, step=0.1, group='kicker')
-
-avgCandleSize50 = ta.sma(high-low, 50)
-bodySize = math.abs((open-close)/(high-low))
-isBullishKicker = open[1]>close[1] and open>open[1] and close>open and volume>0.95*volume[1]
-isBaerishKicker = open[1]<close[1] and open<open[1] and close<open and volume>0.95*volume[1]
-bullishKickerSig = isBullishKicker and bodySize[1]>iKicker2ndCandleMinBodySize and (high-low)/avgCandleSize50>iKicker1stCandleSize and low[1] == ta.lowest(low, 8)
-bearishKickerSig = isBaerishKicker and bodySize[1]>iKicker2ndCandleMinBodySize and (high-low)/avgCandleSize50>iKicker1stCandleSize and high[1] == ta.highest(high, 8)
-
-alertcondition(bullishKickerSig, title='DRE Bullish Kicker sig', message='bullish kicker')
-alertcondition(bearishKickerSig, title='DRE Bearish Kicker sig', message='bearish kicker')
-plotshape(bullishKickerSig and iBullishKicker, title='bullish kicker', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='kicker', textcolor=color.new(color.green, 0))
-plotshape(bearishKickerSig and iBearishKicker, title='bearish kicker', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='kicker', textcolor=color.new(color.red, 0))
-
-
-iBullEngulfing = input.bool(defval=true, title='bullish', group='engulfing', inline = 'engulf1')
-iBearEngulfing = input.bool(defval=true, title='bearish', group='engulfing', inline = 'engulf1')
-
-avgVolume = ta.sma(volume, 10)
-bullishEngulfingSig = open[1]>close[1] and open<close and open<close[1] and close>open[1] and low == ta.lowest(low, 8) and volume > avgVolume
-bearishEngulfingSig = open[1]<close[1] and open>close and open>close[1] and close<open[1] and high == ta.highest(high, 8) and volume > avgVolume
-
-alertcondition(bullishEngulfingSig, title='DRE Bullish Engulfing sig', message='bullish engulfing')
-alertcondition(bearishEngulfingSig, title='DRE Bearish Engulfing sig', message='bearish engulfing')
-plotshape(bullishEngulfingSig and iBullEngulfing, title='bullish engulfing', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='engulfing', textcolor=color.new(color.green, 0))
-plotshape(bearishEngulfingSig and iBearEngulfing, title='bearish engulfing', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='engulfing', textcolor=color.new(color.red, 0))
-
-
-iBullsh3Wicks = input.bool(defval=true, title='bullish', group='wicks', inline = 'wicks1')
-iBearish3Wicks = input.bool(defval=true, title='bearish', group='wicks', inline = 'wicks1')
-avgHighWick = ta.sma(high - math.max(open, close), 3)
-avgLowWick = ta.sma(math.min(open, close) - low, 3)
-avgCandleSize10 = ta.sma(high - low, 10)
-bullish3WicksSig = ta.highest(low, 3) < math.min(open, close, open[1], close[1], open[2], close[2]) and ta.lowest(low, 3) == ta.lowest(low, 8) and avgLowWick > 2.5*avgHighWick and avgLowWick > 0.25*avgCandleSize10
-bearish3WicksSig = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and ta.highest(high, 3) == ta.highest(high, 8) and avgHighWick > 2.5*avgLowWick and avgHighWick > 0.25*avgCandleSize10
-alertcondition(bullish3WicksSig, title='DRE Bullish 3 wicks sig', message='bullish wicks')
-alertcondition(bearish3WicksSig, title='DRE Bearish 3 wicks sig', message='bearish wicks')
-plotshape(bullish3WicksSig and iBullsh3Wicks, title='bullish wicks', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='wicks', textcolor=color.new(color.green, 0))
-plotshape(bearish3WicksSig and iBearish3Wicks, title='bearish wicks', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='wicks', textcolor=color.new(color.red, 0))
-
-
-iBullishTwizzer = input.bool(defval=false, title='bullish', group='twizzer', inline = 'twizz1')
-iBearishTwizzer = input.bool(defval=false, title='bearish', group='twizzer', inline = 'twizz1')
-//sth not good here calculating coverage
-coverRatio = 0.7
-coverageBullish = (math.min(open[1], close) - math.max(close[1], open)) / (math.max(high[1], high) - math.min(low[1], low))
-coverageBearish = (math.max(open[1], close) - math.min(close[1], open)) / (math.max(high[1], high) - math.min(low[1], low))
-bullishTwizzerSig = open[1]>close[1] and open<close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.lowest(low, 2) == ta.lowest(low, 8) and coverageBullish >= coverRatio
-bearishTwizzerSig = open[1]<close[1] and open>close and bodySize > 0.85 and bodySize[1] > 0.85 and ta.highest(high, 2) == ta.highest(high, 8) and coverageBearish >= coverRatio
-alertcondition(bullishTwizzerSig, title='DRE Bullish twizzer sig', message='bullish twizzer')
-alertcondition(bearishTwizzerSig, title='DRE Bearish twizzer sig', message='bearish twizzer')
-plotshape(bullishTwizzerSig and iBullishTwizzer, title='bullish twizzer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='twizzer', textcolor=color.new(color.green, 0))
-plotshape(bearishTwizzerSig and iBearishTwizzer, title='bearish twizzer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='twizzer', textcolor=color.new(color.red, 0))
-
-
-
-iBullishHammer = input.bool(defval=true, title='bullish', group='hammer / morning star', inline = 'hammer1')
-iBearishHammer = input.bool(defval=true, title='bearish', group='hammer / morning star', inline = 'hammer1')
-upperWickSize = math.abs((high-math.max(open, close))/(high-low))
-lowerWickSize = math.abs((low-math.min(open, close))/(high-low))
-bullishHammerSig = bodySize < 0.2 and lowerWickSize > 0.7 and low == ta.lowest(low, 8) and (high-low)/avgCandleSize50>1
-bearishHammerSig = bodySize < 0.2 and upperWickSize > 0.7 and high == ta.highest(high, 8) and (high-low)/avgCandleSize50>1
-alertcondition(bullishHammerSig, title='DRE Bullish hammer sig', message='bullish hammer')
-alertcondition(bearishHammerSig, title='DRE Bearish hammer sig', message='bearish hammer')
-plotshape(bullishHammerSig and iBullishHammer, title='bullish hammer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='hammer', textcolor=color.new(color.green, 0))
-plotshape(bearishHammerSig and iBearishHammer, title='bearish hammer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='m.star', textcolor=color.new(color.red, 0))
-
-
 iConsecutivePriceUpVolUp = input.bool(defval=true, title='bullish', group='vol. up', inline = 'vup1')
 iConsecutivePriceDnVolUp = input.bool(defval=true, title='bearish', group='vol. up', inline = 'vup1')
 iConsPeriods = input.int(5, title='Number of periods', minval=2, group='vol. up')
@@ -169,8 +100,7 @@ plotshape(volUpPriceUpSig and iConsecutivePriceUpVolUp, title='bullish vol up', 
 plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='vol up', textcolor=color.new(color.red, 0))
 
 
+alertcondition(juniorSig or bullishStarterSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
+alertcondition(topSig or bearishStarterSig or volUpPriceDnSig, title='DRE Bearish pattern sig', message='bearish pattern')
 
-alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig or volUpPriceUpSig, title='DRE Bearish pattern sig', message='bearish pattern')
-alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig or volUpPriceDnSig, title='DRE Bullish pattern sig', message='bullish pattern')
-
-alertcondition(topSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bullishHammerSig or volUpPriceUpSig or bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bearishHammerSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
+alertcondition(juniorSig or bullishStarterSig or longerSig or volUpPriceUpSig or topSig or bearishStarterSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
