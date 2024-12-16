@@ -88,8 +88,8 @@ func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
     sma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
     vwma = ta.vwma(ohlc4, maLen)
     atr = ta.atr(maLen)
-    highestMaDiff = ta.highest(sma - vwma, maLen/2) / atr
     move1 = ta.barssince(sma > sma[1])
+    highestMaDiff = ta.highest(sma - vwma, move1/2) / atr
     ret = move1[1] > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple
 
 bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
