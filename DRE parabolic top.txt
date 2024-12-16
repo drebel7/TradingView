@@ -41,8 +41,8 @@ alertcondition(juniorSig, title='DRE junior sig', message='junior')
 plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='junior', textcolor=color.new(color.green, 0))
 
 
-iCoil = input.bool(defval=true, title='bullish', group='coil_n_strech')
-iCoilStrech = input.bool(defval=false, title='bearish', group='coil_n_strech')
+iCoil = input.bool(defval=true, title='bullish', group='coil_n_strech', inline='coil1')
+iCoilStrech = input.bool(defval=false, title='bearish', group='coil_n_strech', inline='coil1')
 iCoilShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='coil_n_strech')
 iCoilMediumMaLength = input.int(defval=200, title='Short MA length', minval=15, maxval=500, group='coil_n_strech')
 iCoilLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='coil_n_strech')
@@ -89,8 +89,8 @@ func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
     vwma = ta.vwma(ohlc4, maLen)
     atr = ta.atr(maLen)
     move1 = ta.barssince(sma > sma[1])
-    highestMaDiff = ta.highest(sma - vwma, math.max(minMove1Len, move1)/2) / atr
-    ret = move1[1] > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple
+    highestMaDiff = ta.highest(sma - vwma, (move1 > minMove1Len ? move1 : minMove1Len)/2) / atr
+    ret = move1 > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple
 
 bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 bearishStarterSig = func_sig_starter(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
