@@ -91,7 +91,7 @@ func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
     move1 = ta.barssince(sma > sma[1])
     maDiffLen = math.ceil(0.4 * (move1 > minMove1Len ? move1 : minMove1Len))
     highestMaDiff = ta.highest(sma - vwma, maDiffLen) / atr
-    ret = move1 > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple and highestMaDiff > highestMaDiff[maDiffLen]
+    ret = move1 > minMove1Len and (func_crossover(sma) or func_crossover(vwma)) and highestMaDiff > atrMultiple and highestMaDiff > highestMaDiff[maDiffLen]
 
 bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 bearishStarterSig = func_sig_starter(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
