@@ -46,7 +46,7 @@ iCoilStrech = input.bool(defval=false, title='bearish', group='coil_n_strech', i
 iCoilShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='coil_n_strech')
 iCoilMediumMaLength = input.int(defval=200, title='Short MA length', minval=15, maxval=500, group='coil_n_strech')
 iCoilLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='coil_n_strech')
-iCoilPercent = input.int(defval=5, title='Percentile rank distance from MAs', minval=1, maxval=20, group='coil_n_strech')
+iCoilPercent = input.int(defval=3, title='Percentile rank distance from MAs', minval=1, maxval=20, group='coil_n_strech')
 
 func_ma_distance(shortMaLen, mediumMaLen, longMaLen) =>
     shortMa = ta.sma(close, shortMaLen)
