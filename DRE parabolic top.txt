@@ -72,9 +72,11 @@ plotshape(strechBearishSig and iCoilStrech, title='strech', location=location.ab
 
 iBullishStarter = input.bool(defval=true, title='bullish', group='starter', inline = 'starter1')
 iBearishStarter = input.bool(defval=false, title='bearish', group='starter', inline = 'starter1')
+iBullishFireStarter = input.bool(defval=true, title='bullish fire starter', group='starter')
 iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=20, maxval=1000, group='starter')
 iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining day', minval=0, maxval=300, group='starter')
 iStarterSmaSmoothing = input.int(defval = 3, title='SMA smoothing', minval=0, maxval=10, group='starter')
+iFireStarterMaDiffAtrMultiple = input.int(defval = 3, title='Fire starter MA difference ATR multiple', minval=1, maxval=10, group='starter')
 
 func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
     ma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
@@ -82,13 +84,24 @@ func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
     move2 = ta.barssince(move1 == 0 and (isBullish ? move1[1] > minMove1Len : move1[1] < minMove1Len))
     ret = move2 < maxMove2Len and (isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
 
+func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
+    sma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
+    vwma = ta.vwma(ohlc4, maLen)
+    atr = ta.atr(maLen)
+    highestMaDiff = ta.highest(sma - vwma, maLen/2) / atr
+    move1 = ta.barssince(sma > sma[1])
+    ret = move1[1] > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple
+
 bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 bearishStarterSig = func_sig_starter(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bullishFireStarterSig = func_sig_f_starter(200, iStarterMinDecliningDays, iFireStarterMaDiffAtrMultiple, iStarterSmaSmoothing)
 
 alertcondition(bullishStarterSig, title='DRE bullish starter sig', message='bullish starter')
 alertcondition(bearishStarterSig, title='DRE bearish starter sig', message='bearish starter')
+alertcondition(bullishFireStarterSig, title='DRE bullish fire starter sig', message='bullish fire starter')
 plotshape(bullishStarterSig and iBullishStarter, title='bullish starter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='starter', textcolor=color.new(color.green, 0))
 plotshape(bearishStarterSig and iBearishStarter, title='bearish starter', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='starter', textcolor=color.new(color.red, 0))
+plotshape(bullishFireStarterSig and iBullishFireStarter, title='bullish fire starter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='f.starter', textcolor=color.new(color.green, 0))
 
 
 iLonger = input.bool(defval=true, title='bullish', group='longer', inline = 'longer1')
