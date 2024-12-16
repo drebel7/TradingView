@@ -76,7 +76,7 @@ iBullishFireStarter = input.bool(defval=true, title='bullish fire starter', grou
 iStarterMinDecliningDays = input.int(defval=200, title='Number of SMA declining days', minval=20, maxval=1000, group='starter')
 iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining day', minval=0, maxval=300, group='starter')
 iStarterSmaSmoothing = input.int(defval = 3, title='SMA smoothing', minval=0, maxval=10, group='starter')
-iFireStarterMaDiffAtrMultiple = input.float(defval = 2, title='Fire starter MA difference ATR multiple', minval=0.5, maxval=10, step=0.5, group='starter')
+iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title='Fire starter MA difference ATR multiple', minval=0.5, maxval=10, step=0.5, group='starter')
 
 func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
     ma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
@@ -89,8 +89,9 @@ func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
     vwma = ta.vwma(ohlc4, maLen)
     atr = ta.atr(maLen)
     move1 = ta.barssince(sma > sma[1])
-    highestMaDiff = ta.highest(sma - vwma, (move1 > minMove1Len ? move1 : minMove1Len)/2) / atr
-    ret = move1 > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple
+    maDiffLen = math.ceil(0.4 * (move1 > minMove1Len ? move1 : minMove1Len))
+    highestMaDiff = ta.highest(sma - vwma, maDiffLen) / atr
+    ret = move1 > minMove1Len and func_crossover(sma) and highestMaDiff > atrMultiple and highestMaDiff > highestMaDiff[maDiffLen]
 
 bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 bearishStarterSig = func_sig_starter(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
