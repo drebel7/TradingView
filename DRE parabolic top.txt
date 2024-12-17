@@ -82,8 +82,8 @@ iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title='Fire starter MA d
 
 func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
     ma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
-    move1 = math.min(iStarterMinDecliningDays, ta.barssince((isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < maLen))
-    move2 = math.min(iStarterMaxIncliningDays, ta.barssince(move1 == 0 and (isBullish ? move1[1] > minMove1Len : move1[1] < minMove1Len)))
+    move1 = math.min(1000, ta.barssince((isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < maLen))
+    move2 = math.min(1000, ta.barssince(move1 == 0 and (isBullish ? move1[1] > minMove1Len : move1[1] < minMove1Len)))
     ret = move2 < maxMove2Len and (isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
 
 func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
