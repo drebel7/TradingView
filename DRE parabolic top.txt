@@ -29,13 +29,15 @@ func_crossunder(middle) =>
 
 
 iJunior = input.bool(defval=true, title='bullish', group='junior')
-iJuniorOffset = input.int(defval=1, title='Offset', minval=0, maxval=200, group='junior')
+iJuniorMaxAge = input.int(defval=250, title='Max junior age', minval=20, maxval=500, group='junior')
 
-func_sig_junior(offset, maxAge) =>
-    vwap = ta.vwap(ohlc4, bar_index == offset)
+func_sig_junior(maxAge) =>
+    x = 0.5
+    reset = bar_index == 0 or (bar_index == 1 and volume < x * volume[1]) or (bar_index == 2 and volume < x * volume[1] and volume[1] < x * volume[2])
+    vwap = ta.vwap(ohlc4, reset)
     ret = bar_index < maxAge and func_crossover(vwap)
 
-juniorSig = func_sig_junior(iJuniorOffset, 250)
+juniorSig = func_sig_junior(iJuniorMaxAge)
 
 alertcondition(juniorSig, title='DRE junior sig', message='junior')
 plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='junior', textcolor=color.new(color.green, 0))
