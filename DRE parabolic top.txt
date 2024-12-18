@@ -145,6 +145,25 @@ plotshape(volUpPriceUpSig and iConsecutivePriceUpVolUp, title='bullish vol up', 
 plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='vol up', textcolor=color.new(color.red, 0))
 
 
+Z_score(src, length)=>
+    ma = ta.ema(src, length)
+    ret = (src - ma) / (ta.stdev(src - ma, length))
+
+iZscore = input.bool(defval=false, title='bullish', group='zscore', inline = 'zscore1')
+iZScoreMaLenth = input.int(200, "Z-Score MA Length", minval=20, maxval=1000, group = "zscore")
+iZScoreDays = input.int(4, "Z-Score MA Length", minval=2, maxval=10, group = "zscore")
+iZScoreMinScore = input.float(4.0, "Min. Z-Score to count", minval=3.0, maxval=14.5, step=0.5, group = "zscore")
+
+zscore = Z_score(volume, iZScoreMaLenth)
+zscoreDaysUp = ta.barssince(close < close[1])
+zscoreOverThreshold = ta.barssince(zscore < iZScoreMinScore)
+
+zscoreSig = zscoreOverThreshold >= iZScoreDays
+
+alertcondition(zscoreSig, title='DRE Bullish bubble up', message='vol up')
+plotshape(zscoreSig and iZscore, title='bullish bubble up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='bubble up', textcolor=color.new(color.green, 0))
+
+
 alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
 alertcondition(topSig or bearishStarterSig or strechBearishSig or volUpPriceDnSig, title='DRE Bearish pattern sig', message='bearish pattern')
 
