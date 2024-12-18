@@ -151,8 +151,8 @@ Z_score(src, length)=>
 
 iZscore = input.bool(defval=false, title='bullish', group='zscore', inline = 'zscore1')
 iZScoreMaLenth = input.int(200, "Z-Score MA Length", minval=20, maxval=1000, group = "zscore")
-iZScoreDays = input.int(4, "Z-Score MA Length", minval=2, maxval=10, group = "zscore")
-iZScoreMinScore = input.float(4.0, "Min. Z-Score to count", minval=3.0, maxval=14.5, step=0.5, group = "zscore")
+iZScoreDays = input.int(2, "Min. days", minval=2, maxval=10, group = "zscore")
+iZScoreMinScore = input.float(4.0, "Min. zScore", minval=2.0, maxval=14.5, step=0.5, group = "zscore")
 
 zscore = Z_score(volume, iZScoreMaLenth)
 zscoreDaysUp = ta.barssince(close < close[1])
