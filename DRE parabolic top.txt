@@ -2,7 +2,9 @@
 // © drebel
 
 //@version=5
-indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 3000)
+indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
+
+import drebel/DRELib/1 as drelib
 
 iParabolicTop = input.bool(defval=true, title='Parabolic top', group='parabolic top')
 iMultipleGain = input.float(defval=1.6, title='Multiple Gain Since Low', minval=1.2, maxval=4, step=0.2, group='parabolic top')
@@ -26,7 +28,6 @@ func_crossover(middle) =>
     math.min(low, close[1]) <= middle and close > middle
 func_crossunder(middle) =>
     math.max(high, close[1]) >= middle and close < middle
-
 
 iJunior = input.bool(defval=true, title='bullish', group='junior')
 iJuniorMaxAge = input.int(defval=250, title='Max junior age', minval=20, maxval=500, group='junior')
@@ -145,23 +146,34 @@ plotshape(volUpPriceUpSig and iConsecutivePriceUpVolUp, title='bullish vol up', 
 plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='vol up', textcolor=color.new(color.red, 0))
 
 
-Z_score(src, length)=>
-    ma = ta.ema(src, length)
-    ret = (src - ma) / (ta.stdev(src - ma, length))
-
 iZscore = input.bool(defval=false, title='bullish', group='zscore', inline = 'zscore1')
-iZScoreMaLenth = input.int(200, "Z-Score MA Length", minval=20, maxval=1000, group = "zscore")
-iZScoreDays = input.int(2, "Min. days", minval=2, maxval=10, group = "zscore")
-iZScoreMinScore = input.float(4.0, "Min. zScore", minval=2.0, maxval=14.5, step=0.5, group = "zscore")
+iZScoreMaLenth = input.int(200, "Z-Score MA Length (long)", minval=20, maxval=1000, group = "zscore")
+iZScore2ndMaLength = input.int(10, "Z-Score 2nd MA Length (short)", minval=3, maxval=21, group = "zscore")
+iZScore2ndMaMinScore = input.float(2.0, "Min. zScore", minval=1.0, maxval=14, step=0.1, group = "zscore")
 
-zscore = Z_score(volume, iZScoreMaLenth)
-zscoreDaysUp = ta.barssince(close < close[1])
-zscoreOverThreshold = ta.barssince(zscore < iZScoreMinScore)
+zscoreSig = ta.ema(drelib.z_score(volume, iZScoreMaLenth), iZScore2ndMaLength) >= iZScore2ndMaMinScore and close > close[iZScore2ndMaLength]
 
-zscoreSig = zscoreOverThreshold >= iZScoreDays
-
-alertcondition(zscoreSig, title='DRE Bullish bubble up', message='vol up')
+alertcondition(zscoreSig, title='DRE Bullish bubble up', message='zscore')
 plotshape(zscoreSig and iZscore, title='bullish bubble up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='bubble up', textcolor=color.new(color.green, 0))
+
+
+iBullishHunter = input.bool(defval=false, title='bullish', group='SL hunter', inline = 'hunter1')
+//iBearishHunter = input.bool(defval=false, title='bearish', group='SL hunter', inline = 'hunter1')
+iHunterMinTimeDistance = input.int(defval=50, title='Min. time distance', minval=20, maxval=750, group='SL hunter')
+iHunterMaxTimeDistance = input.int(defval=500, title='Max. time distance', minval=50, maxval=1000, group='SL hunter')
+iHunterMinBounceSteepness = input.float(defval=0.05, title='Min steepness from 1st bounce', minval=0.01, maxval=1.0, step=0.01, group='SL hunter')
+
+atr200 = ta.atr(200)
+localLow = ta.lowest(low, iHunterMaxTimeDistance)
+localLowCandlesAgo = ta.barssince(low == localLow)
+localHigh = ta.highest(high, math.max(1, nz(localLowCandlesAgo)))
+localHighCandlesAgo = ta.barssince(high == localHigh)
+steepness = (localHighCandlesAgo[iHunterMinTimeDistance] - localLowCandlesAgo[iHunterMinTimeDistance]) / atr200[iHunterMinTimeDistance]
+
+bullishHunterSig = func_crossover(localLow[iHunterMinTimeDistance]) and localHigh[iHunterMinTimeDistance] > localLow[iHunterMinTimeDistance] and steepness > iHunterMinBounceSteepness
+
+alertcondition(bullishHunterSig, title='DRE Bullish SL hunter', message='sl.hunter')
+plotshape(bullishHunterSig and iBullishHunter, title='bullish sl hunter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='sl.hunter', textcolor=color.new(color.green, 0))
 
 
 alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
