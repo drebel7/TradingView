@@ -131,9 +131,10 @@ iZScoreMaLenth = input.int(200, "Z-Score MA Length (long)", minval=20, maxval=10
 iZScore2ndMaLength = input.int(21, "Z-Score 2nd MA Length (short)", minval=3, maxval=21, group = "zscore")
 iZScore2ndMaMinScore = input.float(2.0, "Min. zScore", minval=1.0, maxval=14, step=0.1, group = "zscore")
 
-zscoreCond = ta.ema(drelib.z_score(volume, iZScoreMaLenth), iZScore2ndMaLength) >= iZScore2ndMaMinScore
-zscoreBullishSig = zscoreCond and close > close[iZScore2ndMaLength]
-zscoreBearishSig = zscoreCond and close < close[iZScore2ndMaLength]
+zscoreVolCond = ta.ema(drelib.z_score(volume, iZScoreMaLenth), iZScore2ndMaLength) >= iZScore2ndMaMinScore
+zscoreEma = ta.ema(close, 2 * iZScore2ndMaLength / 3)
+zscoreBullishSig = zscoreVolCond and zscoreEma > zscoreEma[1]
+zscoreBearishSig = zscoreVolCond and zscoreEma < zscoreEma[1]
 
 alertcondition(zscoreBullishSig, title='DRE bubble up', message='bubble up')
 alertcondition(zscoreBearishSig, title='DRE bubble dn', message='bubble dn')
