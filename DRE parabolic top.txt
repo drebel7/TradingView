@@ -125,36 +125,20 @@ alertcondition(longerSig, title='DRE longer sig', message='longer')
 plotshape(longerSig and iLonger, title='longer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='longer', textcolor=color.new(color.green, 0))
 
 
-iConsecutivePriceUpVolUp = input.bool(defval=false, title='bullish', group='vol. up', inline = 'vup1')
-iConsecutivePriceDnVolUp = input.bool(defval=false, title='bearish', group='vol. up', inline = 'vup1')
-iConsPeriods = input.int(5, title='Number of periods', minval=2, group='vol. up')
-iVolUpPct = input.float(0.9, title='Volume Up', minval=0.0, step=0.05, group='vol. up')
-
-volAvg = ta.sma(volume, 40)
-consVolUp = ta.barssince(not(volume > iVolUpPct * volume[1] and volume > volume[2]))
-consVolGtMa = ta.barssince(volume <= 1.25 * volAvg)
-consPriceUp = ta.barssince(close <= close[1])
-consPriceDn = ta.barssince(close >= close[1])
-
-volUpSig = (consVolUp >= iConsPeriods and volume[iConsPeriods / 2] > volAvg[iConsPeriods / 2]) or consVolGtMa >= iConsPeriods
-volUpPriceUpSig = volUpSig and consPriceUp >= iConsPeriods
-volUpPriceDnSig = volUpSig and consPriceDn >= iConsPeriods
-
-alertcondition(volUpPriceUpSig, title='DRE Bullish vol up price up', message='vol up')
-alertcondition(volUpPriceDnSig, title='DRE Bearish vol up price dn', message='vol up')
-plotshape(volUpPriceUpSig and iConsecutivePriceUpVolUp, title='bullish vol up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='vol up', textcolor=color.new(color.green, 0))
-plotshape(volUpPriceDnSig and iConsecutivePriceDnVolUp, title='bearish vol up', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='vol up', textcolor=color.new(color.red, 0))
-
-
-iZscore = input.bool(defval=false, title='bullish', group='zscore', inline = 'zscore1')
+iBullishZscore = input.bool(defval=false, title='bullish', group='zscore', inline = 'zscore1')
+iBearishZscore = input.bool(defval=false, title='bearish', group='zscore', inline = 'zscore1')
 iZScoreMaLenth = input.int(200, "Z-Score MA Length (long)", minval=20, maxval=1000, group = "zscore")
-iZScore2ndMaLength = input.int(10, "Z-Score 2nd MA Length (short)", minval=3, maxval=21, group = "zscore")
+iZScore2ndMaLength = input.int(21, "Z-Score 2nd MA Length (short)", minval=3, maxval=21, group = "zscore")
 iZScore2ndMaMinScore = input.float(2.0, "Min. zScore", minval=1.0, maxval=14, step=0.1, group = "zscore")
 
-zscoreSig = ta.ema(drelib.z_score(volume, iZScoreMaLenth), iZScore2ndMaLength) >= iZScore2ndMaMinScore and close > close[iZScore2ndMaLength]
+zscoreCond = ta.ema(drelib.z_score(volume, iZScoreMaLenth), iZScore2ndMaLength) >= iZScore2ndMaMinScore
+zscoreBullishSig = zscoreCond and close > close[iZScore2ndMaLength]
+zscoreBearishSig = zscoreCond and close < close[iZScore2ndMaLength]
 
-alertcondition(zscoreSig, title='DRE Bullish bubble up', message='zscore')
-plotshape(zscoreSig and iZscore, title='bullish bubble up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='bubble up', textcolor=color.new(color.green, 0))
+alertcondition(zscoreBullishSig, title='DRE bubble up', message='bubble up')
+alertcondition(zscoreBearishSig, title='DRE bubble dn', message='bubble dn')
+plotshape(zscoreBullishSig and iBullishZscore, title='bubble up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='bubble up', textcolor=color.new(color.black, 0))
+plotshape(zscoreBearishSig and iBearishZscore, title='bubble dn', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='bubble dn', textcolor=color.new(color.black, 0))
 
 
 iBullishHunter = input.bool(defval=false, title='bullish', group='SL hunter', inline = 'hunter1')
@@ -176,7 +160,7 @@ alertcondition(bullishHunterSig, title='DRE Bullish SL hunter', message='sl.hunt
 plotshape(bullishHunterSig and iBullishHunter, title='bullish sl hunter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='sl.hunter', textcolor=color.new(color.green, 0))
 
 
-alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig, title='DRE Bullish pattern sig', message='bullish pattern')
-alertcondition(topSig or bearishStarterSig or strechBearishSig or volUpPriceDnSig, title='DRE Bearish pattern sig', message='bearish pattern')
+alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig, title='DRE Bullish pattern sig', message='bullish pattern')
+alertcondition(topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig, title='DRE Bearish pattern sig', message='bearish pattern')
 
-alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or volUpPriceUpSig or topSig or bearishStarterSig or strechBearishSig or volUpPriceDnSig, title='DRE ALL pattern sig', message='all patterns')
+alertcondition(juniorSig or bullishStarterSig or coilBullishSig or longerSig or topSig or bearishStarterSig or strechBearishSig or zscoreBullishSig or zscoreBearishSig, title='DRE ALL pattern sig', message='all patterns')
