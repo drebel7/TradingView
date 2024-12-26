@@ -37,10 +37,13 @@ func_crossunder(middle) =>
 iJunior = input.bool(defval=true, title='bullish', group='junior')
 iJuniorMaxAge = input.int(defval=250, title='Max junior age', minval=20, maxval=500, group='junior')
 
-func_sig_junior(maxAge) =>
+func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
     reset = bar_index == 0 or (bar_index == 1 and volume < x * volume[1]) or (bar_index == 2 and volume < x * volume[1] and volume[1] < x * volume[2])
-    vwap = ta.vwap(ohlc4, reset)
+    ret = ta.vwap(ohlc4, reset)
+
+func_sig_junior(maxAge) =>
+    vwap = func_init_vwap_excl_init_higher_volume()
     ret = bar_index < maxAge and func_crossover(vwap)
 
 juniorSig = func_sig_junior(iJuniorMaxAge)
@@ -56,22 +59,25 @@ iCoilPercent = input.int(defval=2, title='Percentile rank distance from MAs', mi
 func_ma_distance(shortMaLen, mediumMaLen, longMaLen) =>
     shortMa = ta.sma(close, shortMaLen)
     mediumMa = ta.sma(close, mediumMaLen)
-    longMa = ta.sma(close, longMaLen)
-    lenSum = shortMaLen + mediumMaLen + longMaLen
-    distance = math.sqrt((lenSum-shortMaLen)*math.pow(shortMa - close, 2) + (lenSum-mediumMaLen)*math.pow(mediumMa - close, 2) + (lenSum-longMaLen)*math.pow(longMa - close, 2))
+    usedLongMaLen = bar_index < longMaLen ? bar_index : longMaLen
+    longMa = bar_index < longMaLen ? func_init_vwap_excl_init_higher_volume() : ta.sma(close, longMaLen)
+    lenSum = shortMaLen + mediumMaLen + usedLongMaLen
+    distance = math.sqrt((lenSum-shortMaLen)*math.pow(shortMa - close, 2) + (lenSum-mediumMaLen)*math.pow(mediumMa - close, 2) + (lenSum-usedLongMaLen)*math.pow(longMa - close, 2))
 
 func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
-    ret = ta.percentrank(distance, 3 * longMaLen) < distancePercentRank and func_crossover(ta.sma(close, mediumMaLen))
+    percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * longMaLen)
+    ret = ta.percentrank(distance, percentRankLen) < distancePercentRank and func_crossover(ta.sma(close, mediumMaLen))
 
 func_sig_strech(distance, longMaLen, distancePercentRank) =>
-    ret = ta.percentrank(distance, 3 * longMaLen) > 100 - distancePercentRank and close > close[longMaLen] and close > close[1]
+    percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * longMaLen)
+    ret = ta.percentrank(distance, percentRankLen) > 100 - distancePercentRank and close > close[longMaLen] and close > close[1]
 
 coilBullishSig = func_sig_coil(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iMainMaLength, iCoilPercent)
 strechBearishSig = func_sig_strech(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iCoilPercent)
 
 alertcondition(coilBullishSig, title='DRE coil sig', message='coil')
 alertcondition(strechBearishSig, title='DRE strech sig', message='strech')
-plotshape(coilBullishSig and iCoil, title='coil', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='coil', textcolor=color.new(color.green, 0))
+plotshape(coilBullishSig and iCoil, title='coil', location=location.belowbar, color=color.new(color.gray, 0), style=shape.xcross, text='coil', textcolor=color.new(color.gray, 0))
 plotshape(strechBearishSig and iCoilStrech, title='strech', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='strech', textcolor=color.new(color.red, 0))
 
 
@@ -137,8 +143,8 @@ zscoreBearishSig = zscoreVolCond and zscoreEma < zscoreEma[1]
 
 alertcondition(zscoreBullishSig, title='DRE bubble up', message='bubble up')
 alertcondition(zscoreBearishSig, title='DRE bubble dn', message='bubble dn')
-plotshape(zscoreBullishSig and iBullishZscore, title='bubble up', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='bubble up', textcolor=color.new(color.black, 0))
-plotshape(zscoreBearishSig and iBearishZscore, title='bubble dn', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='bubble dn', textcolor=color.new(color.black, 0))
+plotshape(zscoreBullishSig and iBullishZscore, title='bubble up', location=location.belowbar, color=color.new(color.gray, 0), style=shape.xcross, text='bubble up', textcolor=color.new(color.gray, 0))
+plotshape(zscoreBearishSig and iBearishZscore, title='bubble dn', location=location.belowbar, color=color.new(color.gray, 0), style=shape.xcross, text='bubble dn', textcolor=color.new(color.gray, 0))
 
 
 iBullishHunter = input.bool(defval=false, title='bullish', group='SL hunter', inline = 'hunter1')
