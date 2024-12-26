@@ -6,6 +6,11 @@ indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
 import drebel/DRELib/1 as drelib
 
+iMainMaLength = input.int(defval=200, title='Main MA length', minval=50, maxval=500, group='Common parameters')
+iShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='Common parameters')
+iLongMaLength = input.int(defval=750, title='Long MA length', minval=200, maxval=1000, group='Common parameters')
+
+
 iParabolicTop = input.bool(defval=true, title='Parabolic top', group='parabolic top')
 iMultipleGain = input.float(defval=1.6, title='Multiple Gain Since Low', minval=1.2, maxval=4, step=0.2, group='parabolic top')
 iMultipleInDays = input.int(defval=100, title='Number Of Days To Multiple', minval=5, maxval=150, step=5, group='parabolic top')
@@ -46,9 +51,6 @@ plotshape(juniorSig and iJunior, title='junior', location=location.belowbar, col
 
 iCoil = input.bool(defval=true, title='bullish', group='coil_n_strech', inline='coil1')
 iCoilStrech = input.bool(defval=false, title='bearish', group='coil_n_strech', inline='coil1')
-iCoilShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval=200, group='coil_n_strech')
-iCoilMediumMaLength = input.int(defval=200, title='Short MA length', minval=15, maxval=500, group='coil_n_strech')
-iCoilLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='coil_n_strech')
 iCoilPercent = input.int(defval=2, title='Percentile rank distance from MAs', minval=1, maxval=20, group='coil_n_strech')
 
 func_ma_distance(shortMaLen, mediumMaLen, longMaLen) =>
@@ -64,8 +66,8 @@ func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
 func_sig_strech(distance, longMaLen, distancePercentRank) =>
     ret = ta.percentrank(distance, 3 * longMaLen) > 100 - distancePercentRank and close > close[longMaLen] and close > close[1]
 
-coilBullishSig = func_sig_coil(func_ma_distance(iCoilShortMaLength, iCoilMediumMaLength, iCoilLongMaLength), iCoilLongMaLength, iCoilMediumMaLength, iCoilPercent)
-strechBearishSig = func_sig_strech(func_ma_distance(iCoilShortMaLength, iCoilMediumMaLength, iCoilLongMaLength), iCoilLongMaLength, iCoilPercent)
+coilBullishSig = func_sig_coil(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iMainMaLength, iCoilPercent)
+strechBearishSig = func_sig_strech(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iCoilPercent)
 
 alertcondition(coilBullishSig, title='DRE coil sig', message='coil')
 alertcondition(strechBearishSig, title='DRE strech sig', message='strech')
@@ -96,9 +98,9 @@ func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
     highestMaDiff = ta.highest(sma - vwma, maDiffLen) / atr
     ret = move1 > minMove1Len and (func_crossover(sma) or func_crossover(vwma)) and highestMaDiff > atrMultiple and highestMaDiff > highestMaDiff[maDiffLen]
 
-bullishStarterSig = func_sig_starter(true, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
-bearishStarterSig = func_sig_starter(false, 200, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
-bullishFireStarterSig = func_sig_f_starter(200, iStarterMinDecliningDays, iFireStarterMaDiffAtrMultiple, iStarterSmaSmoothing)
+bullishStarterSig = func_sig_starter(true, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bearishStarterSig = func_sig_starter(false, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bullishFireStarterSig = func_sig_f_starter(iMainMaLength, iStarterMinDecliningDays, iFireStarterMaDiffAtrMultiple, iStarterSmaSmoothing)
 
 alertcondition(bullishStarterSig, title='DRE bullish starter sig', message='bullish starter')
 alertcondition(bearishStarterSig, title='DRE bearish starter sig', message='bearish starter')
@@ -109,8 +111,6 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title='bullish fire sta
 
 
 iLonger = input.bool(defval=true, title='bullish', group='longer', inline = 'longer1')
-iLongerShortMaLength = input.int(defval=200, title='Short MA length', minval=10, maxval=500, group='longer')
-iLongerLongMaLength = input.int(defval=750, title='Long MA length', minval=20, maxval=1000, group='longer')
 iLongerOffset = input.float(defval=0.1, title='Price offset (atr multiple)', minval=-2.0, maxval=2.0, step=0.5, group='longer')
 
 func_sig_longer(shortMaLength, longMaLength, offset) =>
@@ -119,7 +119,7 @@ func_sig_longer(shortMaLength, longMaLength, offset) =>
     atr = ta.atr(shortMaLength)
     ret = shortMa > shortMa[1] and longMa > longMa[1] and shortMa > longMa and func_crossover(shortMa + offset * atr)
 
-longerSig = func_sig_longer(iLongerShortMaLength, iLongerLongMaLength, iLongerOffset)
+longerSig = func_sig_longer(iMainMaLength, iLongMaLength, iLongerOffset)
 
 alertcondition(longerSig, title='DRE longer sig', message='longer')
 plotshape(longerSig and iLonger, title='longer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='longer', textcolor=color.new(color.green, 0))
@@ -127,11 +127,10 @@ plotshape(longerSig and iLonger, title='longer', location=location.belowbar, col
 
 iBullishZscore = input.bool(defval=false, title='bullish', group='zscore', inline = 'zscore1')
 iBearishZscore = input.bool(defval=false, title='bearish', group='zscore', inline = 'zscore1')
-iZScoreMaLenth = input.int(200, "Z-Score MA Length (long)", minval=20, maxval=1000, group = "zscore")
 iZScore2ndMaLength = input.int(21, "Z-Score 2nd MA Length (short)", minval=3, maxval=21, group = "zscore")
 iZScore2ndMaMinScore = input.float(2.3, "Min. zScore", minval=1.0, maxval=14, step=0.1, group = "zscore")
 
-zscoreVolCond = ta.ema(drelib.z_score(volume, iZScoreMaLenth), iZScore2ndMaLength) >= iZScore2ndMaMinScore
+zscoreVolCond = ta.ema(drelib.z_score(volume, iMainMaLength), iZScore2ndMaLength) >= iZScore2ndMaMinScore
 zscoreEma = ta.ema(close, 2 * iZScore2ndMaLength / 3)
 zscoreBullishSig = zscoreVolCond and zscoreEma > zscoreEma[1]
 zscoreBearishSig = zscoreVolCond and zscoreEma < zscoreEma[1]
@@ -148,7 +147,7 @@ iHunterMinTimeDistance = input.int(defval=50, title='Min. time distance', minval
 iHunterMaxTimeDistance = input.int(defval=500, title='Max. time distance', minval=50, maxval=1000, group='SL hunter')
 iHunterMinBounceSteepness = input.float(defval=0.05, title='Min steepness from 1st bounce', minval=0.01, maxval=1.0, step=0.01, group='SL hunter')
 
-atr200 = ta.atr(200)
+atr200 = ta.atr(iMainMaLength)
 localLow = ta.lowest(low, iHunterMaxTimeDistance)
 localLowCandlesAgo = ta.barssince(low == localLow)
 localHigh = ta.highest(high, math.max(1, nz(localLowCandlesAgo)))
