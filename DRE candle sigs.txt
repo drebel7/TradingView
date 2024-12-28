@@ -25,8 +25,8 @@ bearishKickerSig = isBaerishKicker and bodySize[1] > iKicker2ndCandleMinBodySize
 
 alertcondition(bullishKickerSig, title = 'DRE Bullish Kicker sig', message = 'bullish kicker')
 alertcondition(bearishKickerSig, title = 'DRE Bearish Kicker sig', message = 'bearish kicker')
-plotshape(bullishKickerSig and iBullishKicker, title = 'bullish kicker', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'kicker', textcolor = color.new(color.green, 0))
-plotshape(bearishKickerSig and iBearishKicker, title = 'bearish kicker', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'kicker', textcolor = color.new(color.red, 0))
+plotshape(bullishKickerSig and iBullishKicker, title = 'bullish kicker', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'K', textcolor = color.new(color.green, 0))
+plotshape(bearishKickerSig and iBearishKicker, title = 'bearish kicker', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'K', textcolor = color.new(color.red, 0))
 
 
 iBullEngulfing = input.bool(defval = true, title = 'bullish', group = 'engulfing', inline = 'engulf1')
@@ -38,8 +38,8 @@ bearishEngulfingSig = open[1] < close[1] and open > close and open > close[1] an
 
 alertcondition(bullishEngulfingSig, title = 'DRE Bullish Engulfing sig', message = 'bullish engulfing')
 alertcondition(bearishEngulfingSig, title = 'DRE Bearish Engulfing sig', message = 'bearish engulfing')
-plotshape(bullishEngulfingSig and iBullEngulfing, title = 'bullish engulfing', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'engulfing', textcolor = color.new(color.green, 0))
-plotshape(bearishEngulfingSig and iBearEngulfing, title = 'bearish engulfing', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'engulfing', textcolor = color.new(color.red, 0))
+plotshape(bullishEngulfingSig and iBullEngulfing, title = 'bullish engulfing', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'E', textcolor = color.new(color.green, 0))
+plotshape(bearishEngulfingSig and iBearEngulfing, title = 'bearish engulfing', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'E', textcolor = color.new(color.red, 0))
 
 
 iBullsh3Wicks = input.bool(defval = true, title = 'bullish', group = 'wicks', inline = 'wicks1')
@@ -50,8 +50,8 @@ bullish3WicksSig = ta.highest(low, 3) < math.min(open, close, open[1], close[1],
 bearish3WicksSig = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and highest3 == highest8 and avgHighWick > 2.5 * avgLowWick and avgHighWick > 0.25 * atr50
 alertcondition(bullish3WicksSig, title = 'DRE Bullish 3 wicks sig', message = 'bullish wicks')
 alertcondition(bearish3WicksSig, title = 'DRE Bearish 3 wicks sig', message = 'bearish wicks')
-plotshape(bullish3WicksSig and iBullsh3Wicks, title = 'bullish wicks', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'wicks', textcolor = color.new(color.green, 0))
-plotshape(bearish3WicksSig and iBearish3Wicks, title = 'bearish wicks', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'wicks', textcolor = color.new(color.red, 0))
+plotshape(bullish3WicksSig and iBullsh3Wicks, title = 'bullish wicks', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'W', textcolor = color.new(color.green, 0))
+plotshape(bearish3WicksSig and iBearish3Wicks, title = 'bearish wicks', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'W', textcolor = color.new(color.red, 0))
 
 
 iBullishHammer = input.bool(defval = true, title = 'bullish', group = 'hammer / morning star', inline = 'hammer1')
@@ -62,8 +62,8 @@ bullishHammerSig = bodySize < 0.2 and lowerWickSize > 0.7 and low == lowest8 and
 bearishHammerSig = bodySize < 0.2 and upperWickSize > 0.7 and high == highest8 and (high - low) / atr50 > 1
 alertcondition(bullishHammerSig, title = 'DRE Bullish hammer sig', message = 'bullish hammer')
 alertcondition(bearishHammerSig, title = 'DRE Bearish hammer sig', message = 'bearish hammer')
-plotshape(bullishHammerSig and iBullishHammer, title = 'bullish hammer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'hammer', textcolor = color.new(color.green, 0))
-plotshape(bearishHammerSig and iBearishHammer, title = 'bearish hammer', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'm.star', textcolor = color.new(color.red, 0))
+plotshape(bullishHammerSig and iBullishHammer, title = 'bullish hammer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'H', textcolor = color.new(color.green, 0))
+plotshape(bearishHammerSig and iBearishHammer, title = 'bearish hammer', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'H', textcolor = color.new(color.red, 0))
 
 
 iBullishTwizzer = input.bool(defval = false, title = 'bullish', group = 'twizzer', inline = 'twizz1')
@@ -76,8 +76,8 @@ bullishTwizzerSig = open[1] > close[1] and open < close and bodySize > 0.85 and 
 bearishTwizzerSig = open[1] < close[1] and open > close and bodySize > 0.85 and bodySize[1] > 0.85 and highest2 == highest8 and coverageBearish >= coverRatio
 alertcondition(bullishTwizzerSig, title = 'DRE Bullish twizzer sig', message = 'bullish twizzer')
 alertcondition(bearishTwizzerSig, title = 'DRE Bearish twizzer sig', message = 'bearish twizzer')
-plotshape(bullishTwizzerSig and iBullishTwizzer, title = 'bullish twizzer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'twizzer', textcolor = color.new(color.green, 0))
-plotshape(bearishTwizzerSig and iBearishTwizzer, title = 'bearish twizzer', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'twizzer', textcolor = color.new(color.red, 0))
+plotshape(bullishTwizzerSig and iBullishTwizzer, title = 'bullish twizzer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'T', textcolor = color.new(color.green, 0))
+plotshape(bearishTwizzerSig and iBearishTwizzer, title = 'bearish twizzer', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'T', textcolor = color.new(color.red, 0))
 
 
 alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bullishHammerSig, title = 'DRE Bullish candle pattern sig', message = 'bullish candle pattern')
