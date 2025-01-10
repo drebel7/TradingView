@@ -147,7 +147,7 @@ plotshape(zscoreBullishSig and iBullishZscore, title='bubble up', location=locat
 plotshape(zscoreBearishSig and iBearishZscore, title='bubble dn', location=location.belowbar, color=color.new(color.gray, 0), style=shape.xcross, text='bubble dn', textcolor=color.new(color.gray, 0))
 
 
-iBullishHunter = input.bool(defval=false, title='bullish', group='SL hunter', inline = 'hunter1')
+iBullishHunter = input.bool(defval=true, title='bullish', group='SL hunter', inline = 'hunter1')
 iHunterGracePeriod = input.int(defval=50, title='grace period', minval=20, maxval=200, group='SL hunter')
 iHunterShort = input.bool(defval=true, title='short', group='SL hunter', inline = 'hunter2')
 iHunterLookbackShort = input.int(defval=250, title='lookback', minval=50, maxval=1000, group='SL hunter', inline = 'hunter2')
