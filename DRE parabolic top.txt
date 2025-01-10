@@ -149,19 +149,26 @@ plotshape(zscoreBearishSig and iBearishZscore, title='bubble dn', location=locat
 
 iBullishHunter = input.bool(defval=false, title='bullish', group='SL hunter', inline = 'hunter1')
 iHunterGracePeriod = input.int(defval=50, title='grace period', minval=20, maxval=200, group='SL hunter')
-iHunterLookbackInit = input.int(defval=250, title='Lookback init', minval=50, maxval=1000, group='SL hunter', inline = 'hunter2')
-iHunterLookbackMid = input.int(defval=700, title='/mid', minval=100, maxval=1500, group='SL hunter', inline = 'hunter2')
-iHunterLookback = input.int(defval=1300, title='/long', minval=200, maxval=2000, group='SL hunter', inline = 'hunter2')
-iHunterHighOverLow = input.int(defval=7, title='high > low + n * atr', minval=5, maxval=50, group='SL hunter')
+iHunterShort = input.bool(defval=true, title='short', group='SL hunter', inline = 'hunter2')
+iHunterLookbackShort = input.int(defval=250, title='lookback', minval=50, maxval=1000, group='SL hunter', inline = 'hunter2')
+iHunterMid = input.bool(defval=true, title='mid', group='SL hunter', inline = 'hunter3')
+iHunterLookbackMid = input.int(defval=700, title='lookback', minval=100, maxval=1500, group='SL hunter', inline = 'hunter3')
+iHunterLong = input.bool(defval=true, title='long', group='SL hunter', inline = 'hunter4')
+iHunterLookbackLong = input.int(defval=1300, title='lookback', minval=200, maxval=2000, group='SL hunter', inline = 'hunter4')
+
+func_sig_sl_hunter(_atr, _lookback, _gracePeriod) =>
+    localLow = ta.lowest(low, _lookback)
+    localLowCandlesAgo = ta.barssince(low == localLow)
+    localHigh = ta.highest(high, math.max(1, nz(localLowCandlesAgo)))
+    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+    bullishHunterSig = func_crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
 
 atr200 = ta.atr(iMainMaLength)
-hunterLookback = bar_index < iHunterLookback ? (bar_index < iHunterLookbackMid ? iHunterLookbackInit : iHunterLookbackMid) : iHunterLookback
-localLow = ta.lowest(low, hunterLookback)
-localLowCandlesAgo = ta.barssince(low == localLow)
-localHigh = ta.highest(high, math.max(1, nz(localLowCandlesAgo)))
-localHighCandlesAgo = ta.barssince(high == localHigh)
+bullishHunterShortSig = iHunterShort and func_sig_sl_hunter(atr200, iHunterLookbackShort, iHunterGracePeriod)
+bullishHunterMidSig = iHunterMid and func_sig_sl_hunter(atr200, iHunterLookbackMid, iHunterGracePeriod)
+bullishHunterLongSig = iHunterLong and func_sig_sl_hunter(atr200, iHunterLookbackLong, iHunterGracePeriod)
 
-bullishHunterSig = func_crossover(localLow[iHunterGracePeriod]) and localHigh[iHunterGracePeriod] > localLow[iHunterGracePeriod] + iHunterHighOverLow * atr200 and localLow[iHunterGracePeriod] == localLow[2 * iHunterGracePeriod]
+bullishHunterSig = bullishHunterShortSig or bullishHunterMidSig or bullishHunterLongSig
 
 alertcondition(bullishHunterSig, title='DRE Bullish SL hunter', message='sl.hunter')
 plotshape(bullishHunterSig and iBullishHunter, title='bullish sl hunter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='sl.hunter', textcolor=color.new(color.green, 0))
