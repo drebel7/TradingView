@@ -191,7 +191,8 @@ plotshape(bullishHunterSig and iBullishHunter, title='bullish hunter', location=
 plotshape(bearishHunterSig and iBearishHunter, title='bearish hunter', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='hunter', textcolor=color.new(color.red, 0))
 
 
-iBullishStepper = input.bool(defval=false, title='bullish', group='stepper', inline = 'stepper1')
+iBullishStepper = input.bool(defval=true, title='bullish', group='stepper', inline = 'stepper1')
+iStepperLookback = input.int(defval=325, title='lookback', minval=100, maxval=750, step=5, group='stepper')
 iStepperMaDist = input.float(defval=1.5, title='max vwap-ma dist.', minval=0.0, maxval=5.0, group='stepper')
 
 func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
@@ -201,13 +202,13 @@ func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
     maDist = localHighVwap - _mainMa
     sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(_lookback) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and func_crossover(localHighVwap)
 
-bullishStepperSig = func_sig_bull_stepper(mainAtr, mainMa, iMainMaLength, iStepperMaDist)
+bullishStepperSig = func_sig_bull_stepper(mainAtr, mainMa, iStepperLookback, iStepperMaDist)
 
 alertcondition(bullishStepperSig, title='DRE Bullish stepper', message='stepper')
 plotshape(bullishStepperSig and iBullishStepper, title='bullish stepper', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='stepper', textcolor=color.new(color.green, 0))
 
 
-bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig
+bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig or bullishStepperSig
 bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig
 alertcondition(bullishSig, title='DRE Bullish pattern sig', message='bullish pattern')
 alertcondition(bearishSig, title='DRE Bearish pattern sig', message='bearish pattern')
