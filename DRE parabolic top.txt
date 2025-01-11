@@ -12,7 +12,10 @@ iShortMaLength = input.int(defval=50, title='Short MA length', minval=10, maxval
 iLongMaLength = input.int(defval=750, title='Long MA length', minval=200, maxval=1000, group='Common parameters')
 
 //common calculations
-atr200 = ta.atr(iMainMaLength)
+mainAtr = ta.atr(iMainMaLength)
+mainMa = ta.sma(close, iMainMaLength)
+shortMa = ta.sma(close, iShortMaLength)
+longMa = ta.sma(close, iLongMaLength)
 
 iParabolicTop = input.bool(defval=true, title='Parabolic top', group='parabolic top')
 iMultipleGain = input.float(defval=1.6, title='Multiple Gain Since Low', minval=1.2, maxval=4, step=0.2, group='parabolic top')
@@ -103,7 +106,7 @@ func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
     vwma = ta.vwma(ohlc4, maLen)
     move1 = ta.barssince(sma > sma[1])
     maDiffLen = math.ceil(0.4 * (move1 > minMove1Len ? move1 : minMove1Len))
-    highestMaDiff = ta.highest(sma - vwma, maDiffLen) / atr200
+    highestMaDiff = ta.highest(sma - vwma, maDiffLen) / mainAtr
     ret = move1 > minMove1Len and (func_crossover(sma) or func_crossover(vwma)) and highestMaDiff > atrMultiple and highestMaDiff > highestMaDiff[maDiffLen]
 
 bullishStarterSig = func_sig_starter(true, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
@@ -124,7 +127,7 @@ iLongerOffset = input.float(defval=0.1, title='Price offset (atr multiple)', min
 func_sig_longer(shortMaLength, longMaLength, offset) =>
     shortMa = ta.sma(close, shortMaLength)
     longMa = ta.sma(close, longMaLength)
-    ret = shortMa > shortMa[1] and longMa > longMa[1] and shortMa > longMa and func_crossover(shortMa + offset * atr200)
+    ret = shortMa > shortMa[1] and longMa > longMa[1] and shortMa > longMa and func_crossover(shortMa + offset * mainAtr)
 
 longerSig = func_sig_longer(iMainMaLength, iLongMaLength, iLongerOffset)
 
@@ -172,20 +175,37 @@ func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
     bearishHunterSig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
 
-bullishHunterShortSig = iHunterShort and func_sig_bull_sl_hunter(atr200, iHunterLookbackShort, iHunterGracePeriod)
-bullishHunterMidSig = iHunterMid and func_sig_bull_sl_hunter(atr200, iHunterLookbackMid, iHunterGracePeriod)
-bullishHunterLongSig = iHunterLong and func_sig_bull_sl_hunter(atr200, iHunterLookbackLong, iHunterGracePeriod)
+bullishHunterShortSig = iHunterShort and func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod)
+bullishHunterMidSig = iHunterMid and func_sig_bull_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod)
+bullishHunterLongSig = iHunterLong and func_sig_bull_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod)
 bullishHunterSig = bullishHunterShortSig or bullishHunterMidSig or bullishHunterLongSig
 
-bearishHunterShortSig = iHunterShort and func_sig_bear_sl_hunter(atr200, iHunterLookbackShort, iHunterGracePeriod)
-bearishHunterMidSig = iHunterMid and func_sig_bear_sl_hunter(atr200, iHunterLookbackMid, iHunterGracePeriod)
-bearishHunterLongSig = iHunterLong and func_sig_bear_sl_hunter(atr200, iHunterLookbackLong, iHunterGracePeriod)
+bearishHunterShortSig = iHunterShort and func_sig_bear_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod)
+bearishHunterMidSig = iHunterMid and func_sig_bear_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod)
+bearishHunterLongSig = iHunterLong and func_sig_bear_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod)
 bearishHunterSig = bearishHunterShortSig or bearishHunterMidSig or bearishHunterLongSig
 
 alertcondition(bullishHunterSig, title='DRE Bullish hunter', message='hunter')
 alertcondition(bearishHunterSig, title='DRE Bearish hunter', message='hunter')
 plotshape(bullishHunterSig and iBullishHunter, title='bullish hunter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='hunter', textcolor=color.new(color.green, 0))
 plotshape(bearishHunterSig and iBearishHunter, title='bearish hunter', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='hunter', textcolor=color.new(color.red, 0))
+
+
+iBullishStepper = input.bool(defval=false, title='bullish', group='stepper', inline = 'stepper1')
+iStepperMaDist = input.float(defval=1.5, title='max vwap-ma dist.', minval=0.0, maxval=5.0, group='stepper')
+
+func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
+    localHigh = ta.highest(high, _lookback)
+    localHighCandlesAgo = ta.barssince(high == localHigh)
+    localHighVwap = ta.vwap(ohlc4, high == localHigh)
+    maDist = localHighVwap - _mainMa
+    sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(_lookback) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and func_crossover(localHighVwap)
+
+bullishStepperSig = func_sig_bull_stepper(mainAtr, mainMa, iMainMaLength, iStepperMaDist)
+
+alertcondition(bullishStepperSig, title='DRE Bullish stepper', message='stepper')
+plotshape(bullishStepperSig and iBullishStepper, title='bullish stepper', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='stepper', textcolor=color.new(color.green, 0))
+
 
 bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig
 bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig
