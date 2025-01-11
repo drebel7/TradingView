@@ -170,7 +170,7 @@ func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
     localHighCandlesAgo = ta.barssince(high == localHigh)
     localLow = ta.lowest(low, math.max(1, nz(localHighCandlesAgo)))
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    bearishHunterSig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] > localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
+    bearishHunterSig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
 
 bullishHunterShortSig = iHunterShort and func_sig_bull_sl_hunter(atr200, iHunterLookbackShort, iHunterGracePeriod)
 bullishHunterMidSig = iHunterMid and func_sig_bull_sl_hunter(atr200, iHunterLookbackMid, iHunterGracePeriod)
