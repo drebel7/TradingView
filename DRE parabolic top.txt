@@ -148,15 +148,15 @@ plotshape(zscoreBullishSig and iBullishZscore, title='bubble up', location=locat
 plotshape(zscoreBearishSig and iBearishZscore, title='bubble dn', location=location.belowbar, color=color.new(color.gray, 0), style=shape.xcross, text='bubble dn', textcolor=color.new(color.gray, 0))
 
 
-iBullishHunter = input.bool(defval=true, title='bullish', group='SL hunter', inline = 'hunter1')
-iBearishHunter = input.bool(defval=true, title='bearish', group='SL hunter', inline = 'hunter1')
-iHunterGracePeriod = input.int(defval=50, title='grace period', minval=20, maxval=200, group='SL hunter')
-iHunterShort = input.bool(defval=true, title='short', group='SL hunter', inline = 'hunter2')
-iHunterLookbackShort = input.int(defval=250, title='lookback', minval=50, maxval=1000, group='SL hunter', inline = 'hunter2')
-iHunterMid = input.bool(defval=true, title='mid', group='SL hunter', inline = 'hunter3')
-iHunterLookbackMid = input.int(defval=700, title='lookback', minval=100, maxval=1500, group='SL hunter', inline = 'hunter3')
-iHunterLong = input.bool(defval=true, title='long', group='SL hunter', inline = 'hunter4')
-iHunterLookbackLong = input.int(defval=1300, title='lookback', minval=200, maxval=2000, group='SL hunter', inline = 'hunter4')
+iBullishHunter = input.bool(defval=true, title='bullish', group='hunter', inline = 'hunter1')
+iBearishHunter = input.bool(defval=true, title='bearish', group='hunter', inline = 'hunter1')
+iHunterGracePeriod = input.int(defval=50, title='grace period', minval=20, maxval=200, group='hunter')
+iHunterShort = input.bool(defval=true, title='short', group='hunter', inline = 'hunter2')
+iHunterLookbackShort = input.int(defval=250, title='lookback', minval=50, maxval=1000, group='hunter', inline = 'hunter2')
+iHunterMid = input.bool(defval=true, title='mid', group='hunter', inline = 'hunter3')
+iHunterLookbackMid = input.int(defval=700, title='lookback', minval=100, maxval=1500, group='hunter', inline = 'hunter3')
+iHunterLong = input.bool(defval=true, title='long', group='hunter', inline = 'hunter4')
+iHunterLookbackLong = input.int(defval=1300, title='lookback', minval=200, maxval=2000, group='hunter', inline = 'hunter4')
 
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
     localLow = ta.lowest(low, _lookback)
@@ -182,10 +182,10 @@ bearishHunterMidSig = iHunterMid and func_sig_bear_sl_hunter(atr200, iHunterLook
 bearishHunterLongSig = iHunterLong and func_sig_bear_sl_hunter(atr200, iHunterLookbackLong, iHunterGracePeriod)
 bearishHunterSig = bearishHunterShortSig or bearishHunterMidSig or bearishHunterLongSig
 
-alertcondition(bullishHunterSig, title='DRE Bullish SL hunter', message='sl.hunter')
-alertcondition(bearishHunterSig, title='DRE Bearish SL hunter', message='sl.hunter')
-plotshape(bullishHunterSig and iBullishHunter, title='bullish sl hunter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='sl.hunter', textcolor=color.new(color.green, 0))
-plotshape(bearishHunterSig and iBearishHunter, title='bearish sl hunter', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='sl.hunter', textcolor=color.new(color.red, 0))
+alertcondition(bullishHunterSig, title='DRE Bullish hunter', message='hunter')
+alertcondition(bearishHunterSig, title='DRE Bearish hunter', message='hunter')
+plotshape(bullishHunterSig and iBullishHunter, title='bullish hunter', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='hunter', textcolor=color.new(color.green, 0))
+plotshape(bearishHunterSig and iBearishHunter, title='bearish hunter', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='hunter', textcolor=color.new(color.red, 0))
 
 bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig
 bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig
