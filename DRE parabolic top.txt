@@ -187,14 +187,14 @@ func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
     sig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
     sig
 
-bullishHunterShortSig = iHunterShort and func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod)
-bullishHunterMidSig = iHunterMid and func_sig_bull_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod)
-bullishHunterLongSig = iHunterLong and func_sig_bull_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod)
+bullishHunterShortSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort
+bullishHunterMidSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
+bullishHunterLongSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
 bullishHunterSig = bullishHunterShortSig or bullishHunterMidSig or bullishHunterLongSig
 
-bearishHunterShortSig = iHunterShort and func_sig_bear_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod)
-bearishHunterMidSig = iHunterMid and func_sig_bear_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod)
-bearishHunterLongSig = iHunterLong and func_sig_bear_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod)
+bearishHunterShortSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort 
+bearishHunterMidSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
+bearishHunterLongSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
 bearishHunterSig = bearishHunterShortSig or bearishHunterMidSig or bearishHunterLongSig
 
 alertcondition(bullishHunterSig, title = 'DRE Bullish hunter', message = 'hunter')
