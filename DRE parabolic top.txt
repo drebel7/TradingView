@@ -62,13 +62,13 @@ iCoil = input.bool(defval=true, title='bullish', group='coil_n_strech', inline='
 iCoilStrech = input.bool(defval=false, title='bearish', group='coil_n_strech', inline='coil1')
 iCoilPercent = input.int(defval=2, title='Percentile rank distance from MAs', minval=1, maxval=20, group='coil_n_strech')
 
-func_ma_distance(shortMaLen, mediumMaLen, longMaLen) =>
-    shortMa = ta.sma(close, shortMaLen)
-    mediumMa = ta.sma(close, mediumMaLen)
-    usedLongMaLen = bar_index < longMaLen ? bar_index : longMaLen
-    longMa = bar_index < longMaLen ? func_init_vwap_excl_init_higher_volume() : ta.sma(close, longMaLen)
-    lenSum = shortMaLen + mediumMaLen + usedLongMaLen
-    distance = math.sqrt((lenSum-shortMaLen)*math.pow(shortMa - close, 2) + (lenSum-mediumMaLen)*math.pow(mediumMa - close, 2) + (lenSum-usedLongMaLen)*math.pow(longMa - close, 2))
+func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
+    ma1 = ta.sma(close, _shortMaLen)
+    ma2 = ta.sma(close, _mediumMaLen)
+    usedLongMaLen = bar_index < _longMaLen ? bar_index : _longMaLen
+    ma3 = bar_index < _longMaLen ? ta.vwap(ohlc4, bar_index == 0) : ta.sma(close, _longMaLen)
+    lenSum = _shortMaLen + _mediumMaLen + usedLongMaLen
+    distance = math.sqrt((lenSum-_shortMaLen)*math.pow(ma1 - close, 2) + (lenSum-_mediumMaLen)*math.pow(ma2 - close, 2) + (lenSum-usedLongMaLen)*math.pow(ma3 - close, 2))
 
 func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
     percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * longMaLen)
