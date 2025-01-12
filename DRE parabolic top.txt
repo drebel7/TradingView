@@ -35,22 +35,22 @@ alertcondition(topSig, title='DRE Parabolic TOP sig', message='parabolic TOP')
 plotshape(topSig and iParabolicTop, title='parabolic top', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='top', textcolor=color.new(color.red, 0))
 
 
-func_crossover(middle) =>
-    math.min(low, close[1]) <= middle and close > middle
-func_crossunder(middle) =>
-    math.max(high, close[1]) >= middle and close < middle
+func_crossover(_source) =>
+    math.min(low, close[1]) <= _source and close > _source
+func_crossunder(_source) =>
+    math.max(high, close[1]) >= _source and close < _source
 
 iJunior = input.bool(defval=true, title='bullish', group='junior')
-iJuniorMaxAge = input.int(defval=250, title='Max junior age', minval=20, maxval=500, group='junior')
+iJuniorMaxAge = input.int(defval=325, title='Max junior age', minval=20, maxval=500, group='junior')
 
 func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
     reset = bar_index == 0 or (bar_index == 1 and volume < x * volume[1]) or (bar_index == 2 and volume < x * volume[1] and volume[1] < x * volume[2])
     ret = ta.vwap(ohlc4, reset)
 
-func_sig_junior(maxAge) =>
+func_sig_junior(_maxAge) =>
     vwap = func_init_vwap_excl_init_higher_volume()
-    ret = bar_index < maxAge and func_crossover(vwap)
+    ret = bar_index < _maxAge and func_crossover(vwap)
 
 juniorSig = func_sig_junior(iJuniorMaxAge)
 
@@ -72,13 +72,13 @@ func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
     lenSum = _shortMaLen + _mediumMaLen + usedLongMaLen
     distance = math.sqrt((lenSum-_shortMaLen)*math.pow(ma1 - close, 2) + (lenSum-_mediumMaLen)*math.pow(ma2 - close, 2) + (lenSum-usedLongMaLen)*math.pow(ma3used - close, 2))
 
-func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
-    percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * longMaLen)
-    ret = ta.percentrank(distance, percentRankLen) < distancePercentRank and func_crossover(ta.sma(close, mediumMaLen))
+func_sig_coil(_dist, _longMaLen, _mediumMaLen, _distPercentRank) =>
+    percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * _longMaLen)
+    ret = ta.percentrank(_dist, percentRankLen) < _distPercentRank and func_crossover(ta.sma(close, _mediumMaLen))
 
-func_sig_strech(distance, longMaLen, distancePercentRank) =>
-    percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * longMaLen)
-    ret = ta.percentrank(distance, percentRankLen) > 100 - distancePercentRank and close > close[longMaLen] and close > close[1]
+func_sig_strech(_dist, _longMaLen, _distPercentRank) =>
+    percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * _longMaLen)
+    ret = ta.percentrank(_dist, percentRankLen) > 100 - _distPercentRank and close > close[_longMaLen] and close > close[1]
 
 coilBullishSig = func_sig_coil(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iMainMaLength, iCoilPercent)
 strechBearishSig = func_sig_strech(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iCoilPercent)
@@ -97,19 +97,19 @@ iStarterMaxIncliningDays = input.int(defval=200, title='Number of SMA inclining 
 iStarterSmaSmoothing = input.int(defval = 3, title='SMA smoothing', minval=0, maxval=10, group='starter')
 iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title='Fire starter MA difference ATR multiple', minval=0.5, maxval=10, step=0.5, group='starter')
 
-func_sig_starter(isBullish, maLen, minMove1Len, maxMove2Len, isSmoothing) =>
-    ma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
-    move1 = math.min(1000, ta.barssince((isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < maLen))
-    move2 = math.min(1000, ta.barssince(move1 == 0 and (isBullish ? move1[1] > minMove1Len : move1[1] < minMove1Len)))
-    ret = move2 < maxMove2Len and (isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
+func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
+    ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
+    move1 = math.min(1000, ta.barssince((_isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < _maLen))
+    move2 = math.min(1000, ta.barssince(move1 == 0 and (_isBullish ? move1[1] > _minMove1Len : move1[1] < _minMove1Len)))
+    ret = move2 < _maxMove2Len and (_isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
 
-func_sig_f_starter(maLen, minMove1Len, atrMultiple, isSmoothing) =>
-    sma = isSmoothing > 0 ? ta.ema(ta.sma(close, maLen), isSmoothing) : ta.sma(close, maLen)
-    vwma = ta.vwma(ohlc4, maLen)
+func_sig_f_starter(_maLen, _minMove1Len, _atrMulti, _smoothing) =>
+    sma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
+    vwma = ta.vwma(ohlc4, _maLen)
     move1 = ta.barssince(sma > sma[1])
-    maDiffLen = math.ceil(0.4 * (move1 > minMove1Len ? move1 : minMove1Len))
+    maDiffLen = math.ceil(0.4 * (move1 > _minMove1Len ? move1 : _minMove1Len))
     highestMaDiff = ta.highest(sma - vwma, maDiffLen) / mainAtr
-    ret = move1 > minMove1Len and (func_crossover(sma) or func_crossover(vwma)) and highestMaDiff > atrMultiple and highestMaDiff > highestMaDiff[maDiffLen]
+    ret = move1 > _minMove1Len and (func_crossover(sma) or func_crossover(vwma)) and highestMaDiff > _atrMulti and highestMaDiff > highestMaDiff[maDiffLen]
 
 bullishStarterSig = func_sig_starter(true, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 bearishStarterSig = func_sig_starter(false, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
