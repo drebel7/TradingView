@@ -16,6 +16,7 @@ mainAtr = ta.atr(iMainMaLength)
 mainMa = ta.sma(close, iMainMaLength)
 shortMa = ta.sma(close, iShortMaLength)
 longMa = ta.sma(close, iLongMaLength)
+gVolMa = ta.sma(volume, 30)
 
 iParabolicTop = input.bool(defval = true, title = 'Parabolic top', group = 'parabolic top')
 iMultipleGain = input.float(defval = 1.6, title = 'Multiple Gain Since Low', minval = 1.2, maxval = 4, step = 0.2, group = 'parabolic top')
@@ -23,14 +24,13 @@ iMultipleInDays = input.int(defval = 100, title = 'Number Of Days To Multiple', 
 iDownDaysAfterTop = input.int(defval = 2, title = 'Down Days After Top', minval = 1, maxval = 5, group = 'parabolic top')
 iVolDownDaysAfterTop = input.int(defval = 2, title = 'Down Days After Top (Volume)', minval = 1, maxval = 5, group = 'parabolic top')
 
-func_sig_parabolic_top(volumeMaLen, closeMaLen, volumeDownDaysAfterTop, closeDownDaysAfterTop, prevPeriodGainLen, prevPeriodGainMultiple) =>
-    volMa = ta.sma(volume, volumeMaLen)
-    closeMa = ta.sma(close, closeMaLen)
-    barsSinceVolDown = ta.barssince(volMa < volMa[3])
-    ret = barsSinceVolDown > 15 and close > prevPeriodGainMultiple * ta.lowest(close, prevPeriodGainLen) and volume < volume[volumeDownDaysAfterTop] and open < close[closeDownDaysAfterTop]
+func_sig_parabolic_top(_volMa, volumeDownDaysAfterTop, closeDownDaysAfterTop, prevPeriodGainLen, prevPeriodGainMultiple) =>
+    barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
+    localLow = ta.lowest(close, prevPeriodGainLen)
+    ret = barsSinceVolDown > 15 and close > prevPeriodGainMultiple * localLow and volume < volume[volumeDownDaysAfterTop] and open < close[closeDownDaysAfterTop]
     ret
 
-topSig = func_sig_parabolic_top(30, 20, iVolDownDaysAfterTop, iDownDaysAfterTop, iMultipleInDays, iMultipleGain)
+topSig = func_sig_parabolic_top(gVolMa, iVolDownDaysAfterTop, iDownDaysAfterTop, iMultipleInDays, iMultipleGain)
 
 alertcondition(topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
@@ -78,7 +78,8 @@ func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
 
 func_sig_coil(_dist, _longMaLen, _mediumMaLen, _distPercentRank) =>
     percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * _longMaLen)
-    ret = ta.percentrank(_dist, percentRankLen) < _distPercentRank and func_crossover(ta.sma(close, _mediumMaLen))
+    mediumMa = ta.sma(close, _mediumMaLen)
+    ret = ta.percentrank(_dist, percentRankLen) < _distPercentRank and func_crossover(mediumMa)
     ret
 
 func_sig_strech(_dist, _longMaLen, _distPercentRank) =>
