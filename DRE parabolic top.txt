@@ -65,10 +65,12 @@ iCoilPercent = input.int(defval=2, title='Percentile rank distance from MAs', mi
 func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
     ma1 = ta.sma(close, _shortMaLen)
     ma2 = ta.sma(close, _mediumMaLen)
+    ma3 = ta.sma(close, _longMaLen)
+    vwap = ta.vwap(ohlc4, bar_index == 0)
     usedLongMaLen = bar_index < _longMaLen ? bar_index : _longMaLen
-    ma3 = bar_index < _longMaLen ? ta.vwap(ohlc4, bar_index == 0) : ta.sma(close, _longMaLen)
+    ma3used = bar_index < _longMaLen ? vwap : ma3
     lenSum = _shortMaLen + _mediumMaLen + usedLongMaLen
-    distance = math.sqrt((lenSum-_shortMaLen)*math.pow(ma1 - close, 2) + (lenSum-_mediumMaLen)*math.pow(ma2 - close, 2) + (lenSum-usedLongMaLen)*math.pow(ma3 - close, 2))
+    distance = math.sqrt((lenSum-_shortMaLen)*math.pow(ma1 - close, 2) + (lenSum-_mediumMaLen)*math.pow(ma2 - close, 2) + (lenSum-usedLongMaLen)*math.pow(ma3used - close, 2))
 
 func_sig_coil(distance, longMaLen, mediumMaLen, distancePercentRank) =>
     percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * longMaLen)
