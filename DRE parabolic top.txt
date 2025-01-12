@@ -124,12 +124,10 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title='bullish fire sta
 iLonger = input.bool(defval=true, title='bullish', group='longer', inline = 'longer1')
 iLongerOffset = input.float(defval=0.1, title='Price offset (atr multiple)', minval=-2.0, maxval=2.0, step=0.5, group='longer')
 
-func_sig_longer(shortMaLength, longMaLength, offset) =>
-    shortMa = ta.sma(close, shortMaLength)
-    longMa = ta.sma(close, longMaLength)
-    ret = shortMa > shortMa[1] and longMa > longMa[1] and shortMa > longMa and func_crossover(shortMa + offset * mainAtr)
+func_sig_longer(_shortMa, _longMa, _offset, _atr) =>
+    ret = _shortMa > _shortMa[1] and _longMa > _longMa[1] and _shortMa > _longMa and func_crossover(_shortMa + _offset * _atr)
 
-longerSig = func_sig_longer(iMainMaLength, iLongMaLength, iLongerOffset)
+longerSig = func_sig_longer(mainMa, longMa, iLongerOffset, mainAtr)
 
 alertcondition(longerSig, title='DRE longer sig', message='longer')
 plotshape(longerSig and iLonger, title='longer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='longer', textcolor=color.new(color.green, 0))
