@@ -208,6 +208,30 @@ alertcondition(bullishStepperSig, title='DRE Bullish stepper', message='stepper'
 plotshape(bullishStepperSig and iBullishStepper, title='bullish stepper', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='stepper', textcolor=color.new(color.green, 0))
 
 
+iBullishSqueezer = input.bool(defval=false, title='bullish', group='squeezer', inline = 'squeezer1')
+// iBearishSqueezer = input.bool(defval=false, title='bearish', group='squeezer', inline = 'squeezer1')
+iSqueezerLookback = input.int(defval=325, title='lookback', minval=100, maxval=750, step=5, group='squeezer')
+iSqueezerMinInitVwapDist = input.float(defval=11.0, title='min vwap init. dist.', minval=2.0, maxval=20.0, group='squeezer')
+iSqueezerMaxVwapDist = input.float(defval=2.0, title='max vwap squeeze dist.', minval=0.0, maxval=10.0, group='squeezer')
+
+func_sig_bull_squeezer(_atr, _lookback, _gracePeriod, _minInitVwapDist, _maxVwapDist) =>
+    localHigh = ta.highest(high, _lookback)
+    localHighCandlesAgo = ta.barssince(high == localHigh)
+    localLow = ta.lowest(low, math.max(1, nz(localHighCandlesAgo)))
+    localLowCandlesAgo = ta.barssince(low == localLow)
+    localHighVwap = ta.vwap(ohlc4, high == localHigh)
+    localLowVwap = ta.vwap(ohlc4, low == localLow)
+    maDist = localHighVwap - localLowVwap
+    sig = localLowCandlesAgo > 50 and localHighVwap[localLowCandlesAgo] > localLow[localLowCandlesAgo] + _minInitVwapDist * _atr and maDist > 0 and maDist < _maxVwapDist * _atr and func_crossover(localHighVwap) and localHigh == localHigh[_gracePeriod]
+
+bullishSqueezerSig = func_sig_bull_squeezer(mainAtr, iStepperLookback, 50, iSqueezerMinInitVwapDist, iSqueezerMaxVwapDist)
+
+alertcondition(bullishSqueezerSig, title='DRE Bullish squeezer', message='stepper')
+// alertcondition(bearishHunterSig, title='DRE Bearish squeezer', message='squeezer')
+plotshape(bullishSqueezerSig and iBullishSqueezer, title='bullish squeezer', location=location.belowbar, color=color.new(color.green, 0), style=shape.triangleup, text='squeezer', textcolor=color.new(color.green, 0))
+// plotshape(bearishHunterSig and iBearishSqueezer, title='bearish squeezer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='squeezer', textcolor=color.new(color.red, 0))
+
+
 bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig or bullishStepperSig
 bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig
 alertcondition(bullishSig, title='DRE Bullish pattern sig', message='bullish pattern')
