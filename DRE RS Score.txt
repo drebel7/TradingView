@@ -11,7 +11,7 @@ iSmoothingMaLength = input.int(defval = 1, title = 'Smoothing EMA length', minva
 
 //functions
 func_percent_change(_source, period) =>
-	((_source - _source[period])/ _source[period] - 1) * 100
+	(_source / _source[period] - 1) * 100
 
 //calculations
 idxClose = request.security(iCompareIndex, timeframe.period, close)
