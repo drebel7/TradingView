@@ -1,0 +1,27 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator(title = 'DRE RS score', overlay = true)
+
+//inputs
+iCompareIndex = input.symbol(title='Index', defval='GPW:FW201!')
+iLength = input.int(defval = 250, title = 'Length', minval = 50, maxval = 1000)
+iSmoothingMaLength = input.int(defval = 1, 'Smoothing EMA length', minval = 1, maxval = 21)
+
+//functions
+func_percent_change(_source, period) =>
+	(_source / _source[period] - 1) * 100
+
+//calculations
+idxClose = request.security(iCompareIndex, timeframe.period, close)
+
+pctChng = func_percent_change(close, iLength)
+pctChngIdx = func_percent_change(idxClose, iLength)
+rs = pctChng / pctChngIdx
+rsHigh = ta.highest(rs, iLength)
+rsLow = ta.lowest(rs, iLength)
+rsScore = (rs - rsLow) / (rsHigh - rsLow) * 100
+
+plot(rs)
+
