@@ -35,9 +35,13 @@ topSig = func_sig_parabolic_top(gVolMa, iVolDownDaysAfterTop, iDownDaysAfterTop,
 alertcondition(topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
 
-
+func_crossover(_source1, _source2) =>
+    _source1[1] <= _source2[1] and _source1 > _source2
 func_crossover(_source) =>
     math.min(low, close[1]) <= _source and close > _source
+
+func_crossunder(_source1, _source2) =>
+    _source1[1] >= _source2[1] and _source1 < _source2
 func_crossunder(_source) =>
     math.max(high, close[1]) >= _source and close < _source
 
@@ -246,8 +250,38 @@ plotshape(bullishSqueezerSig and iBullishSqueezer, title = 'bullish squeezer', l
 // plotshape(bearishHunterSig and iBearishSqueezer, title='bearish squeezer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='squeezer', textcolor=color.new(color.red, 0))
 
 
-bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig or bullishStepperSig
-bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig
+iBullishObv = input.bool(defval = true, title = 'bullish', group = 'obv', inline = 'obv1')
+iBearishObv = input.bool(defval = true, title='bearish', group='obv', inline = 'obv1')
+iObvMaLength = input.int(defval=100, title='Ma len.', minval=10, maxval=250, group='obv')
+iObvSource = input.source(close, "Source", group="obv")
+iObvStdDevBand = input.float(defval=0.35, title='StdDev.', minval=0, maxval=10.0, step=0.05, group='obv')
+
+func_obv(_source) =>
+    ta.cum(math.sign(ta.change(_source)) * volume)
+
+var cumVol = 0.
+cumVol += nz(volume)
+if barstate.islast and cumVol == 0
+    runtime.error("No volume is provided by the data vendor.")
+
+obv = func_obv(iObvSource)
+obcMa = ta.sma(obv, iObvMaLength)
+obvStdDev = ta.stdev(obv, iObvMaLength)
+bullishObvCross = func_crossover(obv, obcMa + iObvStdDevBand * obvStdDev)
+bearishObvCross = func_crossunder(obv, obcMa - iObvStdDevBand * obvStdDev)
+bullishObvCrossSince = ta.barssince(bullishObvCross)
+bearishObvCrossSince = ta.barssince(bearishObvCross)
+bullishObvSig = bullishObvCross and bullishObvCrossSince[1] > bearishObvCrossSince[1]
+bearishObvSig = bearishObvCross and bullishObvCrossSince[1] < bearishObvCrossSince[1]
+
+alertcondition(bullishObvSig, title = 'DRE Bullish obv', message = 'obv')
+alertcondition(bearishObvSig, title='DRE Bearish obv', message='obv')
+plotshape(bullishObvSig and iBullishObv, title = 'bullish obv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'obv', textcolor = color.new(color.green, 0))
+plotshape(bearishObvSig and iBearishObv, title='bearish obv', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='obv', textcolor=color.new(color.red, 0))
+
+
+bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig or bullishStepperSig or bullishObvSig
+bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig or bearishObvSig
 alertcondition(bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
 alertcondition(bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
 
