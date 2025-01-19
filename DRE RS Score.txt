@@ -2,16 +2,16 @@
 // © drebel
 
 //@version=6
-indicator(title = 'DRE RS score', overlay = true)
+indicator(title = 'DRE RS Score', overlay = false)
 
 //inputs
 iCompareIndex = input.symbol(title='Index', defval='GPW:FW201!')
 iLength = input.int(defval = 250, title = 'Length', minval = 50, maxval = 1000)
-iSmoothingMaLength = input.int(defval = 1, 'Smoothing EMA length', minval = 1, maxval = 21)
+iSmoothingMaLength = input.int(defval = 1, title = 'Smoothing EMA length', minval = 1, maxval = 21)
 
 //functions
 func_percent_change(_source, period) =>
-	(_source / _source[period] - 1) * 100
+	((_source - _source[period])/ _source[period] - 1) * 100
 
 //calculations
 idxClose = request.security(iCompareIndex, timeframe.period, close)
@@ -22,6 +22,8 @@ rs = pctChng / pctChngIdx
 rsHigh = ta.highest(rs, iLength)
 rsLow = ta.lowest(rs, iLength)
 rsScore = (rs - rsLow) / (rsHigh - rsLow) * 100
+rsScoreSmooth = ta.ema(rsScore, iSmoothingMaLength)
 
-plot(rs)
+hline(50, color=color.black, linestyle=hline.style_dotted)
+plot(rsScoreSmooth)
 
