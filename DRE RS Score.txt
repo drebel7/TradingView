@@ -6,24 +6,38 @@ indicator(title = 'DRE RS Score', overlay = false)
 
 //inputs
 iCompareIndex = input.symbol(title='Index', defval='GPW:FW201!')
-iLength = input.int(defval = 250, title = 'Length', minval = 50, maxval = 1000)
-iSmoothingMaLength = input.int(defval = 1, title = 'Smoothing EMA length', minval = 1, maxval = 21)
 
-//functions
-func_percent_change(_source, period) =>
-	(_source / _source[period] - 1) * 100
+// Using bar index in case of IPO to avoid NaN results
+// Added max_bars_max = 253 to improve display speed
+n63 = bar_index < 63  ? bar_index : 63 
+n126 = bar_index < 126 ? bar_index : 126
+n189 = bar_index < 189 ? bar_index : 189
+n252 = bar_index < 252 ? bar_index : 252
 
-//calculations
-idxClose = request.security(iCompareIndex, timeframe.period, close)
+// Calculation of the RS Rating
+// Getting ticker and reference ticker daily data
+closeDa = request.security(syminfo.tickerid, 'D', close)
+spxCloseDa = request.security(iCompareIndex, 'D', close)
 
-pctChng = func_percent_change(close, iLength)
-pctChngIdx = func_percent_change(idxClose, iLength)
-rs = pctChng / pctChngIdx
-rsHigh = ta.highest(rs, iLength)
-rsLow = ta.lowest(rs, iLength)
-rsScore = (rs - rsLow) / (rsHigh - rsLow) * 100
-rsScoreSmooth = ta.ema(rsScore, iSmoothingMaLength)
+// Calculation of the performance from 1 to 4 last quarters
+// Ticker
+perfTicker63 = closeDa / closeDa[n63]
+perfTicker126 = closeDa / closeDa[n126]
+perfTicker189 = closeDa / closeDa[n189]
+perfTicker252 = closeDa / closeDa[n252]
+
+// SP500 of reference ticker
+perfComp63 = spxCloseDa / spxCloseDa[n63]
+perfComp126 = spxCloseDa / spxCloseDa[n126]
+perfComp189 = spxCloseDa / spxCloseDa[n189]
+perfComp252 = spxCloseDa / spxCloseDa[n252]
+
+// Using Formula to calculate a relative score of the ticker and the SP500 with the last quarter weighted double
+float rs_stock = 0.4 * perfTicker63 + 0.2 * perfTicker126 + 0.2 * perfTicker189 + 0.2 * perfTicker252
+float rs_ref = 0.4 * perfComp63   + 0.2 * perfComp126   + 0.2 * perfComp189   + 0.2 * perfComp252
+
+// Calculation of the total relative score or rs performance
+float totalRsScore  = (rs_stock) / (rs_ref) * 100
 
 hline(50, color=color.black, linestyle=hline.style_dotted)
-plot(rsScoreSmooth)
-
+plot(totalRsScore)
