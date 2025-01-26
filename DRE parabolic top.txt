@@ -124,6 +124,7 @@ iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA
 
 func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
     ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
+    // Only calculate move1 after MA has enough data
     move1 = bar_index >= _maLen ? math.min(1000, ta.barssince(_isBullish ? ma > ma[1] : ma < ma[1])) : 1000
     move2 = math.min(1000, ta.barssince(move1 == 0 and (_isBullish ? move1[1] > _minMove1Len : move1[1] < _minMove1Len)))
     ret = move2 < _maxMove2Len and (_isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
