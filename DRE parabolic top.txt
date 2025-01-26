@@ -33,7 +33,7 @@ iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, g
 func_sig_parabolic_top(_volMa, _downDaysAfterTop, _prevPeriodGainLen, _atrMulti) =>
     barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
     localLow = ta.lowest(close, _prevPeriodGainLen)
-    downDaysCond = volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
+    downDaysCond = bar_index > _downDaysAfterTop and volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
     ret = barsSinceVolDown > 15 and close > localLow + _atrMulti * mainAtr and downDaysCond
     ret
 
@@ -124,7 +124,7 @@ iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA
 
 func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
     ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
-    move1 = math.min(1000, ta.barssince((_isBullish ? ma > ma[1] : ma < ma[1]) or bar_index < _maLen))
+    move1 = bar_index >= _maLen ? math.min(1000, ta.barssince(_isBullish ? ma > ma[1] : ma < ma[1])) : 1000
     move2 = math.min(1000, ta.barssince(move1 == 0 and (_isBullish ? move1[1] > _minMove1Len : move1[1] < _minMove1Len)))
     ret = move2 < _maxMove2Len and (_isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
     ret
@@ -193,34 +193,22 @@ iHunterLong = input.bool(defval = true, title = 'long', group = 'hunter', inline
 iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, group = 'hunter', inline = 'hunter4', display = display.none)
 
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    // Prevent calculation until sufficient bars exist
-    if bar_index < _lookback + _gracePeriod
-        false
-    else
-        localLow = ta.lowest(low, _lookback)
-        localLowCandlesAgo = ta.barssince(low == localLow)
-        validCandlesAgo = nz(localLowCandlesAgo, _lookback)
-        localHigh = ta.highest(high, math.max(1, validCandlesAgo))
-        lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-        sig = func_crossover(localLow[_gracePeriod]) and 
-              localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and 
-              localLow[_gracePeriod] == localLow[2 * _gracePeriod]
-        sig
+    localLow = ta.lowest(low, _lookback)
+    localLowCandlesAgo = ta.barssince(low == localLow)
+    validCandlesAgo = nz(localLowCandlesAgo, _lookback)
+    localHigh = ta.highest(high, math.max(1, validCandlesAgo))
+    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+    sig = func_crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
+    sig
 
 func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    // Prevent calculation until sufficient bars exist
-    if bar_index < _lookback + _gracePeriod
-        false
-    else
-        localHigh = ta.highest(high, _lookback)
-        localHighCandlesAgo = ta.barssince(high == localHigh)
-        validCandlesAgo = nz(localHighCandlesAgo, _lookback)
-        localLow = ta.lowest(low, math.max(1, validCandlesAgo))
-        lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-        sig = func_crossunder(localHigh[_gracePeriod]) and 
-              localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and 
-              localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
-        sig
+    localHigh = ta.highest(high, _lookback)
+    localHighCandlesAgo = ta.barssince(high == localHigh)
+    validCandlesAgo = nz(localHighCandlesAgo, _lookback)
+    localLow = ta.lowest(low, math.max(1, validCandlesAgo))
+    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+    sig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
+    sig
 
 bullishHunterShortSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort
 bullishHunterMidSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
