@@ -21,16 +21,24 @@ gVolMa = ta.sma(volume, 30)
 iParabolicTop = input.bool(defval = true, title = 'Parabolic top', group = 'parabolic top')
 iMultipleGain = input.float(defval = 1.6, title = 'Multiple Gain Since Low', minval = 1.2, maxval = 4, step = 0.2, group = 'parabolic top')
 iMultipleInDays = input.int(defval = 100, title = 'Number Of Days To Multiple', minval = 5, maxval = 150, step = 5, group = 'parabolic top')
-iDownDaysAfterTop = input.int(defval = 2, title = 'Down Days After Top', minval = 1, maxval = 5, group = 'parabolic top')
-iVolDownDaysAfterTop = input.int(defval = 2, title = 'Down Days After Top (Volume)', minval = 1, maxval = 5, group = 'parabolic top')
+iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', group = 'parabolic top', inline = 'top1')
+iDownDaysAfterTop1 = input.int(defval = 2, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top1')
+iDownDays2 = input.bool(defval = true, title = 'Down Days After Top 2', group = 'parabolic top', inline = 'top2')
+iDownDaysAfterTop2 = input.int(defval = 3, title = '2nd', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top2')
+iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', group = 'parabolic top', inline = 'top3')
+iDownDaysAfterTop3 = input.int(defval = 4, title = '3rd', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3')
 
-func_sig_parabolic_top(_volMa, volumeDownDaysAfterTop, closeDownDaysAfterTop, prevPeriodGainLen, prevPeriodGainMultiple) =>
+func_sig_parabolic_top(_volMa, _downDaysAfterTop, _prevPeriodGainLen, _prevPeriodGainMultiple) =>
     barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
-    localLow = ta.lowest(close, prevPeriodGainLen)
-    ret = barsSinceVolDown > 15 and close > prevPeriodGainMultiple * localLow and volume < volume[volumeDownDaysAfterTop] and open < close[closeDownDaysAfterTop]
+    localLow = ta.lowest(close, _prevPeriodGainLen)
+    downDaysCond = volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
+    ret = barsSinceVolDown > 15 and close > _prevPeriodGainMultiple * localLow and downDaysCond
     ret
 
-topSig = func_sig_parabolic_top(gVolMa, iVolDownDaysAfterTop, iDownDaysAfterTop, iMultipleInDays, iMultipleGain)
+top1Sig = func_sig_parabolic_top(gVolMa, iDownDaysAfterTop1, iMultipleInDays, iMultipleGain) and iDownDays1
+top2Sig = func_sig_parabolic_top(gVolMa, iDownDaysAfterTop2, iMultipleInDays, iMultipleGain) and iDownDays2
+top3Sig = func_sig_parabolic_top(gVolMa, iDownDaysAfterTop3, iMultipleInDays, iMultipleGain) and iDownDays3
+topSig = top1Sig or top2Sig or top3Sig
 
 alertcondition(topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
