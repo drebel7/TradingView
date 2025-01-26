@@ -58,7 +58,6 @@ func_crossunder2(_source1, _source2) =>
 
 //junior sig
 iJunior = input.bool(defval = true, title = 'bullish', group = 'junior')
-iJuniorMaxAge = input.int(defval = 325, title = 'Max junior age', minval = 20, maxval = 500, group = 'junior', display = display.none)
 
 func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
@@ -71,7 +70,7 @@ func_sig_junior(_maxAge) =>
     ret = bar_index < _maxAge and func_crossover(vwap)
     ret
 
-juniorSig = func_sig_junior(iJuniorMaxAge)
+juniorSig = func_sig_junior(iLongMaLength)
 
 alertcondition(juniorSig, title = 'DRE junior sig', message = 'junior')
 plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior', textcolor = color.new(color.green, 0))
@@ -185,7 +184,7 @@ plotshape(zscoreBearishSig and iBearishZscore, title = 'bubble dn', location = l
 //hunter sig
 iBullishHunter = input.bool(defval = true, title = 'bullish', group = 'hunter', inline = 'hunter1')
 iBearishHunter = input.bool(defval = true, title = 'bearish', group = 'hunter', inline = 'hunter1')
-iHunterGracePeriod = input.int(defval = 50, title = 'grace period', minval = 20, maxval = 200, group = 'hunter', display = display.none)
+iHunterGracePeriod = input.int(defval = 40, title = 'grace period', minval = 20, maxval = 200, group = 'hunter', display = display.none)
 iHunterShort = input.bool(defval = true, title = 'short', group = 'hunter', inline = 'hunter2', display = display.none)
 iHunterLookbackShort = input.int(defval = 250, title = 'lookback', minval = 50, maxval = 1000, group = 'hunter', inline = 'hunter2', display = display.none)
 iHunterMid = input.bool(defval = true, title = 'mid', group = 'hunter', inline = 'hunter3', display = display.none)
