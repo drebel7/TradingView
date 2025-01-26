@@ -26,9 +26,9 @@ iParTopGainDays = input.int(defval = 100, title = 'Number Of Days To top', minva
 iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', group = 'parabolic top', inline = 'top1')
 iDownDaysAfterTop1 = input.int(defval = 2, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top1')
 iDownDays2 = input.bool(defval = true, title = 'Down Days After Top 2', group = 'parabolic top', inline = 'top2')
-iDownDaysAfterTop2 = input.int(defval = 3, title = '2nd', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top2')
+iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top2')
 iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', group = 'parabolic top', inline = 'top3')
-iDownDaysAfterTop3 = input.int(defval = 4, title = '3rd', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3')
+iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3')
 
 func_sig_parabolic_top(_volMa, _downDaysAfterTop, _prevPeriodGainLen, _atrMulti) =>
     barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
