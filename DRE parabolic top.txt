@@ -21,14 +21,14 @@ gVolMa = ta.sma(volume, 30)
 
 //parabolic top sig
 iParabolicTop = input.bool(defval = true, title = 'Parabolic top', group = 'parabolic top')
-iParTopAtrMulti = input.int(defval = 8, title = 'ATR Multiple Since Low', minval = 2, maxval = 30, group = 'parabolic top')
-iParTopGainDays = input.int(defval = 100, title = 'Number Of Days To top', minval = 5, maxval = 150, step = 5, group = 'parabolic top')
-iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', group = 'parabolic top', inline = 'top1')
-iDownDaysAfterTop1 = input.int(defval = 2, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top1')
-iDownDays2 = input.bool(defval = true, title = 'Down Days After Top 2', group = 'parabolic top', inline = 'top2')
-iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top2')
-iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', group = 'parabolic top', inline = 'top3')
-iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3')
+iParTopAtrMulti = input.int(defval = 8, title = 'ATR Multiple Since Low', minval = 2, maxval = 30, group = 'parabolic top', display = display.none)
+iParTopGainDays = input.int(defval = 100, title = 'Number Of Days To top', minval = 5, maxval = 150, step = 5, group = 'parabolic top', display = display.none)
+iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', group = 'parabolic top', inline = 'top1', display = display.none)
+iDownDaysAfterTop1 = input.int(defval = 2, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top1', display = display.none)
+iDownDays2 = input.bool(defval = true, title = 'Down Days After Top 2', group = 'parabolic top', inline = 'top2', display = display.none)
+iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top2', display = display.none)
+iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', group = 'parabolic top', inline = 'top3', display = display.none)
+iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3', display = display.none)
 
 func_sig_parabolic_top(_volMa, _downDaysAfterTop, _prevPeriodGainLen, _atrMulti) =>
     barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
@@ -58,7 +58,7 @@ func_crossunder(_source) =>
 
 //junior sig
 iJunior = input.bool(defval = true, title = 'bullish', group = 'junior')
-iJuniorMaxAge = input.int(defval = 325, title = 'Max junior age', minval = 20, maxval = 500, group = 'junior')
+iJuniorMaxAge = input.int(defval = 325, title = 'Max junior age', minval = 20, maxval = 500, group = 'junior', display = display.none)
 
 func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
@@ -80,7 +80,7 @@ plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar,
 //coil and strech sig
 iCoil = input.bool(defval = true, title = 'bullish', group = 'coil_n_strech', inline = 'coil1')
 iCoilStrech = input.bool(defval = false, title = 'bearish', group = 'coil_n_strech', inline = 'coil1')
-iCoilPercent = input.int(defval = 2, title = 'Percentile rank distance from MAs', minval = 1, maxval = 20, group = 'coil_n_strech')
+iCoilPercent = input.int(defval = 2, title = 'Percentile rank distance from MAs', minval = 1, maxval = 20, group = 'coil_n_strech', display = display.none)
 
 func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
     ma1 = ta.sma(close, _shortMaLen)
@@ -116,11 +116,11 @@ plotshape(strechBearishSig and iCoilStrech, title = 'strech', location = locatio
 //starter sig
 iBullishStarter = input.bool(defval = true, title = 'bullish', group = 'starter', inline = 'starter1')
 iBearishStarter = input.bool(defval = false, title = 'bearish', group = 'starter', inline = 'starter1')
-iBullishFireStarter = input.bool(defval = true, title = 'bullish fire starter', group = 'starter')
-iStarterMinDecliningDays = input.int(defval = 200, title = 'Number of SMA declining days', minval = 20, maxval = 1000, group = 'starter')
-iStarterMaxIncliningDays = input.int(defval = 200, title = 'Number of SMA inclining day', minval = 0, maxval = 300, group = 'starter')
-iStarterSmaSmoothing = input.int(defval = 3, title = 'SMA smoothing', minval = 0, maxval = 10, group = 'starter')
-iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA difference ATR multiple', minval = 0.5, maxval = 10, step = 0.5, group = 'starter')
+iBullishFireStarter = input.bool(defval = true, title = 'bullish fire starter', group = 'starter', display = display.none)
+iStarterMinDecliningDays = input.int(defval = 200, title = 'Number of SMA declining days', minval = 20, maxval = 1000, group = 'starter', display = display.none)
+iStarterMaxIncliningDays = input.int(defval = 200, title = 'Number of SMA inclining day', minval = 0, maxval = 300, group = 'starter', display = display.none)
+iStarterSmaSmoothing = input.int(defval = 3, title = 'SMA smoothing', minval = 0, maxval = 10, group = 'starter', display = display.none)
+iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA difference ATR multiple', minval = 0.5, maxval = 10, step = 0.5, group = 'starter', display = display.none)
 
 func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
     ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
@@ -152,7 +152,7 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title = 'bullish fire s
 
 //longer sig
 iLonger = input.bool(defval = true, title = 'bullish', group = 'longer', inline = 'longer1')
-iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, group = 'longer')
+iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, group = 'longer', display = display.none)
 
 func_sig_longer(_shortMa, _longMa, _offset, _atr) =>
     ret = _shortMa > _shortMa[1] and _longMa > _longMa[1] and _shortMa > _longMa and func_crossover(_shortMa + _offset * _atr)
@@ -167,8 +167,8 @@ plotshape(longerSig and iLonger, title = 'longer', location = location.belowbar,
 //bubble sig
 iBullishZscore = input.bool(defval = false, title = 'bullish', group = 'bubble', inline = 'bubble1')
 iBearishZscore = input.bool(defval = false, title = 'bearish', group = 'bubble', inline = 'bubble1')
-iZScore2ndMaLength = input.int(21, 'Z-Score 2nd MA Length (short)', minval = 3, maxval = 21, group = 'bubble')
-iZScore2ndMaMinScore = input.float(2.3, 'Min. zScore', minval = 1.0, maxval = 14, step = 0.1, group = 'bubble')
+iZScore2ndMaLength = input.int(21, 'Z-Score 2nd MA Length (short)', minval = 3, maxval = 21, group = 'bubble', display = display.none)
+iZScore2ndMaMinScore = input.float(2.3, 'Min. zScore', minval = 1.0, maxval = 14, step = 0.1, group = 'bubble', display = display.none)
 
 zscoreVolCond = ta.ema(drelib.z_score(volume, iMainMaLength), iZScore2ndMaLength) >= iZScore2ndMaMinScore
 zscoreEma = ta.ema(close, 2 * iZScore2ndMaLength / 3)
@@ -184,13 +184,13 @@ plotshape(zscoreBearishSig and iBearishZscore, title = 'bubble dn', location = l
 //hunter sig
 iBullishHunter = input.bool(defval = true, title = 'bullish', group = 'hunter', inline = 'hunter1')
 iBearishHunter = input.bool(defval = true, title = 'bearish', group = 'hunter', inline = 'hunter1')
-iHunterGracePeriod = input.int(defval = 50, title = 'grace period', minval = 20, maxval = 200, group = 'hunter')
-iHunterShort = input.bool(defval = true, title = 'short', group = 'hunter', inline = 'hunter2')
-iHunterLookbackShort = input.int(defval = 250, title = 'lookback', minval = 50, maxval = 1000, group = 'hunter', inline = 'hunter2')
-iHunterMid = input.bool(defval = true, title = 'mid', group = 'hunter', inline = 'hunter3')
-iHunterLookbackMid = input.int(defval = 700, title = 'lookback', minval = 100, maxval = 1500, group = 'hunter', inline = 'hunter3')
-iHunterLong = input.bool(defval = true, title = 'long', group = 'hunter', inline = 'hunter4')
-iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, group = 'hunter', inline = 'hunter4')
+iHunterGracePeriod = input.int(defval = 50, title = 'grace period', minval = 20, maxval = 200, group = 'hunter', display = display.none)
+iHunterShort = input.bool(defval = true, title = 'short', group = 'hunter', inline = 'hunter2', display = display.none)
+iHunterLookbackShort = input.int(defval = 250, title = 'lookback', minval = 50, maxval = 1000, group = 'hunter', inline = 'hunter2', display = display.none)
+iHunterMid = input.bool(defval = true, title = 'mid', group = 'hunter', inline = 'hunter3', display = display.none)
+iHunterLookbackMid = input.int(defval = 700, title = 'lookback', minval = 100, maxval = 1500, group = 'hunter', inline = 'hunter3', display = display.none)
+iHunterLong = input.bool(defval = true, title = 'long', group = 'hunter', inline = 'hunter4', display = display.none)
+iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, group = 'hunter', inline = 'hunter4', display = display.none)
 
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
     localLow = ta.lowest(low, _lookback)
@@ -226,8 +226,8 @@ plotshape(bearishHunterSig and iBearishHunter, title = 'bearish hunter', locatio
 
 //stepper sig
 iBullishStepper = input.bool(defval = true, title = 'bullish', group = 'stepper', inline = 'stepper1')
-iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'stepper')
-iStepperMaDist = input.float(defval = 1.5, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, group = 'stepper')
+iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'stepper', display = display.none)
+iStepperMaDist = input.float(defval = 1.5, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, group = 'stepper', display = display.none)
 
 func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
     localHigh = ta.highest(high, _lookback)
@@ -246,9 +246,9 @@ plotshape(bullishStepperSig and iBullishStepper, title = 'bullish stepper', loca
 //squeezer sig
 iBullishSqueezer = input.bool(defval = false, title = 'bullish', group = 'squeezer', inline = 'squeezer1')
 // iBearishSqueezer = input.bool(defval=false, title='bearish', group='squeezer', inline = 'squeezer1')
-iSqueezerLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'squeezer')
-iSqueezerMinInitVwapDist = input.float(defval = 11.0, title = 'min vwap init. dist.', minval = 2.0, maxval = 20.0, group = 'squeezer')
-iSqueezerMaxVwapDist = input.float(defval = 2.0, title = 'max vwap squeeze dist.', minval = 0.0, maxval = 10.0, group = 'squeezer')
+iSqueezerLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'squeezer', display = display.none)
+iSqueezerMinInitVwapDist = input.float(defval = 11.0, title = 'min vwap init. dist.', minval = 2.0, maxval = 20.0, group = 'squeezer', display = display.none)
+iSqueezerMaxVwapDist = input.float(defval = 2.0, title = 'max vwap squeeze dist.', minval = 0.0, maxval = 10.0, group = 'squeezer', display = display.none)
 
 func_sig_bull_squeezer(_atr, _lookback, _gracePeriod, _minInitVwapDist, _maxVwapDist) =>
     localHigh = ta.highest(high, _lookback)
@@ -272,9 +272,9 @@ plotshape(bullishSqueezerSig and iBullishSqueezer, title = 'bullish squeezer', l
 //obv sig
 iBullishObv = input.bool(defval = true, title = 'bullish', group = 'obv', inline = 'obv1')
 iBearishObv = input.bool(defval = true, title='bearish', group='obv', inline = 'obv1')
-iObvMaLength = input.int(defval=100, title='Ma len.', minval=10, maxval=250, group='obv')
-iObvSource = input.source(close, "Source", group="obv")
-iObvStdDevBand = input.float(defval=0.35, title='StdDev.', minval=0, maxval=10.0, step=0.05, group='obv')
+iObvMaLength = input.int(defval=100, title='Ma len.', minval=10, maxval=250, group='obv', display = display.none)
+iObvSource = input.source(close, 'Source', group='obv', display = display.none)
+iObvStdDevBand = input.float(defval=0.35, title='StdDev.', minval=0, maxval=10.0, step=0.05, group='obv', display = display.none)
 
 func_obv(_source) =>
     ta.cum(math.sign(ta.change(_source)) * volume)
