@@ -45,15 +45,15 @@ topSig = top1Sig or top2Sig or top3Sig
 alertcondition(topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
 
-func_crossover(_source1, _source2) =>
-    _source1[1] <= _source2[1] and _source1 > _source2
 func_crossover(_source) =>
     math.min(low, close[1]) <= _source and close > _source
+func_crossover2(_source1, _source2) =>
+    _source1[1] <= _source2[1] and _source1 > _source2
 
-func_crossunder(_source1, _source2) =>
-    _source1[1] >= _source2[1] and _source1 < _source2
 func_crossunder(_source) =>
     math.max(high, close[1]) >= _source and close < _source
+func_crossunder2(_source1, _source2) =>
+    _source1[1] >= _source2[1] and _source1 < _source2
 
 
 //junior sig
@@ -193,20 +193,34 @@ iHunterLong = input.bool(defval = true, title = 'long', group = 'hunter', inline
 iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, group = 'hunter', inline = 'hunter4', display = display.none)
 
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    localLow = ta.lowest(low, _lookback)
-    localLowCandlesAgo = ta.barssince(low == localLow)
-    localHigh = ta.highest(high, math.max(1, nz(localLowCandlesAgo)))
-    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    sig = func_crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
-    sig
+    // Prevent calculation until sufficient bars exist
+    if bar_index < _lookback + _gracePeriod
+        false
+    else
+        localLow = ta.lowest(low, _lookback)
+        localLowCandlesAgo = ta.barssince(low == localLow)
+        validCandlesAgo = nz(localLowCandlesAgo, _lookback)
+        localHigh = ta.highest(high, math.max(1, validCandlesAgo))
+        lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+        sig = func_crossover(localLow[_gracePeriod]) and 
+              localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and 
+              localLow[_gracePeriod] == localLow[2 * _gracePeriod]
+        sig
 
 func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    localHigh = ta.highest(high, _lookback)
-    localHighCandlesAgo = ta.barssince(high == localHigh)
-    localLow = ta.lowest(low, math.max(1, nz(localHighCandlesAgo)))
-    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    sig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
-    sig
+    // Prevent calculation until sufficient bars exist
+    if bar_index < _lookback + _gracePeriod
+        false
+    else
+        localHigh = ta.highest(high, _lookback)
+        localHighCandlesAgo = ta.barssince(high == localHigh)
+        validCandlesAgo = nz(localHighCandlesAgo, _lookback)
+        localLow = ta.lowest(low, math.max(1, validCandlesAgo))
+        lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+        sig = func_crossunder(localHigh[_gracePeriod]) and 
+              localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and 
+              localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
+        sig
 
 bullishHunterShortSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort
 bullishHunterMidSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
@@ -287,8 +301,8 @@ if barstate.islast and cumVol == 0
 obv = func_obv(iObvSource)
 obcMa = ta.sma(obv, iObvMaLength)
 obvStdDev = ta.stdev(obv, iObvMaLength)
-bullishObvCross = func_crossover(obv, obcMa + iObvStdDevBand * obvStdDev)
-bearishObvCross = func_crossunder(obv, obcMa - iObvStdDevBand * obvStdDev)
+bullishObvCross = func_crossover2(obv, obcMa + iObvStdDevBand * obvStdDev)
+bearishObvCross = func_crossunder2(obv, obcMa - iObvStdDevBand * obvStdDev)
 bullishObvCrossSince = ta.barssince(bullishObvCross)
 bearishObvCrossSince = ta.barssince(bearishObvCross)
 bullishObvSig = bullishObvCross and bullishObvCrossSince[1] > bearishObvCrossSince[1]
