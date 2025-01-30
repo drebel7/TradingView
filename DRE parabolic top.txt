@@ -302,8 +302,8 @@ plotshape(bullishObvSig and iBullishObv, title = 'bullish obv', location = locat
 plotshape(bearishObvSig and iBearishObv, title='bearish obv', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='obv', textcolor=color.new(color.red, 0))
 
 
-bullishSig = juniorSig or bullishStarterSig or coilBullishSig or longerSig or zscoreBullishSig or bullishHunterSig or bullishStepperSig or bullishObvSig
-bearishSig = topSig or bearishStarterSig or strechBearishSig or zscoreBearishSig or bearishHunterSig or bearishObvSig
+bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishHunterSig or bullishStepperSig or bullishObvSig
+bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig
 alertcondition(bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
 alertcondition(bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
 
