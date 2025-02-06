@@ -210,7 +210,8 @@ plotshape(bearishHunterSig and iBearishHunter, title = 'bearish hunter', locatio
 
 
 //stepper sig
-iBullishStepper = input.bool(defval = true, title = 'bullish', group = 'stepper', inline = 'stepper1')
+iBullishStepper = input.bool(defval = true, title = 'bullish', group = 'stepper')
+iBullishLongerStepper = input.bool(defval = true, title = 'bullish longer stepper', group = 'stepper')
 iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'stepper', display = display.none)
 iStepperMaDist = input.float(defval = 1.5, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, group = 'stepper', display = display.none)
 iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, group = 'stepper', display = display.none)
@@ -228,8 +229,8 @@ bullishLongerStepperSig = ta.barssince(longerSig) <= iLongerStepperDist and bull
 
 alertcondition(bullishStepperSig, title = 'DRE Bullish stepper', message = 'stepper')
 alertcondition(bullishLongerStepperSig, title = 'DRE Bullish longer-stepper', message = 'l.stepper')
-plotshape(bullishStepperSig and iBullishStepper, title = 'bullish stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'stepper', textcolor = color.new(color.green, 0))
-plotshape(bullishLongerStepperSig and iBullishStepper, title = 'bullish l.stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'l.stepper', textcolor = color.new(color.green, 0))
+plotshape(bullishStepperSig and not bullishLongerStepperSig and iBullishStepper, title = 'bullish stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'stepper', textcolor = color.new(color.green, 0))
+plotshape(bullishLongerStepperSig and iBullishLongerStepper, title = 'bullish l.stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'l.stepper', textcolor = color.new(color.green, 0))
 
 
 //squeezer sig
