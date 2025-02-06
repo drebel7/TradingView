@@ -4,7 +4,7 @@
 //@version=6
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
-import drebel/DRELib/1 as drelib
+import drebel/DRELib/2 as drelib
 
 //common inputs
 iMainMaLength = input.int(defval = 200, title = 'Main MA length', minval = 50, maxval = 500, group = 'Common parameters')
@@ -30,30 +30,13 @@ iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, g
 iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', group = 'parabolic top', inline = 'top3', display = display.none)
 iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3', display = display.none)
 
-func_sig_parabolic_top(_volMa, _downDaysAfterTop, _prevPeriodGainLen, _atrMulti) =>
-    barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
-    localLow = ta.lowest(close, _prevPeriodGainLen)
-    downDaysCond = bar_index > _downDaysAfterTop and volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
-    ret = barsSinceVolDown > 15 and close > localLow + _atrMulti * mainAtr and downDaysCond
-    ret
-
-top1Sig = func_sig_parabolic_top(gVolMa, iDownDaysAfterTop1, iParTopGainDays, iParTopAtrMulti) and iDownDays1
-top2Sig = func_sig_parabolic_top(gVolMa, iDownDaysAfterTop2, iParTopGainDays, iParTopAtrMulti) and iDownDays2
-top3Sig = func_sig_parabolic_top(gVolMa, iDownDaysAfterTop3, iParTopGainDays, iParTopAtrMulti) and iDownDays3
+top1Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop1, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays1
+top2Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop2, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays2
+top3Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop3, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays3
 topSig = top1Sig or top2Sig or top3Sig
 
 alertcondition(topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
-
-func_crossover(_source) =>
-    math.min(low, close[1]) <= _source and close > _source
-func_crossover2(_source1, _source2) =>
-    _source1[1] <= _source2[1] and _source1 > _source2
-
-func_crossunder(_source) =>
-    math.max(high, close[1]) >= _source and close < _source
-func_crossunder2(_source1, _source2) =>
-    _source1[1] >= _source2[1] and _source1 < _source2
 
 
 //junior sig
@@ -67,7 +50,7 @@ func_init_vwap_excl_init_higher_volume() =>
 
 func_sig_junior(_maxAge) =>
     vwap = func_init_vwap_excl_init_higher_volume()
-    ret = bar_index < _maxAge and func_crossover(vwap)
+    ret = bar_index < _maxAge and drelib.crossover(vwap)
     ret
 
 juniorSig = func_sig_junior(iLongMaLength)
@@ -95,7 +78,7 @@ func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
 func_sig_coil(_dist, _longMaLen, _mediumMaLen, _distPercentRank) =>
     percentRankLen = bar_index < 1 ? 1 : math.min(bar_index, 3 * _longMaLen)
     mediumMa = ta.sma(close, _mediumMaLen)
-    ret = ta.percentrank(_dist, percentRankLen) < _distPercentRank and func_crossover(mediumMa)
+    ret = ta.percentrank(_dist, percentRankLen) < _distPercentRank and drelib.crossover(mediumMa)
     ret
 
 func_sig_strech(_dist, _longMaLen, _distPercentRank) =>
@@ -126,7 +109,7 @@ func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
     // Only calculate move1 after MA has enough data
     move1 = bar_index >= _maLen ? math.min(1000, ta.barssince(_isBullish ? ma > ma[1] : ma < ma[1])) : 1000
     move2 = math.min(1000, ta.barssince(move1 == 0 and (_isBullish ? move1[1] > _minMove1Len : move1[1] < _minMove1Len)))
-    ret = move2 < _maxMove2Len and (_isBullish ? func_crossover(ma) and ma >= ma[move2] : func_crossunder(ma) and ma <= ma[move2])
+    ret = move2 < _maxMove2Len and (_isBullish ? drelib.crossover(ma) and ma >= ma[move2] : drelib.crossunder(ma) and ma <= ma[move2])
     ret
 
 func_sig_f_starter(_maLen, _minMove1Len, _atrMulti, _smoothing) =>
@@ -135,7 +118,7 @@ func_sig_f_starter(_maLen, _minMove1Len, _atrMulti, _smoothing) =>
     move1 = ta.barssince(sma > sma[1])
     maDiffLen = math.ceil(0.4 * (move1 > _minMove1Len ? move1 : _minMove1Len))
     highestMaDiff = ta.highest(sma - vwma, maDiffLen) / mainAtr
-    ret = move1 > _minMove1Len and (func_crossover(sma) or func_crossover(vwma)) and highestMaDiff > _atrMulti and highestMaDiff > highestMaDiff[maDiffLen]
+    ret = move1 > _minMove1Len and (drelib.crossover(sma) or drelib.crossover(vwma)) and highestMaDiff > _atrMulti and highestMaDiff > highestMaDiff[maDiffLen]
     ret
 
 bullishStarterSig = func_sig_starter(true, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
@@ -155,7 +138,7 @@ iLonger = input.bool(defval = true, title = 'bullish', group = 'longer', inline 
 iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, group = 'longer', display = display.none)
 
 func_sig_longer(_shortMa, _longMa, _offset, _atr) =>
-    ret = _shortMa > _shortMa[1] and _longMa > _longMa[1] and _shortMa > _longMa and func_crossover(_shortMa + _offset * _atr)
+    ret = _shortMa > _shortMa[1] and _longMa > _longMa[1] and _shortMa > _longMa and drelib.crossover(_shortMa + _offset * _atr)
     ret
 
 longerSig = func_sig_longer(mainMa, longMa, iLongerOffset, mainAtr)
@@ -198,7 +181,7 @@ func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
     validCandlesAgo = nz(localLowCandlesAgo, _lookback)
     localHigh = ta.highest(high, math.max(1, validCandlesAgo))
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    sig = func_crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
+    sig = drelib.crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
     sig
 
 func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
@@ -207,7 +190,7 @@ func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
     validCandlesAgo = nz(localHighCandlesAgo, _lookback)
     localLow = ta.lowest(low, math.max(1, validCandlesAgo))
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    sig = func_crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
+    sig = drelib.crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
     sig
 
 bullishHunterShortSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort
@@ -230,19 +213,23 @@ plotshape(bearishHunterSig and iBearishHunter, title = 'bearish hunter', locatio
 iBullishStepper = input.bool(defval = true, title = 'bullish', group = 'stepper', inline = 'stepper1')
 iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'stepper', display = display.none)
 iStepperMaDist = input.float(defval = 1.5, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, group = 'stepper', display = display.none)
+iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, group = 'stepper', display = display.none)
 
 func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
     localHigh = ta.highest(high, _lookback)
     localHighCandlesAgo = ta.barssince(high == localHigh)
     localHighVwap = ta.vwap(ohlc4, high == localHigh)
     maDist = localHighVwap - _mainMa
-    sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(_lookback) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and func_crossover(localHighVwap)
+    sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(_lookback) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and drelib.crossover(localHighVwap)
     sig
 
 bullishStepperSig = func_sig_bull_stepper(mainAtr, mainMa, iStepperLookback, iStepperMaDist)
+bullishLongerStepperSig = ta.barssince(longerSig) <= iLongerStepperDist and bullishStepperSig
 
 alertcondition(bullishStepperSig, title = 'DRE Bullish stepper', message = 'stepper')
+alertcondition(bullishLongerStepperSig, title = 'DRE Bullish longer-stepper', message = 'l.stepper')
 plotshape(bullishStepperSig and iBullishStepper, title = 'bullish stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'stepper', textcolor = color.new(color.green, 0))
+plotshape(bullishLongerStepperSig and iBullishStepper, title = 'bullish l.stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'l.stepper', textcolor = color.new(color.green, 0))
 
 
 //squeezer sig
@@ -260,7 +247,7 @@ func_sig_bull_squeezer(_atr, _lookback, _gracePeriod, _minInitVwapDist, _maxVwap
     localHighVwap = ta.vwap(ohlc4, high == localHigh)
     localLowVwap = ta.vwap(ohlc4, low == localLow)
     maDist = localHighVwap - localLowVwap
-    sig = localLowCandlesAgo > 50 and localHighVwap[localLowCandlesAgo] > localLow[localLowCandlesAgo] + _minInitVwapDist * _atr and maDist > 0 and maDist < _maxVwapDist * _atr and func_crossover(localHighVwap) and localHigh == localHigh[_gracePeriod]
+    sig = localLowCandlesAgo > 50 and localHighVwap[localLowCandlesAgo] > localLow[localLowCandlesAgo] + _minInitVwapDist * _atr and maDist > 0 and maDist < _maxVwapDist * _atr and drelib.crossover(localHighVwap) and localHigh == localHigh[_gracePeriod]
     sig
 
 bullishSqueezerSig = func_sig_bull_squeezer(mainAtr, iStepperLookback, 50, iSqueezerMinInitVwapDist, iSqueezerMaxVwapDist)
@@ -289,8 +276,8 @@ if barstate.islast and cumVol == 0
 obv = func_obv(iObvSource)
 obcMa = ta.sma(obv, iObvMaLength)
 obvStdDev = ta.stdev(obv, iObvMaLength)
-bullishObvCross = func_crossover2(obv, obcMa + iObvStdDevBand * obvStdDev)
-bearishObvCross = func_crossunder2(obv, obcMa - iObvStdDevBand * obvStdDev)
+bullishObvCross = drelib.crossover2(obv, obcMa + iObvStdDevBand * obvStdDev)
+bearishObvCross = drelib.crossunder2(obv, obcMa - iObvStdDevBand * obvStdDev)
 bullishObvCrossSince = ta.barssince(bullishObvCross)
 bearishObvCrossSince = ta.barssince(bearishObvCross)
 bullishObvSig = bullishObvCross and bullishObvCrossSince[1] > bearishObvCrossSince[1]
@@ -302,7 +289,7 @@ plotshape(bullishObvSig and iBullishObv, title = 'bullish obv', location = locat
 plotshape(bearishObvSig and iBearishObv, title='bearish obv', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='obv', textcolor=color.new(color.red, 0))
 
 
-bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishHunterSig or bullishStepperSig or bullishObvSig
+bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishHunterSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig
 alertcondition(bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
 alertcondition(bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')

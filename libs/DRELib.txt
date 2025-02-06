@@ -68,3 +68,24 @@ export ma_distance(int _shortMaLen, int _mediumMaLen, int _longMaLen) =>
 
 export price_pct(series float _src) =>
     100 * (_src - close) / close
+
+export crossover(series float _source) =>
+    math.min(low, close[1]) <= _source and close > _source
+
+export crossover2(series float _source1, series float _source2) =>
+    _source1[1] <= _source2[1] and _source1 > _source2
+
+export crossunder(series float _source) =>
+    math.max(high, close[1]) >= _source and close < _source
+
+export crossunder2(series float _source1, series float _source2) =>
+    _source1[1] >= _source2[1] and _source1 < _source2
+
+// Signals
+export sig_parabolic_top(series float _volMa, int _downDaysAfterTop, int _prevPeriodGainLen, int _atrMulti, series float _atr) =>
+    barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
+    localLow = ta.lowest(close, _prevPeriodGainLen)
+    downDaysCond = bar_index > _downDaysAfterTop and volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
+    ret = barsSinceVolDown > 15 and close > localLow + _atrMulti * _atr and downDaysCond
+    ret
+
