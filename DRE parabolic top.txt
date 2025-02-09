@@ -298,8 +298,10 @@ iBullishRmv = input.bool(defval = true, title = 'bullish', group = 'rmv', inline
 iBearishRmv = input.bool(defval = true, title = 'bearish', group = 'rmv', inline = 'rmv1')
 iBullishRmvPb = input.bool(defval = false, title = 'bullish-pb', group = 'rmv', inline = 'rmv2')
 iBearishRmvPb = input.bool(defval = false, title = 'bearish-pb', group = 'rmv', inline = 'rmv2')
-iBullishRmvEarningsPb = input.bool(defval = true, title = 'bullish-earnings-pb', group = 'rmv', inline = 'rmv3')
-iBearishRmvEarningsPb = input.bool(defval = true, title = 'bearish-earnings-pb', group = 'rmv', inline = 'rmv3')
+iBullishRmvEarnings = input.bool(defval = true, title = 'bullish-earnings', group = 'rmv', inline = 'rmv3')
+iBearishRmvEarnings = input.bool(defval = true, title = 'bearish-earnings', group = 'rmv', inline = 'rmv3')
+iBullishRmvEarningsPb = input.bool(defval = true, title = 'bullish-earnings-pb', group = 'rmv', inline = 'rmv4')
+iBearishRmvEarningsPb = input.bool(defval = true, title = 'bearish-earnings-pb', group = 'rmv', inline = 'rmv4')
 iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', group = 'rmv', display = display.none)
 iRmvShortLookback1 = input.int(13, minval = 1, title = 'Short-term ATR Lookback 1', group = 'rmv', display = display.none)
 iRmvShortLookback2 = input.int(8, minval = 1, title = 'Short-term ATR Lookback 2', group = 'rmv', display = display.none)
@@ -322,23 +324,29 @@ earningsSig = earnings != earnings[1]
 bullishRmvSig = lowRmv[1] and not lowRmv and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > gVShortMa2 and close > shortMa
 bullishRmvPbAgo = ta.barssince(bullishRmvSig)
 bullishRmvPbSig = not bullishRmvSig and bullishRmvPbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmvPbAgo])
-bullishRmvEarningsPbSig = bullishRmvPbSig and earningsSig[bullishRmvPbAgo]
+bullishRmvEarningsSig = bullishRmvSig and (earningsSig or earningsSig[1])
+bullishRmvEarningsPbSig = bullishRmvPbSig and (earningsSig[bullishRmvPbAgo] or earningsSig[bullishRmvPbAgo + 1])
 bearishRmvSig = lowRmv[1] and not lowRmv and close < close[2] and volume > gVolMa and close < gVShortMa1 and close < gVShortMa2 and close < shortMa
 bearishRmvPbAgo = ta.barssince(bearishRmvSig)
 bearishRmvPbSig = not bearishRmvSig and bearishRmvPbAgo <= iRmvPbLen and drelib.crossunder(high[bearishRmvPbAgo])
-bearishRmvEarningsPbSig = bearishRmvPbSig and earningsSig[bearishRmvPbAgo]
+bearishRmvEarningsSig = bearishRmvSig and (earningsSig or earningsSig[1])
+bearishRmvEarningsPbSig = bearishRmvPbSig and (earningsSig[bearishRmvPbAgo] or earningsSig[bearishRmvPbAgo + 1])
 
 alertcondition(bullishRmvSig, title = 'DRE Bullish rmv', message = 'rmv')
 alertcondition(bullishRmvPbSig, title = 'DRE Bullish rmv-pb', message = 'rmv-pb')
 alertcondition(bearishRmvSig, title = 'DRE Bearish rmv', message = 'rmv')
 alertcondition(bearishRmvPbSig, title = 'DRE Bearish rmv-pb', message = 'rmv-pb')
+alertcondition(bullishRmvEarningsSig, title = 'DRE Bullish earnings rmv', message = 'rmv-e')
+alertcondition(bearishRmvEarningsSig, title = 'DRE Bearish earnings rmv', message = 'rmv-e')
 alertcondition(bullishRmvEarningsPbSig, title = 'DRE Bullish earnings rmv-pb', message = 'rmv-e-pb')
 alertcondition(bearishRmvEarningsPbSig, title = 'DRE Bearish earnings rmv-pb', message = 'rmv-e-pb')
 plotshape(bullishRmvSig and iBullishRmv, title = 'bullish rmv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv', textcolor = color.new(color.green, 0))
 plotshape(bullishRmvPbSig and iBullishRmvPb, title = 'bullish rmv-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-pb', textcolor = color.new(color.green, 0))
-plotshape(bullishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bullish rmv-e-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e-pb', textcolor = color.new(color.green, 0))
+plotshape(bullishRmvEarningsSig and iBullishRmvEarnings, title = 'bullish rmv-e', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e', textcolor = color.new(color.green, 0))
+plotshape(bullishRmvEarningsPbSig and iBullishRmvEarningsPb, title = 'bullish rmv-e-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e-pb', textcolor = color.new(color.green, 0))
 plotshape(bearishRmvSig and iBearishRmv, title = 'bearish rmv', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv', textcolor = color.new(color.red, 0))
 plotshape(bearishRmvPbSig and iBearishRmvPb, title = 'bearish rmv-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-pb', textcolor = color.new(color.red, 0))
+plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e', textcolor = color.new(color.red, 0))
 plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
 
 
