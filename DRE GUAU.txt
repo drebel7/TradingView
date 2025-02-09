@@ -7,9 +7,10 @@ indicator(title = 'DRE Gap Up and Up', shorttitle = 'GUAU', overlay = true, time
 iMinGapPctSize = input.float(defval = 0.2, title = 'Min. Gap % size', step = 0.2)
 iAtrLen = input.int(defval = 21, title = 'ATR length')
 iMinAtr = input.float(defval = 6.0, title = 'Min. ATR', step = 0.5)
+iLowerTimeframe = input.timeframe(defval = '5', title = 'Lower Timeframe', options=['3', '5', '10', '15', '30', '45', '60'])
 iMinAvgTurnover = input.float(defval = 20, title = 'Min. avg turnover in millions', step = 5)
 
-[lowTfOpen, lowTfHigh, lowTfLow, lowTfClose] = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = '5', expression = [open, high, low, close])
+[lowTfOpen, lowTfHigh, lowTfLow, lowTfClose] = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = iLowerTimeframe, expression = [open, high, low, close])
 firstLowTfOpen = array.size(lowTfOpen) > 0 ? array.get(lowTfOpen, 0) : na
 firstLowTfHigh = array.size(lowTfHigh) > 0 ? array.get(lowTfHigh, 0) : na
 firstLowTfLow = array.size(lowTfLow) > 0 ? array.get(lowTfLow, 0) : na
