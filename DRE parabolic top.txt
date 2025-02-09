@@ -350,10 +350,13 @@ plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e'
 plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
 
 
-
+bullishEarningsSig = bullishRmvEarningsSig or bullishRmvEarningsPbSig
+bearishEarningsSig = bearishRmvEarningsSig or bearishRmvEarningsPbSig
 bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishHunterSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSig or bullishRmvPbSig
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSig or bearishRmvPbSig
 alertcondition(bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
+alertcondition(bullishEarningsSig, title = 'DRE Bullish earnings sig', message = 'bullish earnings')
 alertcondition(bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
+alertcondition(bearishEarningsSig, title = 'DRE Bearish earnings sig', message = 'bearish earnings')
 
 alertcondition(bullishSig or bearishSig, title = 'DRE ALL pattern sig', message = 'all patterns')
