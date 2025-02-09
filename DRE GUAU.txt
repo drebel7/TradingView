@@ -9,6 +9,7 @@ iAtrLen = input.int(defval = 21, title = 'ATR length')
 iMinAtr = input.float(defval = 6.0, title = 'Min. ATR', step = 0.5)
 iLowerTimeframe = input.timeframe(defval = '5', title = 'Lower Timeframe', options=['3', '5', '10', '15', '30', '45', '60'])
 iMinAvgTurnover = input.float(defval = 20, title = 'Min. avg turnover in millions', step = 5)
+iMovingAveragesAligned = input.bool(defval = true, title = 'Moving averages aligned')
 
 [lowTfOpen, lowTfHigh, lowTfLow, lowTfClose] = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = iLowerTimeframe, expression = [open, high, low, close])
 firstLowTfOpen = array.size(lowTfOpen) > 0 ? array.get(lowTfOpen, 0) : na
@@ -16,12 +17,19 @@ firstLowTfHigh = array.size(lowTfHigh) > 0 ? array.get(lowTfHigh, 0) : na
 firstLowTfLow = array.size(lowTfLow) > 0 ? array.get(lowTfLow, 0) : na
 firstLowTfClose = array.size(lowTfClose) > 0 ? array.get(lowTfClose, 0) : na
 
+sma50 = ta.sma(close, 50)
+sma100 = ta.sma(close, 100)
+sma150 = ta.sma(close, 150)
+sma200 = ta.sma(close, 200)
+
 marubozuLowTfCandeCond = firstLowTfClose > firstLowTfOpen and (firstLowTfClose - firstLowTfOpen) / (firstLowTfHigh - firstLowTfLow) > 0.85
 gapCond = close[1] > open[1] and open > (close[1] + iMinGapPctSize / 100 * close[1]) and open > high[1]
 atrCond = 100 * ta.atr(iAtrLen) / close > iMinAtr
 turnoverCond = ta.sma(close * volume, 30) / 1000000 > iMinAvgTurnover
+movingAveragesAligned = close >= sma50 and sma50 >= sma100 and sma100 >= sma150 and sma150 >= sma200
+movingAveragesCond = not iMovingAveragesAligned or iMovingAveragesAligned and movingAveragesAligned
 
-guauSig = atrCond and gapCond and marubozuLowTfCandeCond and turnoverCond
+guauSig = atrCond and gapCond and marubozuLowTfCandeCond and turnoverCond and movingAveragesCond
 
 alertcondition(guauSig, title = 'DRE guau sig', message = 'guau')
 plotshape(guauSig, title = 'Gap Up And Up', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GUAU', textcolor = color.new(color.green, 0))
