@@ -1,0 +1,26 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator(title = 'DRE Gap Up and Up', shorttitle = 'GUAU', overlay = true, timeframe = '1D')
+
+iMinGapPctSize = input.float(defval = 0.2, title = 'Min. Gap % size', step = 0.2)
+iAtrLen = input.int(defval = 21, title = 'ATR length')
+iMinAtr = input.float(defval = 6.0, title = 'Min. ATR', step = 0.5)
+iMinAvgTurnover = input.float(defval = 20, title = 'Min. avg turnover in millions', step = 5)
+
+[lowTfOpen, lowTfHigh, lowTfLow, lowTfClose] = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = '5', expression = [open, high, low, close])
+firstLowTfOpen = array.size(lowTfOpen) > 0 ? array.get(lowTfOpen, 0) : na
+firstLowTfHigh = array.size(lowTfHigh) > 0 ? array.get(lowTfHigh, 0) : na
+firstLowTfLow = array.size(lowTfLow) > 0 ? array.get(lowTfLow, 0) : na
+firstLowTfClose = array.size(lowTfClose) > 0 ? array.get(lowTfClose, 0) : na
+
+marubozuLowTfCandeCond = firstLowTfClose > firstLowTfOpen and (firstLowTfClose - firstLowTfOpen) / (firstLowTfHigh - firstLowTfLow) > 0.85
+gapCond = close[1] > open[1] and open > (close[1] + iMinGapPctSize / 100 * close[1]) and open > high[1]
+atrCond = 100 * ta.atr(iAtrLen) / close > iMinAtr
+turnoverCond = ta.sma(close * volume, 30) / 1000000 > iMinAvgTurnover
+
+guauSig = atrCond and gapCond and marubozuLowTfCandeCond and turnoverCond
+
+alertcondition(guauSig, title = 'DRE guau sig', message = 'guau')
+plotshape(guauSig, title = 'Gap Up And Up', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GUAU', textcolor = color.new(color.green, 0))
