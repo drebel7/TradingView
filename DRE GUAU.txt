@@ -16,10 +16,10 @@ func_obv(_source) =>
     ta.cum(math.sign(ta.change(_source)) * volume)
 
 [lowTfOpen, lowTfHigh, lowTfLow, lowTfClose] = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = iLowerTimeframe, expression = [open, high, low, close])
-firstLowTfOpen = array.size(lowTfOpen) > 0 ? array.get(lowTfOpen, 0) : na
-firstLowTfHigh = array.size(lowTfHigh) > 0 ? array.get(lowTfHigh, 0) : na
-firstLowTfLow = array.size(lowTfLow) > 0 ? array.get(lowTfLow, 0) : na
-firstLowTfClose = array.size(lowTfClose) > 0 ? array.get(lowTfClose, 0) : na
+firstLowTfOpen = array.size(lowTfOpen) > 1 ? array.get(lowTfOpen, 0) : na   //check if array.size > 1 because we need a closed 1st candle
+firstLowTfHigh = array.size(lowTfHigh) > 1 ? array.get(lowTfHigh, 0) : na
+firstLowTfLow = array.size(lowTfLow) > 1 ? array.get(lowTfLow, 0) : na
+firstLowTfClose = array.size(lowTfClose) > 1 ? array.get(lowTfClose, 0) : na
 
 sma50 = ta.sma(close, 50)
 sma100 = ta.sma(close, 100)
