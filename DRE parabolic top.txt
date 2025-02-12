@@ -67,7 +67,7 @@ plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar,
 
 
 //coil and strech sig
-iCoil = input.bool(defval = true, title = 'bullish', group = 'coil_n_strech', inline = 'coil1')
+iCoil = input.bool(defval = false, title = 'bullish', group = 'coil_n_strech', inline = 'coil1')
 iCoilStrech = input.bool(defval = false, title = 'bearish', group = 'coil_n_strech', inline = 'coil1')
 iCoilPercent = input.int(defval = 2, title = 'Percentile rank distance from MAs', minval = 1, maxval = 20, group = 'coil_n_strech', display = display.none)
 
@@ -240,32 +240,6 @@ plotshape(bullishStepperSig and not bullishLongerStepperSig and iBullishStepper,
 plotshape(bullishLongerStepperSig and iBullishLongerStepper, title = 'bullish l.stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'l.stepper', textcolor = color.new(color.green, 0))
 
 
-//squeezer sig
-iBullishSqueezer = input.bool(defval = false, title = 'bullish', group = 'squeezer', inline = 'squeezer1')
-// iBearishSqueezer = input.bool(defval=false, title='bearish', group='squeezer', inline = 'squeezer1')
-iSqueezerLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'squeezer', display = display.none)
-iSqueezerMinInitVwapDist = input.float(defval = 11.0, title = 'min vwap init. dist.', minval = 2.0, maxval = 20.0, group = 'squeezer', display = display.none)
-iSqueezerMaxVwapDist = input.float(defval = 2.0, title = 'max vwap squeeze dist.', minval = 0.0, maxval = 10.0, group = 'squeezer', display = display.none)
-
-func_sig_bull_squeezer(_atr, _lookback, _gracePeriod, _minInitVwapDist, _maxVwapDist) =>
-    localHigh = ta.highest(high, _lookback)
-    localHighCandlesAgo = ta.barssince(high == localHigh)
-    localLow = ta.lowest(low, math.max(1, nz(localHighCandlesAgo)))
-    localLowCandlesAgo = ta.barssince(low == localLow)
-    localHighVwap = ta.vwap(ohlc4, high == localHigh)
-    localLowVwap = ta.vwap(ohlc4, low == localLow)
-    maDist = localHighVwap - localLowVwap
-    sig = localLowCandlesAgo > 50 and localHighVwap[localLowCandlesAgo] > localLow[localLowCandlesAgo] + _minInitVwapDist * _atr and maDist > 0 and maDist < _maxVwapDist * _atr and drelib.crossover(localHighVwap) and localHigh == localHigh[_gracePeriod]
-    sig
-
-bullishSqueezerSig = func_sig_bull_squeezer(mainAtr, iStepperLookback, 50, iSqueezerMinInitVwapDist, iSqueezerMaxVwapDist)
-
-alertcondition(gTurnoverCond and bullishSqueezerSig, title = 'DRE Bullish squeezer', message = 'stepper')
-// alertcondition(gTurnoverCond and bearishHunterSig, title='DRE Bearish squeezer', message='squeezer')
-plotshape(bullishSqueezerSig and iBullishSqueezer, title = 'bullish squeezer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'squeezer', textcolor = color.new(color.green, 0))
-// plotshape(bearishHunterSig and iBearishSqueezer, title='bearish squeezer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='squeezer', textcolor=color.new(color.red, 0))
-
-
 //obv sig
 iBullishObv = input.bool(defval = true, title = 'bullish', group = 'obv', inline = 'obv1')
 iBearishObv = input.bool(defval = true, title = 'bearish', group = 'obv', inline = 'obv1')
@@ -355,8 +329,8 @@ plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rm
 
 bullishEarningsSig = bullishRmvEarningsSig or bullishRmvEarningsPbSig
 bearishEarningsSig = bearishRmvEarningsSig or bearishRmvEarningsPbSig
-bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishHunterSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSig or bullishRmvPbSig
-bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSig or bearishRmvPbSig
+bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishEarningsSig
+bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishEarningsSig
 alertcondition(gTurnoverCond and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
 alertcondition(gTurnoverCond and bullishEarningsSig, title = 'DRE Bullish earnings sig', message = 'bullish earnings')
 alertcondition(gTurnoverCond and bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
