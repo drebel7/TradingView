@@ -20,6 +20,10 @@ firstLowTfOpen = array.size(lowTfOpen) > 1 ? array.get(lowTfOpen, 0) : na   //ch
 firstLowTfHigh = array.size(lowTfHigh) > 1 ? array.get(lowTfHigh, 0) : na
 firstLowTfLow = array.size(lowTfLow) > 1 ? array.get(lowTfLow, 0) : na
 firstLowTfClose = array.size(lowTfClose) > 1 ? array.get(lowTfClose, 0) : na
+secondLowTfOpen = array.size(lowTfOpen) > 2 ? array.get(lowTfOpen, 1) : na   //check if array.size > 2 because we need a closed 2nd candle
+secondLowTfHigh = array.size(lowTfHigh) > 2 ? array.get(lowTfHigh, 1) : na
+secondLowTfLow = array.size(lowTfLow) > 2 ? array.get(lowTfLow, 1) : na
+secondLowTfClose = array.size(lowTfClose) > 2 ? array.get(lowTfClose, 1) : na
 
 sma50 = ta.sma(close, 50)
 sma100 = ta.sma(close, 100)
@@ -30,7 +34,11 @@ obv100sma = ta.sma(obv, 100)
 is100Bars = bar_index >= 100
 is200Bars = bar_index >= 200
 
-marubozuLowTfCandeCond = firstLowTfClose > firstLowTfOpen and (firstLowTfClose - firstLowTfOpen) / (firstLowTfHigh - firstLowTfLow) > 0.85
+isMarubozu(_open, _high, _low, _close, _fill) =>
+    _close > _open and (_close - _open) / (_high - _low) > _fill
+
+marubozuLowTf1stCande = isMarubozu(firstLowTfOpen, firstLowTfHigh, firstLowTfLow, firstLowTfClose, 0.85)
+marubozuLowTf2Candle = isMarubozu(firstLowTfOpen, math.max(firstLowTfHigh, secondLowTfHigh), math.min(firstLowTfLow, secondLowTfLow), secondLowTfClose, 0.85)
 gapCond = close[1] > open[1] and open > (close[1] + iMinGapPctSize / 100 * close[1]) and open > high[1]
 atrCond = 100 * ta.atr(iAtrLen) / close > iMinAtr
 turnoverCond = ta.sma(close * volume, 30) / 1000000 > iMinAvgTurnover
@@ -38,7 +46,7 @@ movingAveragesAligned = close >= sma50 and sma50 >= sma100 and sma100 >= sma150 
 movingAveragesCond = not is200Bars or is200Bars and (not iMovingAveragesAligned or iMovingAveragesAligned and movingAveragesAligned)
 obvCond = not is100Bars or is100Bars and (not iObvAligned or iObvAligned and obv > obv100sma)
 
-guauSig = atrCond and gapCond and marubozuLowTfCandeCond and turnoverCond and movingAveragesCond and obvCond
+guauSig = atrCond and gapCond and (marubozuLowTf1stCande or marubozuLowTf2Candle) and turnoverCond and movingAveragesCond and obvCond
 
 alertcondition(guauSig, title = 'DRE guau sig', message = 'guau')
 plotshape(guauSig, title = 'Gap Up And Up', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GUAU', textcolor = color.new(color.green, 0))
