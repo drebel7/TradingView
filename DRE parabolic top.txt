@@ -295,15 +295,17 @@ func_rmv(_artShortLen1, _artShortLen2, _artShortLen3, _MainLookback) =>
 
 rmv = func_rmv(iRmvShortLookback1, iRmvShortLookback2, iRmvshortLookback3, iRmvLookbackPeriod)
 lowRmv = rmv <= iRmvLowLevel
+highRmv = rmv >= 100 - iRmvLowLevel / 2
 earnings = request.earnings(ticker = syminfo.tickerid, field = earnings.actual)
 earningsSig = earnings != earnings[1]
 
-bullishRmvSig = lowRmv[1] and not lowRmv and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > gVShortMa2 and close > shortMa
+rmvCond = lowRmv[1] and not lowRmv or highRmv and lowRmv[2] or rmv == 100 and lowRmv[3]
+bullishRmvSig = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > gVShortMa2 and close > shortMa
 bullishRmvPbAgo = ta.barssince(bullishRmvSig)
 bullishRmvPbSig = not bullishRmvSig and bullishRmvPbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmvPbAgo])
 bullishRmvEarningsSig = bullishRmvSig and (earningsSig or earningsSig[1])
 bullishRmvEarningsPbSig = bullishRmvPbSig and (earningsSig[bullishRmvPbAgo] or earningsSig[bullishRmvPbAgo + 1])
-bearishRmvSig = lowRmv[1] and not lowRmv and close < close[2] and volume > gVolMa and close < gVShortMa1 and close < gVShortMa2 and close < shortMa
+bearishRmvSig = rmvCond and close < close[2] and volume > gVolMa and close < gVShortMa1 and close < gVShortMa2 and close < shortMa
 bearishRmvPbAgo = ta.barssince(bearishRmvSig)
 bearishRmvPbSig = not bearishRmvSig and bearishRmvPbAgo <= iRmvPbLen and drelib.crossunder(high[bearishRmvPbAgo])
 bearishRmvEarningsSig = bearishRmvSig and (earningsSig or earningsSig[1])
