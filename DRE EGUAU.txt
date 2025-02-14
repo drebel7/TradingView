@@ -6,13 +6,13 @@ indicator(title = 'DRE Event Gap Up and Up', shorttitle = 'EGUAU', overlay = tru
 
 iDo1stCandle = input.bool(defval = true, title = 'Check 1st candle Marubozu')
 iLowTfFirstCandleVolumeMultiple = input.int(defval = 10, title = 'Low Timeframe 1st Candle Volume Miltiple', minval = 1, step = 1)
-iDoLaterHighBo = input.bool(defval = false, title = 'High Bo') // not ready
+iDoLaterHighBo = input.bool(defval = true, title = 'High Bo') // not ready
 iLowerTimeframe = input.timeframe(defval = '5', title = 'Lower Timeframe', options=['3', '5', '10', '15', '30', '45', '60'])
 
 // filters
 iCalcLength = input.int(defval = 50, title = 'Calc. parameters length', minval = 5, group = 'Common signal filters')
 iMinTurnover = input.float(defval = 0.5, title = 'Min. Turnover for signal ($M)', minval = 0, step = 0.1, group = 'Common signal filters')
-iMinAdr = input.float(defval = 3.0, title = 'Min. ADR% for signal', minval = 0, step = 0.2, group = 'Common signal filters')
+iMinAdr = input.float(defval = 4.0, title = 'Min. ADR% for signal', minval = 0, step = 0.2, group = 'Common signal filters')
 
 // filters
 gTurnoverMa = ta.sma(close * volume, iCalcLength)
@@ -43,8 +43,8 @@ secondLowTfVolume = array.size(lowTfVolume) == 3 ? array.get(lowTfVolume, 1) : n
 
 nthLowTfLowest = array.size(lowTfOpen) > 10 ? array.min(lowTfLow) : na
 nthLowTfHighest = array.size(lowTfOpen) > 10 ? array.max(lowTfHigh) : na
-nthLowTfClose = array.size(lowTfOpen) > 10 ? array.get(lowTfClose, array.size(lowTfOpen)) : na
-lowTfLowHighDist = nthLowTfHighest - nthLowTfLowest
+nthLowTfClose = array.size(lowTfOpen) > 10 ? array.last(lowTfClose) : na
+lowTfLowHighDist = firstLowTfHigh - nthLowTfLowest
 lowTfBoCond = lowTfLowHighDist > gAtr / 3 and nthLowTfClose > nthLowTfHighest[1] and volume > volume[1]
 
 firstCandleLowTfVolumeMa = ta.sma(firstLowTfVolume, iCalcLength)
