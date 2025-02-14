@@ -12,8 +12,12 @@ iShortMaLength = input.int(defval = 50, title = 'Short MA length', minval = 10, 
 iLongMaLength = input.int(defval = 750, title = 'Long MA length', minval = 200, maxval = 1000, group = 'Common parameters')
 iVShortMaLength1 = input.int(defval = 10, title = 'Short MA length', minval = 5, maxval = 50, group = 'Common parameters')
 iVShortMaLength2 = input.int(defval = 21, title = 'Short MA length2', minval = 8, maxval = 50, group = 'Common parameters')
-iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal', group = 'Common parameters', inline = 'trn')
-iMinTurnover = input.int(defval = 150000, title = '', minval = 0, group = 'Common parameters', inline = 'trn')
+
+//common filters
+iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal', group = 'Common filters', inline = 'trn')
+iMinTurnover = input.int(defval = 150000, title = '', minval = 0, group = 'Common filters', inline = 'trn')
+iAdrCond = input.bool(defval = true, title = 'Min. ADR% for signal', group = 'Common filters', inline = 'adr')
+iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, group = 'Common filters', inline = 'adr')
 
 //common calculations
 mainAtr = ta.atr(iMainMaLength)
@@ -23,8 +27,13 @@ longMa = ta.sma(close, iLongMaLength)
 gVShortMa1 = ta.ema(close, iVShortMaLength1)
 gVShortMa2 = ta.ema(close, iVShortMaLength1)
 gVolMa = ta.sma(volume, 30)
+
+//filters (min. iShortMaLength candles)
 gTurnoverMa = ta.ema(close * volume, iShortMaLength)
 gTurnoverCond = not iTurnoverCond or iTurnoverCond and gTurnoverMa > iMinTurnover
+gAdr = 100 * (ta.sma(high / low, iShortMaLength) - 1)
+gAdrCond = not iAdrCond or iAdrCond and gAdr > iMinAdr
+gFilter = gTurnoverCond and gAdrCond
 
 //parabolic top sig
 iParabolicTop = input.bool(defval = true, title = 'Parabolic top', group = 'parabolic top')
@@ -42,7 +51,7 @@ top2Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop2, iParTopGainDays, 
 top3Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop3, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays3
 topSig = top1Sig or top2Sig or top3Sig
 
-alertcondition(gTurnoverCond and topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
+alertcondition(gFilter and topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
 
 
@@ -96,8 +105,8 @@ func_sig_strech(_dist, _longMaLen, _distPercentRank) =>
 coilBullishSig = func_sig_coil(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iMainMaLength, iCoilPercent)
 strechBearishSig = func_sig_strech(func_ma_distance(iShortMaLength, iMainMaLength, iLongMaLength), iLongMaLength, iCoilPercent)
 
-alertcondition(gTurnoverCond and coilBullishSig, title = 'DRE coil sig', message = 'coil')
-alertcondition(gTurnoverCond and strechBearishSig, title = 'DRE strech sig', message = 'strech')
+alertcondition(gFilter and coilBullishSig, title = 'DRE coil sig', message = 'coil')
+alertcondition(gFilter and strechBearishSig, title = 'DRE strech sig', message = 'strech')
 plotshape(coilBullishSig and iCoil, title = 'coil', location = location.belowbar, color = color.new(color.gray, 0), style = shape.xcross, text = 'coil', textcolor = color.new(color.gray, 0))
 plotshape(strechBearishSig and iCoilStrech, title = 'strech', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'strech', textcolor = color.new(color.red, 0))
 
@@ -132,9 +141,9 @@ bullishStarterSig = func_sig_starter(true, iMainMaLength, iStarterMinDecliningDa
 bearishStarterSig = func_sig_starter(false, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
 bullishFireStarterSig = func_sig_f_starter(iMainMaLength, iStarterMinDecliningDays, iFireStarterMaDiffAtrMultiple, iStarterSmaSmoothing)
 
-alertcondition(gTurnoverCond and bullishStarterSig, title = 'DRE bullish starter sig', message = 'bullish starter')
-alertcondition(gTurnoverCond and bearishStarterSig, title = 'DRE bearish starter sig', message = 'bearish starter')
-alertcondition(gTurnoverCond and bullishFireStarterSig, title = 'DRE bullish fire starter sig', message = 'bullish fire starter')
+alertcondition(gFilter and bullishStarterSig, title = 'DRE bullish starter sig', message = 'bullish starter')
+alertcondition(gFilter and bearishStarterSig, title = 'DRE bearish starter sig', message = 'bearish starter')
+alertcondition(gFilter and bullishFireStarterSig, title = 'DRE bullish fire starter sig', message = 'bullish fire starter')
 plotshape(bullishStarterSig and iBullishStarter, title = 'bullish starter', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'starter', textcolor = color.new(color.green, 0))
 plotshape(bearishStarterSig and iBearishStarter, title = 'bearish starter', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'starter', textcolor = color.new(color.red, 0))
 plotshape(bullishFireStarterSig and iBullishFireStarter, title = 'bullish fire starter', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'f.starter', textcolor = color.new(color.green, 0))
@@ -150,7 +159,7 @@ func_sig_longer(_shortMa, _longMa, _offset, _atr) =>
 
 longerSig = func_sig_longer(mainMa, longMa, iLongerOffset, mainAtr)
 
-alertcondition(gTurnoverCond and longerSig, title = 'DRE longer sig', message = 'longer')
+alertcondition(gFilter and longerSig, title = 'DRE longer sig', message = 'longer')
 plotshape(longerSig and iLonger, title = 'longer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'longer', textcolor = color.new(color.green, 0))
 
 
@@ -165,8 +174,8 @@ zscoreEma = ta.ema(close, 2 * iZScore2ndMaLength / 3)
 zscoreBullishSig = zscoreVolCond and zscoreEma > zscoreEma[1]
 zscoreBearishSig = zscoreVolCond and zscoreEma < zscoreEma[1]
 
-alertcondition(gTurnoverCond and zscoreBullishSig, title = 'DRE bubble up', message = 'bubble up')
-alertcondition(gTurnoverCond and zscoreBearishSig, title = 'DRE bubble dn', message = 'bubble dn')
+alertcondition(gFilter and zscoreBullishSig, title = 'DRE bubble up', message = 'bubble up')
+alertcondition(gFilter and zscoreBearishSig, title = 'DRE bubble dn', message = 'bubble dn')
 plotshape(zscoreBullishSig and iBullishZscore, title = 'bubble up', location = location.belowbar, color = color.new(color.gray, 0), style = shape.xcross, text = 'bubble up', textcolor = color.new(color.gray, 0))
 plotshape(zscoreBearishSig and iBearishZscore, title = 'bubble dn', location = location.belowbar, color = color.new(color.gray, 0), style = shape.xcross, text = 'bubble dn', textcolor = color.new(color.gray, 0))
 
@@ -210,8 +219,8 @@ bearishHunterMidSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackMid, iHunt
 bearishHunterLongSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
 bearishHunterSig = bearishHunterShortSig or bearishHunterMidSig or bearishHunterLongSig
 
-alertcondition(gTurnoverCond and bullishHunterSig, title = 'DRE Bullish hunter', message = 'hunter')
-alertcondition(gTurnoverCond and bearishHunterSig, title = 'DRE Bearish hunter', message = 'hunter')
+alertcondition(gFilter and bullishHunterSig, title = 'DRE Bullish hunter', message = 'hunter')
+alertcondition(gFilter and bearishHunterSig, title = 'DRE Bearish hunter', message = 'hunter')
 plotshape(bullishHunterSig and iBullishHunter, title = 'bullish hunter', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'hunter', textcolor = color.new(color.green, 0))
 plotshape(bearishHunterSig and iBearishHunter, title = 'bearish hunter', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'hunter', textcolor = color.new(color.red, 0))
 
@@ -234,8 +243,8 @@ func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
 bullishStepperSig = func_sig_bull_stepper(mainAtr, mainMa, iStepperLookback, iStepperMaDist)
 bullishLongerStepperSig = ta.barssince(longerSig) <= iLongerStepperDist and bullishStepperSig
 
-alertcondition(gTurnoverCond and bullishStepperSig, title = 'DRE Bullish stepper', message = 'stepper')
-alertcondition(gTurnoverCond and bullishLongerStepperSig, title = 'DRE Bullish longer-stepper', message = 'l.stepper')
+alertcondition(gFilter and bullishStepperSig, title = 'DRE Bullish stepper', message = 'stepper')
+alertcondition(gFilter and bullishLongerStepperSig, title = 'DRE Bullish longer-stepper', message = 'l.stepper')
 plotshape(bullishStepperSig and not bullishLongerStepperSig and iBullishStepper, title = 'bullish stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'stepper', textcolor = color.new(color.green, 0))
 plotshape(bullishLongerStepperSig and iBullishLongerStepper, title = 'bullish l.stepper', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'l.stepper', textcolor = color.new(color.green, 0))
 
@@ -265,8 +274,8 @@ bearishObvCrossSince = ta.barssince(bearishObvCross)
 bullishObvSig = bullishObvCross and bullishObvCrossSince[1] > bearishObvCrossSince[1]
 bearishObvSig = bearishObvCross and bullishObvCrossSince[1] < bearishObvCrossSince[1]
 
-alertcondition(gTurnoverCond and bullishObvSig, title = 'DRE Bullish obv', message = 'obv')
-alertcondition(gTurnoverCond and bearishObvSig, title = 'DRE Bearish obv', message = 'obv')
+alertcondition(gFilter and bullishObvSig, title = 'DRE Bullish obv', message = 'obv')
+alertcondition(gFilter and bearishObvSig, title = 'DRE Bearish obv', message = 'obv')
 plotshape(bullishObvSig and iBullishObv, title = 'bullish obv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'obv', textcolor = color.new(color.green, 0))
 plotshape(bearishObvSig and iBearishObv, title = 'bearish obv', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'obv', textcolor = color.new(color.red, 0))
 
@@ -311,14 +320,14 @@ bearishRmvPbSig = not bearishRmvSig and bearishRmvPbAgo <= iRmvPbLen and drelib.
 bearishRmvEarningsSig = bearishRmvSig and (earningsSig or earningsSig[1])
 bearishRmvEarningsPbSig = bearishRmvPbSig and (earningsSig[bearishRmvPbAgo] or earningsSig[bearishRmvPbAgo + 1])
 
-alertcondition(gTurnoverCond and bullishRmvSig, title = 'DRE Bullish rmv', message = 'rmv')
-alertcondition(gTurnoverCond and bullishRmvPbSig, title = 'DRE Bullish rmv-pb', message = 'rmv-pb')
-alertcondition(gTurnoverCond and bearishRmvSig, title = 'DRE Bearish rmv', message = 'rmv')
-alertcondition(gTurnoverCond and bearishRmvPbSig, title = 'DRE Bearish rmv-pb', message = 'rmv-pb')
-alertcondition(gTurnoverCond and bullishRmvEarningsSig, title = 'DRE Bullish earnings rmv', message = 'rmv-e')
-alertcondition(gTurnoverCond and bearishRmvEarningsSig, title = 'DRE Bearish earnings rmv', message = 'rmv-e')
-alertcondition(gTurnoverCond and bullishRmvEarningsPbSig, title = 'DRE Bullish earnings rmv-pb', message = 'rmv-e-pb')
-alertcondition(gTurnoverCond and bearishRmvEarningsPbSig, title = 'DRE Bearish earnings rmv-pb', message = 'rmv-e-pb')
+alertcondition(gFilter and bullishRmvSig, title = 'DRE Bullish rmv', message = 'rmv')
+alertcondition(gFilter and bullishRmvPbSig, title = 'DRE Bullish rmv-pb', message = 'rmv-pb')
+alertcondition(gFilter and bearishRmvSig, title = 'DRE Bearish rmv', message = 'rmv')
+alertcondition(gFilter and bearishRmvPbSig, title = 'DRE Bearish rmv-pb', message = 'rmv-pb')
+alertcondition(gFilter and bullishRmvEarningsSig, title = 'DRE Bullish earnings rmv', message = 'rmv-e')
+alertcondition(gFilter and bearishRmvEarningsSig, title = 'DRE Bearish earnings rmv', message = 'rmv-e')
+alertcondition(gFilter and bullishRmvEarningsPbSig, title = 'DRE Bullish earnings rmv-pb', message = 'rmv-e-pb')
+alertcondition(gFilter and bearishRmvEarningsPbSig, title = 'DRE Bearish earnings rmv-pb', message = 'rmv-e-pb')
 plotshape(bullishRmvSig and iBullishRmv, title = 'bullish rmv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv', textcolor = color.new(color.green, 0))
 plotshape(bullishRmvPbSig and iBullishRmvPb, title = 'bullish rmv-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-pb', textcolor = color.new(color.green, 0))
 plotshape(bullishRmvEarningsSig and iBullishRmvEarnings, title = 'bullish rmv-e', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e', textcolor = color.new(color.green, 0))
@@ -333,9 +342,9 @@ bullishEarningsSig = bullishRmvEarningsSig or bullishRmvEarningsPbSig
 bearishEarningsSig = bearishRmvEarningsSig or bearishRmvEarningsPbSig
 bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishEarningsSig
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishEarningsSig
-alertcondition(gTurnoverCond and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
-alertcondition(gTurnoverCond and bullishEarningsSig, title = 'DRE Bullish earnings sig', message = 'bullish earnings')
-alertcondition(gTurnoverCond and bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
-alertcondition(gTurnoverCond and bearishEarningsSig, title = 'DRE Bearish earnings sig', message = 'bearish earnings')
+alertcondition(gFilter and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
+alertcondition(gFilter and bullishEarningsSig, title = 'DRE Bullish earnings sig', message = 'bullish earnings')
+alertcondition(gFilter and bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
+alertcondition(gFilter and bearishEarningsSig, title = 'DRE Bearish earnings sig', message = 'bearish earnings')
 
-alertcondition(gTurnoverCond and bullishSig or bearishSig, title = 'DRE ALL pattern sig', message = 'all patterns')
+alertcondition(gFilter and bullishSig or bearishSig, title = 'DRE ALL pattern sig', message = 'all patterns')
