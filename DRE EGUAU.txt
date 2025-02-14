@@ -5,7 +5,8 @@
 indicator(title = 'DRE Event Gap Up and Up', shorttitle = 'EGUAU', overlay = true, timeframe = '1D')
 
 iDo1stCandle = input.bool(defval = true, title = 'Check 1st candle Marubozu')
-// iDoLaterHighBo = input.bool(defval = false, title = 'High Bo') // not ready
+iLowTfFirstCandleVolumeMultiple = input.int(defval = 10, title = 'Low Timeframe 1st Candle Volume Miltiple', minval = 1, step = 1)
+iDoLaterHighBo = input.bool(defval = false, title = 'High Bo') // not ready
 iLowerTimeframe = input.timeframe(defval = '5', title = 'Lower Timeframe', options=['3', '5', '10', '15', '30', '45', '60'])
 
 // filters
@@ -21,21 +22,30 @@ gAdrCond = gAdr > iMinAdr
 gFilter = gTurnoverCond and gAdrCond
 
 // earnings
-earnings = request.earnings(ticker = syminfo.tickerid, field = earnings.actual)
-earningsDay = earnings != earnings[1]
-gEarningsCond = earningsDay or earningsDay[1]
+// earnings = request.earnings(ticker = syminfo.tickerid, field = earnings.actual)
+// earningsDay = earnings != earnings[1]
+// gEarningsCond = earningsDay or earningsDay[1]
+
+// calculations
+gAtr = ta.atr(iCalcLength)
 
 [lowTfOpen, lowTfHigh, lowTfLow, lowTfClose, lowTfVolume] = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = iLowerTimeframe, expression = [open, high, low, close, volume])
-firstLowTfOpen = array.size(lowTfOpen) > 1 ? array.get(lowTfOpen, 0) : na   //check if array.size > 1 because we need a closed 1st candle
-firstLowTfHigh = array.size(lowTfHigh) > 1 ? array.get(lowTfHigh, 0) : na
-firstLowTfLow = array.size(lowTfLow) > 1 ? array.get(lowTfLow, 0) : na
-firstLowTfClose = array.size(lowTfClose) > 1 ? array.get(lowTfClose, 0) : na
-firstLowTfVolume = array.size(lowTfVolume) > 1 ? array.get(lowTfVolume, 0) : na
-secondLowTfOpen = array.size(lowTfOpen) > 2 ? array.get(lowTfOpen, 1) : na   //check if array.size > 2 because we need a closed 2nd candle
-secondLowTfHigh = array.size(lowTfHigh) > 2 ? array.get(lowTfHigh, 1) : na
-secondLowTfLow = array.size(lowTfLow) > 2 ? array.get(lowTfLow, 1) : na
-secondLowTfClose = array.size(lowTfClose) > 2 ? array.get(lowTfClose, 1) : na
-secondLowTfVolume = array.size(lowTfVolume) > 2 ? array.get(lowTfVolume, 1) : na
+firstLowTfOpen = array.size(lowTfOpen) == 2 ? array.get(lowTfOpen, 0) : na   //check if array.size > 1 because we need a closed 1st candle
+firstLowTfHigh = array.size(lowTfHigh) == 2 ? array.get(lowTfHigh, 0) : na
+firstLowTfLow = array.size(lowTfLow) == 2 ? array.get(lowTfLow, 0) : na
+firstLowTfClose = array.size(lowTfClose) == 2 ? array.get(lowTfClose, 0) : na
+firstLowTfVolume = array.size(lowTfVolume) == 2 ? array.get(lowTfVolume, 0) : na
+secondLowTfOpen = array.size(lowTfOpen) == 3 ? array.get(lowTfOpen, 1) : na   //check if array.size > 2 because we need a closed 2nd candle
+secondLowTfHigh = array.size(lowTfHigh) == 3 ? array.get(lowTfHigh, 1) : na
+secondLowTfLow = array.size(lowTfLow) == 3 ? array.get(lowTfLow, 1) : na
+secondLowTfClose = array.size(lowTfClose) == 3 ? array.get(lowTfClose, 1) : na
+secondLowTfVolume = array.size(lowTfVolume) == 3 ? array.get(lowTfVolume, 1) : na
+
+nthLowTfLowest = array.size(lowTfOpen) > 10 ? array.min(lowTfLow) : na
+nthLowTfHighest = array.size(lowTfOpen) > 10 ? array.max(lowTfHigh) : na
+nthLowTfClose = array.size(lowTfOpen) > 10 ? array.get(lowTfClose, array.size(lowTfOpen)) : na
+lowTfLowHighDist = nthLowTfHighest - nthLowTfLowest
+lowTfBoCond = lowTfLowHighDist > gAtr / 3 and nthLowTfClose > nthLowTfHighest[1] and volume > volume[1]
 
 firstCandleLowTfVolumeMa = ta.sma(firstLowTfVolume, iCalcLength)
 
@@ -44,14 +54,14 @@ isMarubozu(_open, _high, _low, _close, _fill) =>
 
 marubozuLowTf1stCande = isMarubozu(firstLowTfOpen, firstLowTfHigh, firstLowTfLow, firstLowTfClose, 0.85)
 marubozuLowTf2Candle = isMarubozu(firstLowTfOpen, math.max(firstLowTfHigh, secondLowTfHigh), math.min(firstLowTfLow, secondLowTfLow), secondLowTfClose, 0.85)
-volume1stCandleCond = firstLowTfVolume > 5 * firstCandleLowTfVolumeMa
+volume1stCandleCond = firstLowTfVolume > iLowTfFirstCandleVolumeMultiple * firstCandleLowTfVolumeMa
 gapCond = open > high[1]
 
-generalConditions = gEarningsCond and gFilter and gapCond
+generalConditions = gFilter and gapCond
 firstCandleCond = iDo1stCandle and (marubozuLowTf1stCande or marubozuLowTf2Candle) and volume1stCandleCond
-//laterHighBoCond = iDoLaterHighBo
+laterHighBoCond = iDoLaterHighBo and lowTfBoCond
 
-eguauSig = generalConditions and firstCandleCond // or laterHighBoCond)
+eguauSig = generalConditions and (firstCandleCond or laterHighBoCond)
 
 alertcondition(eguauSig, title = 'DRE eguau sig', message = 'eGUAU')
 plotshape(eguauSig, title = 'Event Gap Up And Up', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'eGUAU', textcolor = color.new(color.green, 0))
