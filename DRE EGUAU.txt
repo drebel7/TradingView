@@ -44,8 +44,9 @@ secondLowTfVolume = array.size(lowTfVolume) == 3 ? array.get(lowTfVolume, 1) : n
 nthLowTfLowest = array.size(lowTfOpen) > 10 ? array.min(lowTfLow) : na
 nthLowTfHighest = array.size(lowTfOpen) > 10 ? array.max(lowTfHigh) : na
 nthLowTfClose = array.size(lowTfOpen) > 10 ? array.last(lowTfClose) : na
-lowTfLowHighDist = firstLowTfHigh - nthLowTfLowest
-lowTfBoCond = lowTfLowHighDist > gAtr / 3 and nthLowTfClose > nthLowTfHighest[1] and volume > volume[1]
+initLowTfHighest = math.max(firstLowTfHigh, secondLowTfHigh)
+lowTfLowHighDist = initLowTfHighest - nthLowTfLowest
+lowTfBoCond = lowTfLowHighDist > gAtr / 3 and initLowTfHighest == nthLowTfHighest[1] and nthLowTfClose > nthLowTfHighest[1] and volume > volume[1]
 
 firstCandleLowTfVolumeMa = ta.sma(firstLowTfVolume, iCalcLength)
 
