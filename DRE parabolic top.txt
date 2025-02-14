@@ -10,14 +10,14 @@ import drebel/DRELib/2 as drelib
 iMainMaLength = input.int(defval = 200, title = 'Main MA length', minval = 50, maxval = 500, group = 'Common parameters')
 iShortMaLength = input.int(defval = 50, title = 'Short MA length', minval = 10, maxval = 200, group = 'Common parameters')
 iLongMaLength = input.int(defval = 750, title = 'Long MA length', minval = 200, maxval = 1000, group = 'Common parameters')
-iVShortMaLength1 = input.int(defval = 10, title = 'Short MA length', minval = 5, maxval = 50, group = 'Common parameters')
-iVShortMaLength2 = input.int(defval = 21, title = 'Short MA length2', minval = 8, maxval = 50, group = 'Common parameters')
+iVShortMaLength1 = input.int(defval = 10, title = 'Very short MA length', minval = 5, maxval = 50, group = 'Common parameters')
+iVShortMaLength2 = input.int(defval = 21, title = 'Very short MA length2', minval = 8, maxval = 50, group = 'Common parameters')
 
 //common filters
-iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal', group = 'Common filters', inline = 'trn')
-iMinTurnover = input.int(defval = 150000, title = '', minval = 0, group = 'Common filters', inline = 'trn')
-iAdrCond = input.bool(defval = true, title = 'Min. ADR% for signal', group = 'Common filters', inline = 'adr')
-iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, group = 'Common filters', inline = 'adr')
+iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal', group = 'Common signal filters', inline = 'trn')
+iMinTurnover = input.int(defval = 150000, title = '', minval = 0, group = 'Common signal filters', inline = 'trn')
+iAdrCond = input.bool(defval = true, title = 'Min. ADR% for signal', group = 'Common signal filters', inline = 'adr')
+iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, group = 'Common signal filters', inline = 'adr')
 
 //common calculations
 mainAtr = ta.atr(iMainMaLength)
@@ -338,13 +338,13 @@ plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e'
 plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
 
 
-bullishEarningsSig = bullishRmvEarningsSig or bullishRmvEarningsPbSig
-bearishEarningsSig = bearishRmvEarningsSig or bearishRmvEarningsPbSig
-bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishEarningsSig
-bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishEarningsSig
+bullishRmvSigs = bullishRmvSig or bullishRmvPbSig or bullishRmvEarningsSig or bullishRmvEarningsPbSig
+bearishRmvSigs = bearishRmvSig or bearishRmvPbSig or bearishRmvEarningsSig or bearishRmvEarningsPbSig
+bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs
+bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
 alertcondition(gFilter and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
-alertcondition(gFilter and bullishEarningsSig, title = 'DRE Bullish earnings sig', message = 'bullish earnings')
+alertcondition(gFilter and bullishRmvSigs, title = 'DRE Bullish RMV sig', message = 'bullish RMV')
 alertcondition(gFilter and bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
-alertcondition(gFilter and bearishEarningsSig, title = 'DRE Bearish earnings sig', message = 'bearish earnings')
+alertcondition(gFilter and bearishRmvSigs, title = 'DRE Bearish RMV sig', message = 'bearish RMV')
 
 alertcondition(gFilter and bullishSig or bearishSig, title = 'DRE ALL pattern sig', message = 'all patterns')
