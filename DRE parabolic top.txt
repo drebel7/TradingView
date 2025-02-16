@@ -29,8 +29,9 @@ gVShortMa2 = ta.ema(close, iVShortMaLength1)
 gVolMa = ta.sma(volume, 30)
 
 //filters (min. iShortMaLength candles)
-gTurnoverMa = ta.ema(close * volume, iShortMaLength)
-gTurnoverCond = not iTurnoverCond or iTurnoverCond and gTurnoverMa > iMinTurnover
+gTurnoverMa = ta.sma(close * volume, iShortMaLength)
+gTurnoverMedian = ta.median(close * volume, iShortMaLength)
+gTurnoverCond = not iTurnoverCond or iTurnoverCond and gTurnoverMa > iMinTurnover and gTurnoverMedian > iMinTurnover
 gAdr = 100 * (ta.sma(high / low, iShortMaLength) - 1)
 gAdrCond = not iAdrCond or iAdrCond and gAdr > iMinAdr
 gFilter = gTurnoverCond and gAdrCond
