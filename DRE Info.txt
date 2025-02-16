@@ -17,9 +17,7 @@ show_empty_row = input.bool(defval = true, title = 'Add an empty row above the d
 
 arp = 100 * (ta.sma(high / low, len) - 1)
 [dAdr, dAtr, dAvgTurnover] = request.security(symbol = syminfo.tickerid, timeframe = 'D', expression = [arp, ta.atr(len), ta.sma(close * volume, len) / 1000000])
-mVolume = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = '5', expression = volume)
-dttVol = array.sum(mVolume)
-dttVolPct = 100 * dttVol / ta.sma(dttVol, len)
+dttVolPct = 100 * volume / ta.sma(volume, len)
 
 table t = table.new(position.top_right, 2, 5, bgcolor = bg_col)
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
