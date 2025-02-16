@@ -1,0 +1,40 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+// Based on ArmerSchlucker "ADR% / ATR / LoD dist. Table" indicator
+// Credit to MikeC / TheScrutiniser and GlinckEastwoot for ADR% formula
+
+//@version=6
+indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
+
+show_adrp = input.bool(defval = true, title = 'Show ADR %')
+show_atr = input.bool(defval = false, title = 'Show ATR')
+show_turnover = input.bool(defval = true, title = 'Show avg. turnover')
+show_dtt_volume = input.bool(defval = true, title = 'Day to time volume %')
+len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
+bg_col = input.color(defval = #00000000, title = 'Background Color')
+adrp_col = input.color(defval = color.black, title = 'Text Color')
+show_empty_row = input.bool(defval = true, title = 'Add an empty row above the displayed values', tooltip = 'Serves the purpose of not having the pane icons overlap with the ' + 'text in the table if multiple panes are shown and the chart pane is hovered')
+
+arp = 100 * (ta.sma(high / low, len) - 1)
+[dAdr, dAtr, dAvgTurnover] = request.security(symbol = syminfo.tickerid, timeframe = 'D', expression = [arp, ta.atr(len), ta.sma(close * volume, len) / 1000000])
+mVolume = request.security_lower_tf(symbol = syminfo.tickerid, timeframe = '5', expression = volume)
+dttVol = array.sum(mVolume)
+dttVolPct = 100 * dttVol / ta.sma(dttVol, len)
+
+table t = table.new(position.top_right, 2, 5, bgcolor = bg_col)
+if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
+    if show_empty_row
+        table.cell(t, 0, 0, '')
+        table.cell(t, 1, 0, '')
+    if show_adrp
+        table.cell(t, 0, 1, 'ADR [%]', text_color = adrp_col)
+        table.cell(t, 1, 1, str.tostring(math.round(dAdr, 1)), text_color = adrp_col)
+    if show_atr
+        table.cell(t, 0, 2, 'ATR', text_color = adrp_col)
+        table.cell(t, 1, 2, str.tostring(math.round(dAtr, 2)), text_color = adrp_col)
+    if show_turnover
+        table.cell(t, 0, 3, 'Avg. turnover [M]', text_color = adrp_col)
+        table.cell(t, 1, 3, str.tostring(math.round(dAvgTurnover, 2)), text_color = adrp_col)
+    if show_dtt_volume
+        table.cell(t, 0, 4, 'Dtt vol. [%]', text_color = adrp_col)
+        table.cell(t, 1, 4, str.tostring(math.round(dttVolPct, 1)), text_color = adrp_col)
