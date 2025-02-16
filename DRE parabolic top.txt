@@ -283,8 +283,8 @@ plotshape(bearishObvSig and iBearishObv, title = 'bearish obv', location = locat
 //rmv sig
 iBullishRmv = input.bool(defval = true, title = 'bullish', group = 'rmv', inline = 'rmv1')
 iBearishRmv = input.bool(defval = true, title = 'bearish', group = 'rmv', inline = 'rmv1')
-iBullishRmvPb = input.bool(defval = false, title = 'bullish-pb', group = 'rmv', inline = 'rmv2')
-iBearishRmvPb = input.bool(defval = false, title = 'bearish-pb', group = 'rmv', inline = 'rmv2')
+iBullishRmvPb = input.bool(defval = true, title = 'bullish-pb', group = 'rmv', inline = 'rmv2')
+iBearishRmvPb = input.bool(defval = true, title = 'bearish-pb', group = 'rmv', inline = 'rmv2')
 iBullishRmvEarnings = input.bool(defval = true, title = 'bullish-earnings', group = 'rmv', inline = 'rmv3')
 iBearishRmvEarnings = input.bool(defval = true, title = 'bearish-earnings', group = 'rmv', inline = 'rmv3')
 iBullishRmvEarningsPb = input.bool(defval = true, title = 'bullish-earnings-pb', group = 'rmv', inline = 'rmv4')
@@ -341,7 +341,7 @@ plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rm
 
 bullishRmvSigs = bullishRmvSig or bullishRmvPbSig or bullishRmvEarningsSig or bullishRmvEarningsPbSig
 bearishRmvSigs = bearishRmvSig or bearishRmvPbSig or bearishRmvEarningsSig or bearishRmvEarningsPbSig
-bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs
+bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or bullishHunterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
 alertcondition(gFilter and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
 alertcondition(gFilter and bullishRmvSigs, title = 'DRE Bullish RMV sig', message = 'bullish RMV')
