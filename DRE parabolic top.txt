@@ -195,8 +195,8 @@ iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200,
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
     localLow = ta.lowest(_lookback)
     localLowCandlesAgo = ta.barssince(low == localLow)
-    validCandlesAgo = nz(localLowCandlesAgo, _lookback)
-    localHigh = ta.highest(math.max(1, validCandlesAgo))
+    validCandlesAgo = localLowCandlesAgo == 0 ? 1 : nz(localLowCandlesAgo, 1)
+    localHigh = ta.highest(math.min(_lookback, validCandlesAgo))
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
     sig = drelib.crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
     sig
