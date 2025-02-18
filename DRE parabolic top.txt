@@ -193,19 +193,19 @@ iHunterLong = input.bool(defval = true, title = 'long', group = 'hunter', inline
 iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, group = 'hunter', inline = 'hunter4', display = display.none)
 
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    localLow = ta.lowest(low, _lookback)
+    localLow = ta.lowest(_lookback)
     localLowCandlesAgo = ta.barssince(low == localLow)
     validCandlesAgo = nz(localLowCandlesAgo, _lookback)
-    localHigh = ta.highest(high, math.max(1, validCandlesAgo))
+    localHigh = ta.highest(math.max(1, validCandlesAgo))
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
     sig = drelib.crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
     sig
 
 func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    localHigh = ta.highest(high, _lookback)
+    localHigh = ta.highest(_lookback)
     localHighCandlesAgo = ta.barssince(high == localHigh)
     validCandlesAgo = nz(localHighCandlesAgo, _lookback)
-    localLow = ta.lowest(low, math.max(1, validCandlesAgo))
+    localLow = ta.lowest(math.max(1, validCandlesAgo))
     lohi = math.pow(math.log(_lookback), 1.25) - 1.25
     sig = drelib.crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
     sig
@@ -234,7 +234,7 @@ iStepperMaDist = input.float(defval = 1.5, title = 'max vwap-ma dist.', minval =
 iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, group = 'stepper', display = display.none)
 
 func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
-    localHigh = ta.highest(high, _lookback)
+    localHigh = ta.highest(_lookback)
     localHighCandlesAgo = ta.barssince(high == localHigh)
     localHighVwap = ta.vwap(ohlc4, high == localHigh)
     maDist = localHighVwap - _mainMa
