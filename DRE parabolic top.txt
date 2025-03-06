@@ -361,7 +361,7 @@ bearisjRisk = 100 * (close / high[1] - 1)
 candleBullishBoOnVolumeCond = close > high[1] and candleRelativeVol > iBoVolumeMultiple and bullishRisk < iBoMaxRiskPct
 candleBearishBoOnVolumeCond = close < low[1] and candleRelativeVol > iBoVolumeMultiple and bearisjRisk < iBoMaxRiskPct
 
-alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and bullishSig[1], title = 'DRE Bullish BO pattern sig', message = 'bullish pattern')
-alertcondition(candleBearishBoOnVolumeCond and gFilter[1] and bearishSig[1], title = 'DRE Bearish pattern sig', message = 'bearish pattern')
+alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and bullishSig[1], title = 'DRE Bullish pattern BO sig', message = 'bullish pattern BO')
+alertcondition(candleBearishBoOnVolumeCond and gFilter[1] and bearishSig[1], title = 'DRE Bearish pattern BO sig', message = 'bearish pattern BO')
 
-alertcondition(gFilter[1] and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern sig', message = 'all patterns')
+alertcondition(gFilter[1] and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
