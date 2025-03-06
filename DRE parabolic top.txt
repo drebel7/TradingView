@@ -343,9 +343,25 @@ bullishRmvSigs = bullishRmvSig or bullishRmvPbSig or bullishRmvEarningsSig or bu
 bearishRmvSigs = bearishRmvSig or bearishRmvPbSig or bearishRmvEarningsSig or bearishRmvEarningsPbSig
 bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or bullishHunterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
-alertcondition(gFilter and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
-alertcondition(gFilter and bullishRmvSigs, title = 'DRE Bullish RMV sig', message = 'bullish RMV')
-alertcondition(gFilter and bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
-alertcondition(gFilter and bearishRmvSigs, title = 'DRE Bearish RMV sig', message = 'bearish RMV')
 
-alertcondition(gFilter and bullishSig or bearishSig, title = 'DRE ALL pattern sig', message = 'all patterns')
+alertcondition(gFilter and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
+alertcondition(gFilter and bearishSig, title = 'DRE Bearish pattern sig', message = 'bearish pattern')
+
+alertcondition(gFilter and (bullishSig or bearishSig), title = 'DRE ALL pattern sig', message = 'all patterns')
+
+
+iBoVolumeMultiple = input.float(defval = 2.0, title = 'Breakout volume multiple', minval = 0.0, maxval = 5.0, step = 0.1, group = 'Breakout parameters')
+iBoMaxRiskPct = input.float(defval = 7.0, title = 'Breakout max risk', minval = 0.0, maxval = 12.0, step = 0.5, group = 'Breakout parameters')
+
+candleVolPct = 100 * volume / ta.sma(volume, iShortMaLength)
+candleTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
+candleRelativeVol = candleVolPct / candleTimePct
+bullishRisk = 100 * (close / low[1] - 1)
+bearisjRisk = 100 * (close / high[1] - 1)
+candleBullishBoOnVolumeCond = close > high[1] and candleRelativeVol > iBoVolumeMultiple and bullishRisk < iBoMaxRiskPct
+candleBearishBoOnVolumeCond = close < low[1] and candleRelativeVol > iBoVolumeMultiple and bearisjRisk < iBoMaxRiskPct
+
+alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and bullishSig[1], title = 'DRE Bullish BO pattern sig', message = 'bullish pattern')
+alertcondition(candleBearishBoOnVolumeCond and gFilter[1] and bearishSig[1], title = 'DRE Bearish pattern sig', message = 'bearish pattern')
+
+alertcondition(gFilter[1] and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern sig', message = 'all patterns')
