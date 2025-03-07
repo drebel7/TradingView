@@ -339,9 +339,49 @@ plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e'
 plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
 
 
+//mtb sig (Minevrini + Trigger Bar)
+iBullishMtb = input.bool(defval = true, title = 'bullish', group = 'mtb', inline = 'mtb1')
+iTriggerBarMaxPercentile = input.int(defval = 30, title = 'Trigger Bar max. percentiles', minval = 1, maxval = 99, group = 'mtb')
+
+sma50 = ta.sma(close, 50)
+sma150 = ta.sma(close, 150)
+sma200 = ta.sma(close, 200)
+yearlyHigh = ta.highest(252)
+yearlyLow = ta.lowest(252)
+// shares = request.financial(syminfo.tickerid, "TOTAL_SHARES_OUTSTANDING", "FQ") // max 30M shares
+
+//Minevrini trend
+sma200GoingUp_10 = sma200 > sma200[1] ? 1 : 0
+sma200GoingUpCond = math.sum(sma200GoingUp_10, 60) > 30
+maCond = close > sma150 and close > sma200 and sma50 > sma150 and sma150 > sma200 and sma200 > sma200[1]
+loHiCond = close > 1.25 * yearlyLow and close > yearlyHigh / 1.25
+sma50Cond = close > sma50 / 1.08
+ // and RS Score > 70
+benchmark = request.security("SPY", timeframe.period, close)
+simpleRelativeStrengthCond = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
+minevriniTrendCond = maCond and loHiCond and sma50Cond and sma200GoingUpCond and simpleRelativeStrengthCond
+
+//Jack Corsellis - Trigger Bar
+candleHeight = high - low
+candleHeightPrctRank = ta.percentrank(candleHeight, 50)
+latestHigh = math.max(nz(math.abs(ta.highestbars(50)), 1), 50)
+volumePrctRank = ta.percentrank(volume, latestHigh)
+vShortMa1Dist = ohlc4 - gVShortMa1
+vShortMa1DistPrctRank = ta.percentrank(vShortMa1Dist, 50)
+vShortMa2Dist = ohlc4 - gVShortMa2
+vShortMa2DistPrctRank = ta.percentrank(vShortMa2Dist, 50)
+triggerBarCond = candleHeightPrctRank < iTriggerBarMaxPercentile and volumePrctRank < iTriggerBarMaxPercentile and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
+
+mtbSig = minevriniTrendCond and triggerBarCond
+
+alertcondition(gFilter and mtbSig, title = 'DRE Bullish mtb', message = 'mtb')
+plotshape(mtbSig, title = 'bullish mtb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtb', textcolor = color.new(color.green, 0))
+
+
+
 bullishRmvSigs = bullishRmvSig or bullishRmvPbSig or bullishRmvEarningsSig or bullishRmvEarningsPbSig
 bearishRmvSigs = bearishRmvSig or bearishRmvPbSig or bearishRmvEarningsSig or bearishRmvEarningsPbSig
-bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or bullishHunterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs
+bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or bullishHunterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs or mtbSig
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
 
 alertcondition(gFilter and bullishSig, title = 'DRE Bullish pattern sig', message = 'bullish pattern')
@@ -361,6 +401,7 @@ bearisjRisk = 100 * (close / high[1] - 1)
 candleBullishBoOnVolumeCond = close > high[1] and candleRelativeVol > iBoVolumeMultiple and bullishRisk < iBoMaxRiskPct
 candleBearishBoOnVolumeCond = close < low[1] and candleRelativeVol > iBoVolumeMultiple and bearisjRisk < iBoMaxRiskPct
 
+alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and mtbSig[1], title = 'DRE Bullish mtb BO sig', message = 'bullish mtb BO')
 alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and bullishSig[1], title = 'DRE Bullish pattern BO sig', message = 'bullish pattern BO')
 alertcondition(candleBearishBoOnVolumeCond and gFilter[1] and bearishSig[1], title = 'DRE Bearish pattern BO sig', message = 'bearish pattern BO')
 
