@@ -148,6 +148,17 @@ float price_interval = (highest_price - lowest_price) / (vp_num_bars - 1)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Function to measure how much range B is within range A, with engulfing case handling
+overlap_percentage(lowLevelA, highLevelA, lowLevelB, highLevelB) =>
+    float intersection_low = math.max(lowLevelA, lowLevelB)
+    float intersection_high = math.min(highLevelA, highLevelB)
+    float size_intersection = math.max(0.0, intersection_high - intersection_low)
+    float size_A = highLevelA - lowLevelA
+    float size_B = highLevelB - lowLevelB
+    float min_size = math.min(size_A, size_B)
+    float overlap_coefficient = size_intersection / min_size
+    overlap_coefficient * 100.0
+
 scale_volume(vol, max) =>
     float d = max / lookback_bars / (vp_bar_len_mult / 100)
     int scaled_vol = math.round(vol / d)
@@ -158,8 +169,9 @@ calculate_vp() =>
     for i = 0 to (lookback_bars - 1)
         for j = 0 to (vp_num_bars - 1)
             float price_level = lowest_price + price_interval * j
+            float overlap_pct = overlap_percentage(price_level, price_level + price_interval, low[i], high[i])
             if (price_level >= low[i] and price_level < high[i])
-                array.set(volumes, j, volumes.get(j) + volume[i])
+                array.set(volumes, j, volumes.get(j) + overlap_pct * volume[i])
 
 calculate_va(int max_idx, float max_vol) =>
     float sum_vol = volumes.sum()
