@@ -16,7 +16,7 @@ vp_use_visible_range = input.bool(
  )
 
 vp_lookback_depth = input.int(
-     defval  = 200, 
+     defval  = 1000, 
      minval  = 10, 
      maxval  = 3000, 
      title   = 'Fixed Range Lookback Depth [10-3000]',
@@ -58,14 +58,6 @@ vp_right_offset = input.int(
      title   = 'Right Offset [0-400]', 
      group   = 'Volume Bars',
      tooltip = 'Space between the right bar of the chart and the Volume Profile'
- )
-
-vp_volume_type = input.string(
-     defval  = 'Both', 
-     title   = 'Volume Type', 
-     options = ['Both', 'Bullish', 'Bearish'],
-     group   = 'Volume Bars',
-     tooltip = 'Select the type of Volume to include'
  )
 
 vp_bar_color = input.color(
@@ -166,9 +158,7 @@ calculate_vp() =>
     for i = 0 to (lookback_bars - 1)
         for j = 0 to (vp_num_bars - 1)
             float price_level = lowest_price + price_interval * j
-            bool is_bullish = close[i] >= open[i]
-            bool include_vol = vp_volume_type == 'Both' ? true : (vp_volume_type == 'Bullish' ? is_bullish : not is_bullish)
-            if (price_level >= low[i] and price_level < high[i] and include_vol)
+            if (price_level >= low[i] and price_level < high[i])
                 array.set(volumes, j, volumes.get(j) + volume[i])
 
 calculate_va(int max_idx, float max_vol) =>
