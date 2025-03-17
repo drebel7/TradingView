@@ -393,16 +393,20 @@ alertcondition(gFilter and (bullishSig or bearishSig), title = 'DRE ALL pattern 
 iBoVolumeMultiple = input.float(defval = 2.0, title = 'Breakout volume multiple', minval = 0.0, maxval = 5.0, step = 0.1, group = 'Breakout parameters')
 iBoMaxRiskPct = input.float(defval = 7.0, title = 'Breakout max risk', minval = 0.0, maxval = 12.0, step = 0.5, group = 'Breakout parameters')
 
-candleVolPct = 100 * volume / ta.sma(volume, iShortMaLength)
-candleTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
-candleRelativeVol = candleVolPct / candleTimePct
+currCandleRelativeVol(int _iMaLength) =>
+    candleVolPart = volume / ta.sma(volume, _iMaLength)
+    candleTimePart = (math.min(timenow, time_close) - time) / (time_close - time)
+    relativeVol = candleVolPart / candleTimePart
+    relativeVol
+
+candleRelativeVol = currCandleRelativeVol(iShortMaLength)
 bullishRisk = 100 * (close / low[1] - 1)
 bearisjRisk = 100 * (close / high[1] - 1)
 candleBullishBoOnVolumeCond = close > high[1] and candleRelativeVol > iBoVolumeMultiple and bullishRisk < iBoMaxRiskPct
 candleBearishBoOnVolumeCond = close < low[1] and candleRelativeVol > iBoVolumeMultiple and bearisjRisk < iBoMaxRiskPct
 
-alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and mtbSig[1], title = 'DRE Bullish mtb BO sig', message = 'bullish mtb BO')
-alertcondition(candleBullishBoOnVolumeCond and gFilter[1] and bullishSig[1], title = 'DRE Bullish pattern BO sig', message = 'bullish pattern BO')
-alertcondition(candleBearishBoOnVolumeCond and gFilter[1] and bearishSig[1], title = 'DRE Bearish pattern BO sig', message = 'bearish pattern BO')
+alertcondition(candleBullishBoOnVolumeCond and gFilter and mtbSig[1], title = 'DRE Bullish mtb BO sig', message = 'bullish mtb BO')
+alertcondition(candleBullishBoOnVolumeCond and gFilter and bullishSig[1], title = 'DRE Bullish pattern BO sig', message = 'bullish pattern BO')
+alertcondition(candleBearishBoOnVolumeCond and gFilter and bearishSig[1], title = 'DRE Bearish pattern BO sig', message = 'bearish pattern BO')
 
-alertcondition(gFilter[1] and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
+alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
