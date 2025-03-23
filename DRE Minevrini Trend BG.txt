@@ -1,0 +1,28 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator("DRE Minevrini Trend BG", overlay = true, max_bars_back = 300)
+
+iBenchmark = input.symbol(title='Benchmark for RS', defval='GPW:FW201!')
+
+sma200 = ta.sma(close, 200)
+sma150 = ta.sma(close, 150)
+sma50 = ta.sma(close, 50)
+
+yealyLow = ta.lowest(250)
+yealyHigh = ta.highest(250)
+
+sma200GoingUp_10 = sma200 > sma200[1] ? 1 : 0
+sma200GoingUpCond = math.sum(sma200GoingUp_10, 45) > 40
+masAlignedCond = sma50 > sma150 and sma50 > sma200 and sma150 > sma200 and sma200GoingUpCond
+priceAlignedCond = close > 1.25 * yealyLow and close > yealyHigh / 1.25
+priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
+
+ // and RS Score > 70
+benchmark = request.security(iBenchmark, timeframe.period, close)
+simpleRelativeStrengthCond = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
+
+allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond
+
+bgcolor(allAligned ? color.new(color.green, 85) : na)
