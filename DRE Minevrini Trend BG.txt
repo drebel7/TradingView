@@ -4,6 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
+iIncludeRelativeStrenth = input.bool(defval=true, title='Include relative strength')
 iIncludeEarningsIncrease = input.bool(defval=true, title='Include earnings increase')
 
 int tradingDaysInAYear = 250
@@ -25,7 +26,7 @@ priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
 
  // and RS Score > 70
 benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:FW201!', timeframe.period, close) : request.security('SPX', timeframe.period, close)
-simpleRelativeStrengthCond = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
+simpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
 // earnings acceleratiion
 totalShares = syminfo.shares_outstanding_total
@@ -37,7 +38,7 @@ epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardiz
 epsStdBetter_10 = epsStd > epsStd[tradingDaysInAYearAndSome] ? 1 : 0
 epsStdGoingUp = math.sum(epsStdBetter_10, tradingDaysIn2YearsAndSome)
 
-epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4
+epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0
 earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease
 
 allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
