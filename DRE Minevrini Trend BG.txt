@@ -4,7 +4,6 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-iBenchmark = input.symbol(defval='GPW:FW201!', title='Benchmark for RS')
 iIncludeEarningsIncrease = input.bool(defval=true, title='Include earnings increase')
 
 int tradingDaysInAYear = 250
@@ -25,7 +24,7 @@ priceAlignedCond = close > 1.25 * yealyLow and close > yealyHigh / 1.25
 priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
 
  // and RS Score > 70
-benchmark = request.security(iBenchmark, timeframe.period, close)
+benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:FW201!', timeframe.period, close) : request.security('SPX', timeframe.period, close)
 simpleRelativeStrengthCond = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
 
 // earnings acceleratiion
