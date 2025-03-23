@@ -25,7 +25,7 @@ priceAlignedCond = close > 1.25 * yealyLow and close > yealyHigh / 1.25
 priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
 
  // and RS Score > 70
-benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:FW201!', timeframe.period, close) : request.security('SPX', timeframe.period, close)
+benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
 simpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
 // earnings acceleratiion
