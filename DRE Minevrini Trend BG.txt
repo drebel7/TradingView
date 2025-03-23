@@ -4,7 +4,8 @@
 //@version=6
 indicator("DRE Minevrini Trend BG", overlay = true, max_bars_back = 300)
 
-iBenchmark = input.symbol(title='Benchmark for RS', defval='GPW:FW201!')
+iBenchmark = input.symbol(defval='GPW:FW201!', title='Benchmark for RS')
+iIncldeEarningsIncrease = input.bool(defval=true, title='Include earnings increase')
 
 sma200 = ta.sma(close, 200)
 sma150 = ta.sma(close, 150)
@@ -23,6 +24,12 @@ priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
 benchmark = request.security(iBenchmark, timeframe.period, close)
 simpleRelativeStrengthCond = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
 
-allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond
+// earnings ecceleratiion
+earnings = request.earnings(ticker = syminfo.tickerid, field = earnings.actual)
+totalShares = syminfo.shares_outstanding_total
+eps = earnings / totalShares
+earningsCond = iIncldeEarningsIncrease and eps > eps[260] or not iIncldeEarningsIncrease
+
+allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
 
 bgcolor(allAligned ? color.new(color.green, 85) : na)
