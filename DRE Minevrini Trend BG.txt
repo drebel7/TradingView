@@ -44,6 +44,8 @@ epsStdLastYBetter = epsAct > epsAct[tradingDaysInAYearAndSome] or epsStd > epsSt
 epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0 and epsStdLastYBetter
 earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease or not earningsAvailable
 
-allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
+minevriniTrend = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
 
-bgcolor(allAligned ? color.new(color.green, 85) : na)
+bgcolor(minevriniTrend ? color.new(color.green, 85) : na)
+
+alertcondition(minevriniTrend, title = 'Minevrini Trend', message = 'mTrend')
