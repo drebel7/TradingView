@@ -29,12 +29,17 @@ benchmark = request.security(iBenchmark, timeframe.period, close)
 simpleRelativeStrengthCond = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
 
 // earnings acceleratiion
-earnings = request.earnings(ticker = syminfo.tickerid, field = earnings.actual)
 totalShares = syminfo.shares_outstanding_total
-eps = earnings / totalShares
-epsBetter_10 = eps > eps[tradingDaysInAYearAndSome] ? 1 : 0
-epsGoingUpCond = math.sum(epsBetter_10, tradingDaysIn2YearsAndSome) > 4
-earningsCond = iIncludeEarningsIncrease and eps > eps[tradingDaysInAYear] or not iIncludeEarningsIncrease
+epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares
+epsActBetter_10 = epsAct > epsAct[tradingDaysInAYearAndSome] ? 1 : 0
+epsActGoingUp = math.sum(epsActBetter_10, tradingDaysIn2YearsAndSome)
+
+epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
+epsStdBetter_10 = epsStd > epsStd[tradingDaysInAYearAndSome] ? 1 : 0
+epsStdGoingUp = math.sum(epsStdBetter_10, tradingDaysIn2YearsAndSome)
+
+epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4
+earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease
 
 allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
 
