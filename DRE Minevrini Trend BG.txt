@@ -8,8 +8,8 @@ iIncludeRelativeStrenth = input.bool(defval=true, title='Include relative streng
 iIncludeEarningsIncrease = input.bool(defval=true, title='Include earnings increase')
 
 int tradingDaysInAYear = 250
-int tradingDaysInAYearAndSome = tradingDaysInAYear + 20
-int tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 20
+int tradingDaysInAYearAndSome = tradingDaysInAYear + 30
+int tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 30
 
 sma200 = ta.sma(close, 200)
 sma150 = ta.sma(close, 150)
@@ -38,7 +38,8 @@ epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardiz
 epsStdBetter_10 = epsStd > epsStd[tradingDaysInAYearAndSome] ? 1 : 0
 epsStdGoingUp = math.sum(epsStdBetter_10, tradingDaysIn2YearsAndSome)
 
-epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0
+epsStdLastYBetter = epsAct > epsAct[tradingDaysInAYearAndSome] or epsStd > epsStd[tradingDaysInAYearAndSome]
+epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0 and epsStdLastYBetter
 earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease
 
 allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
