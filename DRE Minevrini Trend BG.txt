@@ -19,7 +19,7 @@ yealyLow = ta.lowest(tradingDaysInAYear)
 yealyHigh = ta.highest(tradingDaysInAYear)
 
 sma200GoingUp_10 = sma200 > sma200[1] ? 1 : 0
-sma200GoingUpCond = math.sum(sma200GoingUp_10, 45) > 40
+sma200GoingUpCond = math.sum(sma200GoingUp_10, 35) > 30
 masAlignedCond = sma50 > sma150 and sma50 > sma200 and sma150 > sma200 and sma200GoingUpCond
 priceAlignedCond = close > 1.25 * yealyLow and close > yealyHigh / 1.25
 priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
