@@ -38,9 +38,11 @@ epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardiz
 epsStdBetter_10 = epsStd > epsStd[tradingDaysInAYearAndSome] ? 1 : 0
 epsStdGoingUp = math.sum(epsStdBetter_10, tradingDaysIn2YearsAndSome)
 
+earningsAvailable = not na(epsAct) or not na(epsStd)
+
 epsStdLastYBetter = epsAct > epsAct[tradingDaysInAYearAndSome] or epsStd > epsStd[tradingDaysInAYearAndSome]
 epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0 and epsStdLastYBetter
-earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease
+earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease or not earningsAvailable
 
 allAligned = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
 
