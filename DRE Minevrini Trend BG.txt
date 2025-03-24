@@ -45,7 +45,8 @@ epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct,
 earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease or not earningsAvailable
 
 minevriniTrend = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
+minevriniTrendSig = minevriniTrend and not minevriniTrend[1]
 
 bgcolor(minevriniTrend ? color.new(color.green, 85) : na)
 
-alertcondition(minevriniTrend, title = 'Minevrini Trend', message = 'mTrend')
+alertcondition(minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
