@@ -339,7 +339,7 @@ plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e'
 plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
 
 
-//mtb sig (Minevrini + Trigger Bar)
+//mtb sig (Minevrini + Trigger Bar / Shakeout Demand Tail / Gap Down Reversal)
 iBullishMtb = input.bool(defval = true, title = 'bullish', group = 'mtb', inline = 'mtb1')
 iTriggerBarMaxPercentile = input.int(defval = 30, title = 'Trigger Bar max. percentiles', minval = 1, maxval = 99, group = 'mtb')
 
@@ -371,8 +371,14 @@ vShortMa1DistPrctRank = ta.percentrank(vShortMa1Dist, 50)
 vShortMa2Dist = ohlc4 - gVShortMa2
 vShortMa2DistPrctRank = ta.percentrank(vShortMa2Dist, 50)
 triggerBarCond = candleHeightPrctRank < iTriggerBarMaxPercentile and volumePrctRank < iTriggerBarMaxPercentile and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
+bodySize = math.abs((open - close) / (high - low))
+lowerWickSize = math.abs((low - math.min(open, close)) / (high - low))
+hammerCandle = bodySize < 0.2 and lowerWickSize > 0.7
+shakeoutDemandTailCond = hammerCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
+gapDownReversalCandle = close[1] < open[1] and open < close[1] and close > close[1] and bodySize > bodySize[1]
+gapDownReversalCond = gapDownReversalCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
 
-mtbSig = minevriniTrendCond and triggerBarCond
+mtbSig = ta.barssince(minevriniTrendCond) < 15 and (triggerBarCond or shakeoutDemandTailCond and gapDownReversalCond)
 
 alertcondition(gFilter and mtbSig, title = 'DRE Bullish mtb', message = 'mtb')
 plotshape(mtbSig, title = 'bullish mtb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtb', textcolor = color.new(color.green, 0))
