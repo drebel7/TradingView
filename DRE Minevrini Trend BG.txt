@@ -4,6 +4,8 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
+iBullish = input.bool(defval = true, title = 'bullish', inline = 'bb')
+iBearish = input.bool(defval = false, title = 'bearish', inline = 'bb')
 iIncludeRelativeStrenth = input.bool(defval=true, title='Include relative strength')
 iIncludeEarningsIncrease = input.bool(defval=true, title='Include earnings increase')
 
@@ -18,35 +20,63 @@ sma50 = ta.sma(close, 50)
 yealyLow = ta.lowest(tradingDaysInAYear)
 yealyHigh = ta.highest(tradingDaysInAYear)
 
+// bullish conditions
 sma200GoingUp_10 = sma200 > sma200[1] ? 1 : 0
 sma200GoingUpCond = math.sum(sma200GoingUp_10, 35) > 30
 masAlignedCond = sma50 > sma150 and sma50 > sma200 and sma150 > sma200 and sma200GoingUpCond
 priceAlignedCond = close > 1.25 * yealyLow and close > yealyHigh / 1.25
 priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
 
- // and RS Score > 70
+// and RS Score > 70
 benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
 simpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
 // earnings acceleratiion
 totalShares = syminfo.shares_outstanding_total
 epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares
+epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
+earningsAvailable = not na(epsAct) or not na(epsStd)
+
 epsActBetter_10 = epsAct > epsAct[tradingDaysInAYearAndSome] ? 1 : 0
 epsActGoingUp = math.sum(epsActBetter_10, tradingDaysIn2YearsAndSome)
 
-epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
 epsStdBetter_10 = epsStd > epsStd[tradingDaysInAYearAndSome] ? 1 : 0
 epsStdGoingUp = math.sum(epsStdBetter_10, tradingDaysIn2YearsAndSome)
 
-earningsAvailable = not na(epsAct) or not na(epsStd)
-
-epsStdLastYBetter = epsAct > epsAct[tradingDaysInAYearAndSome] or epsStd > epsStd[tradingDaysInAYearAndSome]
-epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0 and epsStdLastYBetter
+epsLastYBetter = epsAct > epsAct[tradingDaysInAYearAndSome] or epsStd > epsStd[tradingDaysInAYearAndSome]
+epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0 and epsLastYBetter
 earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease or not earningsAvailable
+
+
+// bearish conditions
+sma200GoingDown_10 = sma200 < sma200[1] ? 1 : 0
+sma200GoingDownCond = math.sum(sma200GoingDown_10, 35) > 30
+bearishMasAlignedCond = sma50 < sma150 and sma50 < sma200 and sma150 < sma200 and sma200GoingDownCond
+bearishPriceAlignedCond = close < 1.25 * yealyLow and close < yealyHigh / 1.25
+bearishPriceMasAlignedCond = close < sma50 * 1.08 and close < sma150 and close < sma200
+
+bearishSimpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63] or not iIncludeRelativeStrenth
+
+epsActWorse_10 = epsAct < epsAct[tradingDaysInAYearAndSome] ? 1 : 0
+epsActGoingDn = math.sum(epsActWorse_10, tradingDaysIn2YearsAndSome)
+
+epsStdWorse_10 = epsStd < epsStd[tradingDaysInAYearAndSome] ? 1 : 0
+epsStdGoingDn = math.sum(epsStdWorse_10, tradingDaysIn2YearsAndSome)
+
+epsLastYWorse = epsAct < epsAct[tradingDaysInAYearAndSome] or epsStd < epsStd[tradingDaysInAYearAndSome]
+epsGoingDnCond = math.max(epsActGoingDn, epsStdGoingDn) > 4 and math.min(epsAct, epsStd) < 0 and epsLastYWorse
+bearishEarningsCond = iIncludeEarningsIncrease and epsGoingDnCond or not iIncludeEarningsIncrease or not earningsAvailable
+
 
 minevriniTrend = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
 minevriniTrendSig = minevriniTrend and not minevriniTrend[1]
 
-bgcolor(minevriniTrend ? color.new(color.green, 85) : na)
+minevriniBearishTrend = bearishMasAlignedCond and bearishPriceAlignedCond and bearishPriceMasAlignedCond and bearishSimpleRelativeStrengthCond and bearishEarningsCond
+minevriniBearishTrendSig = minevriniBearishTrend and not minevriniBearishTrend[1]
+
+
+bgcolor(iBullish and minevriniTrend ? color.new(color.green, 85) : na)
+bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 
 alertcondition(minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
+alertcondition(minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
