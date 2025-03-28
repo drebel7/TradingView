@@ -366,17 +366,16 @@ candleHeight = high - low
 candleHeightPrctRank = ta.percentrank(candleHeight, 50)
 latestHigh = math.max(nz(math.abs(ta.highestbars(50)), 1), 50)
 volumePrctRank = ta.percentrank(volume, latestHigh)
-vShortMa1Dist = math.abs(ohlc4 - gVShortMa1)
-vShortMa1DistPrctRank = ta.percentrank(vShortMa1Dist, 50)
-vShortMa2Dist = math.abs(ohlc4 - gVShortMa2)
-vShortMa2DistPrctRank = ta.percentrank(vShortMa2Dist, 50)
-triggerBarCond = candleHeightPrctRank < iTriggerBarMaxPercentile and volumePrctRank < iTriggerBarMaxPercentile and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
+vShortMa1DistPrctRank = ta.percentrank(math.abs(ohlc4 - gVShortMa1), 50)
+vShortMa2DistPrctRank = ta.percentrank(math.abs(ohlc4 - gVShortMa2), 50)
+shortMaDistPrctRank = ta.percentrank(math.abs(ohlc4 - shortMa), 50)
+triggerBarCond = candleHeightPrctRank < iTriggerBarMaxPercentile and volumePrctRank < iTriggerBarMaxPercentile and (shortMaDistPrctRank < 15)
 bodySize = math.abs((open - close) / (high - low))
 lowerWickSize = math.abs((low - math.min(open, close)) / (high - low))
 hammerCandle = bodySize < 0.2 and lowerWickSize > 0.7
-shakeoutDemandTailCond = hammerCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
+shakeoutDemandTailCond = hammerCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (shortMaDistPrctRank < 15)
 gapDownReversalCandle = close[1] < open[1] and open < close[1] and close > close[1] and bodySize > bodySize[1]
-gapDownReversalCond = gapDownReversalCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (vShortMa1DistPrctRank < 15 or vShortMa2DistPrctRank < 15)
+gapDownReversalCond = gapDownReversalCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (shortMaDistPrctRank < 15)
 
 mtbSig = ta.barssince(minevriniTrendCond) < 15 and (triggerBarCond or shakeoutDemandTailCond and gapDownReversalCond)
 
