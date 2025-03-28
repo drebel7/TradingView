@@ -341,6 +341,7 @@ plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rm
 
 //mtb sig (Minevrini + Trigger Bar / Shakeout Demand Tail / Gap Down Reversal)
 iBullishMtb = input.bool(defval = true, title = 'bullish', group = 'mtb', inline = 'mtb1')
+iMaxDistFromMaPctRank = input.int(defval = 10, title = 'Max. distance from MA', minval = 1, maxval = 99, group = 'mtb')
 iTriggerBarMaxPercentile = input.int(defval = 30, title = 'Trigger Bar max. percentiles', minval = 1, maxval = 99, group = 'mtb')
 
 sma50 = ta.sma(close, 50)
@@ -366,16 +367,15 @@ candleHeight = high - low
 candleHeightPrctRank = ta.percentrank(candleHeight, 50)
 latestHigh = math.max(nz(math.abs(ta.highestbars(50)), 1), 50)
 volumePrctRank = ta.percentrank(volume, latestHigh)
-vShortMa1DistPrctRank = ta.percentrank(math.abs(ohlc4 - gVShortMa1), 50)
-vShortMa2DistPrctRank = ta.percentrank(math.abs(ohlc4 - gVShortMa2), 50)
 shortMaDistPrctRank = ta.percentrank(math.abs(ohlc4 - shortMa), 50)
-triggerBarCond = candleHeightPrctRank < iTriggerBarMaxPercentile and volumePrctRank < iTriggerBarMaxPercentile and (shortMaDistPrctRank < 15)
+maDistCond = shortMaDistPrctRank < iMaxDistFromMaPctRank
+triggerBarCond = candleHeightPrctRank < iTriggerBarMaxPercentile and volumePrctRank < iTriggerBarMaxPercentile and maDistCond
 bodySize = math.abs((open - close) / (high - low))
 lowerWickSize = math.abs((low - math.min(open, close)) / (high - low))
 hammerCandle = bodySize < 0.2 and lowerWickSize > 0.7
-shakeoutDemandTailCond = hammerCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (shortMaDistPrctRank < 15)
+shakeoutDemandTailCond = hammerCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and maDistCond
 gapDownReversalCandle = close[1] < open[1] and open < close[1] and close > close[1] and bodySize > bodySize[1]
-gapDownReversalCond = gapDownReversalCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and (shortMaDistPrctRank < 15)
+gapDownReversalCond = gapDownReversalCandle and candleHeightPrctRank > 50 and volumePrctRank > 50 and maDistCond
 
 mtbSig = ta.barssince(minevriniTrendCond) < 15 and (triggerBarCond or shakeoutDemandTailCond and gapDownReversalCond)
 
