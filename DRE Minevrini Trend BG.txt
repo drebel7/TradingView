@@ -7,7 +7,8 @@ indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_b
 iBullish = input.bool(defval = true, title = 'bullish', inline = 'bb')
 iBearish = input.bool(defval = false, title = 'bearish', inline = 'bb')
 iIncludeRelativeStrenth = input.bool(defval=true, title='Include relative strength')
-iIncludeEarningsIncrease = input.bool(defval=true, title='Include earnings increase')
+iIncludeEarnings = input.bool(defval=true, title='Include earnings')
+iBetterEarningsRate = input.float(defval=0.5, title='Min. earnings improvement (worsening) rate', minval = 0.0, maxval = 1.0)
 
 int tradingDaysInAYear = 250
 int tradingDaysInAYearAndSome = tradingDaysInAYear + 30
@@ -37,18 +38,41 @@ epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / 
 epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
 earningsAvailable = not na(epsAct) or not na(epsStd)
 
-epsActBetter_10 = epsAct > epsAct[tradingDaysInAYearAndSome] ? 1 : 0
-epsActGoingUp = math.sum(epsActBetter_10, tradingDaysIn2YearsAndSome)
+earningsGoingUp(_eps, _candlesInAYear) =>
+    candlesOf1yearAndSome = _candlesInAYear + 40
+    candlesOf2yearsAndSome = 2 * _candlesInAYear + 40
+    earningsDay = _eps != _eps[1]
+    earningsDayCountIn2Years = math.sum(earningsDay ? 1 : 0, candlesOf2yearsAndSome)
+    epsBetter_10 = earningsDay and _eps > _eps[candlesOf1yearAndSome] ? 1 : 0
+    epsBetterIn2Years = math.sum(epsBetter_10, candlesOf2yearsAndSome)
+    isEnouthEarnings = earningsDayCountIn2Years >= 8
+    betterEpsRate = epsBetterIn2Years / earningsDayCountIn2Years
+    epsGoingUp = isEnouthEarnings and betterEpsRate >= iBetterEarningsRate and _eps > _eps[candlesOf1yearAndSome]
+    epsGoingUp
 
-epsStdBetter_10 = epsStd > epsStd[tradingDaysInAYearAndSome] ? 1 : 0
-epsStdGoingUp = math.sum(epsStdBetter_10, tradingDaysIn2YearsAndSome)
-
-epsLastYBetter = epsAct > epsAct[tradingDaysInAYearAndSome] or epsStd > epsStd[tradingDaysInAYearAndSome]
-epsGoingUpCond = math.max(epsActGoingUp, epsStdGoingUp) > 4 and math.max(epsAct, epsStd) > 0 and epsLastYBetter
-earningsCond = iIncludeEarningsIncrease and epsGoingUpCond or not iIncludeEarningsIncrease or not earningsAvailable
-
+epsActGoingUp = earningsGoingUp(epsAct, tradingDaysInAYear)
+epsStdGoingUp = earningsGoingUp(epsStd, tradingDaysInAYear)
+epsGoingUpCond = (epsActGoingUp or epsStdGoingUp) and math.max(epsAct, epsStd) > 0
+earningsCond = iIncludeEarnings and epsGoingUpCond or not iIncludeEarnings or not earningsAvailable
 
 // bearish conditions
+earningsGoingDn(_eps, _candlesInAYear) =>
+    candlesOf1yearAndSome = _candlesInAYear + 40
+    candlesOf2yearsAndSome = 2 * _candlesInAYear + 40
+    earningsDay = _eps != _eps[1]
+    earningsDayCountIn2Years = math.sum(earningsDay ? 1 : 0, candlesOf2yearsAndSome)
+    epsWorse_10 = earningsDay and _eps < _eps[candlesOf1yearAndSome] ? 1 : 0
+    epsWorseIn2Years = math.sum(epsWorse_10, candlesOf2yearsAndSome)
+    isEnouthEarnings = earningsDayCountIn2Years >= 8
+    worseEpsRate = epsWorseIn2Years / earningsDayCountIn2Years
+    epsGoingDn = isEnouthEarnings and worseEpsRate >= iBetterEarningsRate and _eps < _eps[candlesOf1yearAndSome]
+    epsGoingDn
+
+epsActGoingDn = earningsGoingDn(epsAct, tradingDaysInAYear)
+epsStdGoingDn = earningsGoingDn(epsStd, tradingDaysInAYear)
+epsGoingDnCond = (epsActGoingDn or epsStdGoingDn) and math.max(epsAct, epsStd) < 0
+earningsDnCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
+
 sma200GoingDown_10 = sma200 < sma200[1] ? 1 : 0
 sma200GoingDownCond = math.sum(sma200GoingDown_10, 35) > 30
 bearishMasAlignedCond = sma50 < sma150 and sma50 < sma200 and sma150 < sma200 and sma200GoingDownCond
@@ -57,15 +81,7 @@ bearishPriceMasAlignedCond = close < sma50 * 1.08 and close < sma150 and close <
 
 bearishSimpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
-epsActWorse_10 = epsAct < epsAct[tradingDaysInAYearAndSome] ? 1 : 0
-epsActGoingDn = math.sum(epsActWorse_10, tradingDaysIn2YearsAndSome)
-
-epsStdWorse_10 = epsStd < epsStd[tradingDaysInAYearAndSome] ? 1 : 0
-epsStdGoingDn = math.sum(epsStdWorse_10, tradingDaysIn2YearsAndSome)
-
-epsLastYWorse = epsAct < epsAct[tradingDaysInAYearAndSome] or epsStd < epsStd[tradingDaysInAYearAndSome]
-epsGoingDnCond = math.max(epsActGoingDn, epsStdGoingDn) > 4 and math.min(epsAct, epsStd) < 0 and epsLastYWorse
-bearishEarningsCond = iIncludeEarningsIncrease and epsGoingDnCond or not iIncludeEarningsIncrease or not earningsAvailable
+bearishEarningsCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
 
 
 minevriniTrend = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
