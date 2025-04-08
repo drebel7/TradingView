@@ -5,10 +5,11 @@
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
 iBullish = input.bool(defval = true, title = 'bullish', inline = 'bb')
-iBearish = input.bool(defval = false, title = 'bearish', inline = 'bb')
-iIncludeRelativeStrenth = input.bool(defval=true, title='Include relative strength')
-iIncludeEarnings = input.bool(defval=true, title='Include earnings')
-iBetterEarningsRate = input.float(defval=0.5, title='Min. earnings improvement (worsening) rate', minval = 0.0, maxval = 1.0, step=0.1)
+iBearish = input.bool(defval = true, title = 'bearish', inline = 'bb')
+iIncludeRelativeStrenth = input.bool(defval = true, title = 'Relative strength', group = 'Include')
+iIncludeEarnings = input.bool(defval = true, title = 'Earnings', group = 'Include', inline = 'earnings')
+iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', group = 'Include', minval = 0.0, maxval = 1.0, step = 0.1, inline = 'earnings')
+iSigDelay = input.int(defval = 0, title = 'Max. delay (days)', group = 'Signal', minval = 0, maxval = 60)
 
 int tradingDaysInAYear = 250
 int tradingDaysInAYearAndSome = tradingDaysInAYear + 30
@@ -94,5 +95,8 @@ minevriniBearishTrendSig = minevriniBearishTrend and not minevriniBearishTrend[1
 bgcolor(iBullish and minevriniTrend ? color.new(color.green, 85) : na)
 bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 
-alertcondition(minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
-alertcondition(minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
+minevriniTrendSigDelayed = ta.barssince(minevriniTrendSig) <= iSigDelay
+minevriniBearishTrendSigDelayed = ta.barssince(minevriniBearishTrendSig) <= iSigDelay
+
+alertcondition(minevriniTrendSigDelayed, title = 'Minevrini Trend green', message = 'mTrend - green')
+alertcondition(minevriniBearishTrendSigDelayed, title = 'Minevrini Trend red', message = 'mTrend - red')
