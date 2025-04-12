@@ -10,8 +10,13 @@ show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')
 show_turnover = input.bool(defval = true, title = 'Show avg. turnover')
 show_dtt_volume = input.bool(defval = true, title = 'Day to time volume %')
-show_dtt_time = input.bool(defval = false, title = 'Day to time time %')
+show_dtt_time = input.bool(defval = true, title = 'Day to time time %')
+show_short_ma_percentile = input.bool(defval = false, title = 'Short MA dist. percentile')
+show_mid_ma_percentile = input.bool(defval = false, title = 'Short-Mid. MA dist. percentile')
+show_sharpe_ratio = input.bool(defval = true, title = 'Sharpe ratio')
+
 len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
+riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
 bg_col = input.color(defval = #00000000, title = 'Background Color')
 adrp_col = input.color(defval = color.black, title = 'Text Color')
 show_empty_row = input.bool(defval = true, title = 'Add an empty row above the displayed values', tooltip = 'Serves the purpose of not having the pane icons overlap with the ' + 'text in the table if multiple panes are shown and the chart pane is hovered')
@@ -21,7 +26,33 @@ arp = 100 * (ta.sma(high / low, len) - 1)
 dttVolPct = 100 * volume / ta.sma(volume, len)
 dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
 
-table t = table.new(position.top_right, 2, 6, bgcolor = bg_col)
+// Sharpe Ratio
+riskFreeRateDaily = riskFreeRateAnnual / 252
+logReturn = math.log(close / close[1])
+excessReturn = logReturn - riskFreeRateDaily
+meanExcessReturn = ta.sma(excessReturn, len)
+stdExcessReturn = ta.stdev(excessReturn, len)
+sharpeRatio = stdExcessReturn != 0 ? meanExcessReturn / stdExcessReturn * math.sqrt(252) : na
+
+func_ma_distance2(_maLen1, _maLen2) =>
+    ma1 = ta.sma(close, _maLen1)
+    ma2 = ta.sma(close, _maLen2)
+    lenSum = _maLen1 + _maLen2
+    distance = math.sqrt((lenSum - _maLen1) * math.pow(ma1 - close, 2) + (lenSum - _maLen2) * math.pow(ma2 - close, 2))
+    distance
+
+func_ma_distance3(_maLen1, _maLen2, _maLen3) =>
+    ma1 = ta.sma(close, _maLen1)
+    ma2 = ta.sma(close, _maLen2)
+    ma3 = ta.sma(close, _maLen3)
+    lenSum = _maLen1 + _maLen2 + _maLen3
+    distance = math.sqrt((lenSum - _maLen1) * math.pow(ma1 - close, 2) + (lenSum - _maLen2) * math.pow(ma2 - close, 2) + (lenSum - _maLen3) * math.pow(ma3 - close, 2))
+    distance
+
+ma2DistPercentile = ta.percentrank(func_ma_distance2(10, 21), 200)
+ma3DistPercentile = ta.percentrank(func_ma_distance3(10, 21, 50), 200)
+
+table t = table.new(position.top_right, 2, 9, bgcolor = bg_col)
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_empty_row
         table.cell(t, 0, 0, '')
@@ -41,3 +72,12 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_dtt_time
         table.cell(t, 0, 5, 'Dtt time [%]', text_color = adrp_col)
         table.cell(t, 1, 5, str.tostring(math.round(dttTimePct, 1)), text_color = adrp_col)
+    if show_short_ma_percentile
+        table.cell(t, 0, 6, 'Short MAs prctl.', text_color = adrp_col)
+        table.cell(t, 1, 6, str.tostring(math.round(ma2DistPercentile)), text_color = adrp_col)
+    if show_mid_ma_percentile
+        table.cell(t, 0, 7, 'Short-Mid MAs prctl.', text_color = adrp_col)
+        table.cell(t, 1, 7, str.tostring(math.round(ma3DistPercentile)), text_color = adrp_col)
+    if show_sharpe_ratio
+        table.cell(t, 0, 8, 'Sharpe ratio', text_color = adrp_col)
+        table.cell(t, 1, 8, str.tostring(math.round(sharpeRatio)), text_color = adrp_col)
