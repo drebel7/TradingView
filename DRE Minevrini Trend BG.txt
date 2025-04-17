@@ -69,7 +69,7 @@ earningsGoingUp(_eps, _candlesInAYear) =>
 
 epsActGoingUp = earningsGoingUp(epsAct, tradingDaysInAYear)
 epsStdGoingUp = earningsGoingUp(epsStd, tradingDaysInAYear)
-epsGoingUpCond = (epsActGoingUp or epsStdGoingUp) and math.max(epsAct, epsStd) > 0
+epsGoingUpCond = (epsActGoingUp or epsStdGoingUp) and math.max(nz(epsAct), nz(epsStd)) > 0
 earningsCond = iIncludeEarnings and epsGoingUpCond or not iIncludeEarnings or not earningsAvailable
 
 // bearish conditions
