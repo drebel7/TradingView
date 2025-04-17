@@ -57,7 +57,7 @@ earningsGoingUp(_eps, _candlesInAYear) =>
 [stdEpsBetter1Y, stdEps1Y, stdEpsBetter2Y, stdEps2Y] = earningsGoingUp(epsStd, tradingDaysInAYear)
 actEpsStr = str.tostring(actEpsBetter1Y) + '/' + str.tostring(actEps1Y) + ' ' + str.tostring(actEpsBetter2Y) + '/' + str.tostring(actEps2Y)
 stdEpsStr = str.tostring(stdEpsBetter1Y) + '/' + str.tostring(stdEps1Y) + ' ' + str.tostring(stdEpsBetter2Y) + '/' + str.tostring(stdEps2Y)
-epsStr = actEps2Y > stdEps2Y ? actEpsStr : stdEpsStr
+epsStr = nz(actEps2Y) > nz(stdEps2Y) ? actEpsStr : stdEpsStr
 
 
 func_ma_distance2(_maLen1, _maLen2) =>
