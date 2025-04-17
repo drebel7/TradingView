@@ -87,7 +87,7 @@ earningsGoingDn(_eps, _candlesInAYear) =>
 
 epsActGoingDn = earningsGoingDn(epsAct, tradingDaysInAYear)
 epsStdGoingDn = earningsGoingDn(epsStd, tradingDaysInAYear)
-epsGoingDnCond = (epsActGoingDn or epsStdGoingDn) and math.max(epsAct, epsStd) < 0
+epsGoingDnCond = (epsActGoingDn or epsStdGoingDn) and math.max(nz(epsAct), nz(epsStd)) < 0
 earningsDnCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
 
 sma200GoingDown_10 = sma200 < sma200[1] ? 1 : 0
