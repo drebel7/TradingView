@@ -14,6 +14,7 @@ show_dtt_time = input.bool(defval = true, title = 'Day to time time %')
 show_short_ma_percentile = input.bool(defval = false, title = 'Short MA dist. percentile')
 show_mid_ma_percentile = input.bool(defval = false, title = 'Short-Mid. MA dist. percentile')
 show_sharpe_ratio = input.bool(defval = true, title = 'Sharpe ratio')
+show_earnings_up = input.bool(defval = true, title = 'Earnings going up')
 
 len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
 riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
@@ -34,6 +35,31 @@ meanExcessReturn = ta.sma(excessReturn, len)
 stdExcessReturn = ta.stdev(excessReturn, len)
 sharpeRatio = stdExcessReturn != 0 ? meanExcessReturn / stdExcessReturn * math.sqrt(252) : na
 
+// earnings acceleratiion
+totalShares = syminfo.shares_outstanding_total
+epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares
+epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
+earningsAvailable = not na(epsAct) or not na(epsStd)
+tradingDaysInAYear = 252
+
+earningsGoingUp(_eps, _candlesInAYear) =>
+    candlesOf1yearAndSome = _candlesInAYear + 20
+    candlesOf2yearsAndSome = 2 * _candlesInAYear + 20
+    earningsDay = _eps != _eps[1]
+    earningsDayCountIn1Y = math.sum(earningsDay ? 1 : 0, candlesOf1yearAndSome)
+    earningsDayCountIn2Y = math.sum(earningsDay ? 1 : 0, candlesOf2yearsAndSome)
+    epsBetter_10 = earningsDay and _eps > _eps[candlesOf1yearAndSome] ? 1 : 0
+    epsBetterIn1Y = math.sum(epsBetter_10, candlesOf1yearAndSome)
+    epsBetterIn2Y = math.sum(epsBetter_10, candlesOf2yearsAndSome)
+    [epsBetterIn1Y, earningsDayCountIn1Y, epsBetterIn2Y, earningsDayCountIn2Y]
+
+[actEpsBetter1Y, actEps1Y, actEpsBetter2Y, actEps2Y] = earningsGoingUp(epsAct, tradingDaysInAYear)
+[stdEpsBetter1Y, stdEps1Y, stdEpsBetter2Y, stdEps2Y] = earningsGoingUp(epsStd, tradingDaysInAYear)
+actEpsStr = str.tostring(actEpsBetter1Y) + '/' + str.tostring(actEps1Y) + ' ' + str.tostring(actEpsBetter2Y) + '/' + str.tostring(actEps2Y)
+stdEpsStr = str.tostring(stdEpsBetter1Y) + '/' + str.tostring(stdEps1Y) + ' ' + str.tostring(stdEpsBetter2Y) + '/' + str.tostring(stdEps2Y)
+epsStr = actEps2Y > stdEps2Y ? actEpsStr : stdEpsStr
+
+
 func_ma_distance2(_maLen1, _maLen2) =>
     ma1 = ta.sma(close, _maLen1)
     ma2 = ta.sma(close, _maLen2)
@@ -52,7 +78,7 @@ func_ma_distance3(_maLen1, _maLen2, _maLen3) =>
 ma2DistPercentile = ta.percentrank(func_ma_distance2(10, 21), 200)
 ma3DistPercentile = ta.percentrank(func_ma_distance3(10, 21, 50), 200)
 
-table t = table.new(position.top_right, 2, 9, bgcolor = bg_col)
+table t = table.new(position.top_right, 2, 10, bgcolor = bg_col)
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_empty_row
         table.cell(t, 0, 0, '')
@@ -81,3 +107,6 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_sharpe_ratio
         table.cell(t, 0, 8, 'Sharpe ratio', text_color = adrp_col)
         table.cell(t, 1, 8, str.tostring(math.round(sharpeRatio, 1)), text_color = adrp_col)
+    if show_earnings_up
+        table.cell(t, 0, 9, 'EPS up 1y 2y', text_color = adrp_col)
+        table.cell(t, 1, 9, epsStr, text_color = adrp_col)
