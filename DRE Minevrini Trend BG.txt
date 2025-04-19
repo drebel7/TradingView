@@ -42,21 +42,24 @@ int tradingDaysInAYear = 250
 int tradingDaysInAYearAndSome = tradingDaysInAYear + 30
 int tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 30
 
-sma200 = ta.sma(close, 200)
-sma150 = ta.sma(close, 150)
-sma50 = ta.sma(close, 50)
-
-yealyLow = ta.lowest(tradingDaysInAYear)
-yealyHigh = ta.highest(tradingDaysInAYear)
-
 // bullish conditions
-sma200GoingUp_10 = sma200 > sma200[1] ? 1 : 0
-sma200GoingUpCond = math.sum(sma200GoingUp_10, 35) > 30
-masAlignedCond = sma50 > sma150 and sma50 > sma200 and sma150 > sma200 and sma200GoingUpCond
-priceAlignedCond = close > 1.25 * yealyLow and close > yealyHigh / 1.25
-priceMasAlignedCond = close > sma50 / 1.08 and close > sma150 and close > sma200
+priceMasBullishAligned(_tradingDaysInAYear) =>
+    ma200 = ta.sma(close, 200)
+    ma150 = ta.sma(close, 150)
+    ma50 = ta.sma(close, 50)
+    yLow = ta.lowest(_tradingDaysInAYear)
+    yHigh = ta.highest(_tradingDaysInAYear)
+    ma200GoingUp_10 = ma200 > ma200[1] ? 1 : 0
+    ma200GoingUpCond = math.sum(ma200GoingUp_10, 35) > 30
+    masAlignedCond = ma50 > ma150 and ma50 > ma200 and ma150 > ma200 and ma200GoingUpCond
+    priceAlignedCond = close > 1.25 * yLow and close > yHigh / 1.25
+    priceMasAlignedCond = close > ma50 / 1.08 and close > ma150 and close > ma200
+    allCond = masAlignedCond and priceAlignedCond and priceMasAlignedCond
+    allCond
 
-// and RS Score > 70
+priceMasBulishAligned = priceMasBullishAligned(tradingDaysInAYear)
+
+// substitute for "RS Score > 70"
 benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
 simpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
@@ -101,21 +104,31 @@ epsStdGoingDn = earningsGoingDn(epsStd, tradingDaysInAYear)
 epsGoingDnCond = (epsActGoingDn or epsStdGoingDn) and math.max(nz(epsAct), nz(epsStd)) < 0
 earningsDnCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
 
-sma200GoingDown_10 = sma200 < sma200[1] ? 1 : 0
-sma200GoingDownCond = math.sum(sma200GoingDown_10, 35) > 30
-bearishMasAlignedCond = sma50 < sma150 and sma50 < sma200 and sma150 < sma200 and sma200GoingDownCond
-bearishPriceAlignedCond = close < 1.25 * yealyLow and close < yealyHigh / 1.25
-bearishPriceMasAlignedCond = close < sma50 * 1.08 and close < sma150 and close < sma200
+priceMasBearishAligned(_tradingDaysInAYear) =>
+    ma200 = ta.sma(close, 200)
+    ma150 = ta.sma(close, 150)
+    ma50 = ta.sma(close, 50)
+    yLow = ta.lowest(_tradingDaysInAYear)
+    yHigh = ta.highest(_tradingDaysInAYear)
+    ma200GoingDn_10 = ma200 < ma200[1] ? 1 : 0
+    ma200GoingDnCond = math.sum(ma200GoingDn_10, 35) > 30
+    masAlignedCond = ma50 < ma150 and ma50 < ma200 and ma150 < ma200 and ma200GoingDnCond
+    priceAlignedCond = close < 1.25 * yLow and close < yHigh / 1.25
+    priceMasAlignedCond = close < ma50 * 1.08 and close < ma150 and close < ma200
+    allCond = masAlignedCond and priceAlignedCond and priceMasAlignedCond
+    allCond
+
+priceMasBearishAligned = priceMasBearishAligned(tradingDaysInAYear)
 
 bearishSimpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
 bearishEarningsCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
 
 
-minevriniTrend = masAlignedCond and priceAlignedCond and priceMasAlignedCond and simpleRelativeStrengthCond and earningsCond
+minevriniTrend = priceMasBulishAligned and simpleRelativeStrengthCond and earningsCond
 minevriniTrendSig = minevriniTrend and not minevriniTrend[1]
 
-minevriniBearishTrend = bearishMasAlignedCond and bearishPriceAlignedCond and bearishPriceMasAlignedCond and bearishSimpleRelativeStrengthCond and bearishEarningsCond
+minevriniBearishTrend = priceMasBearishAligned and bearishSimpleRelativeStrengthCond and bearishEarningsCond
 minevriniBearishTrendSig = minevriniBearishTrend and not minevriniBearishTrend[1]
 
 
