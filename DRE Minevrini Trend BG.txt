@@ -39,8 +39,6 @@ iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', grou
 
 //minevrini trend calculations
 int tradingDaysInAYear = 250
-int tradingDaysInAYearAndSome = tradingDaysInAYear + 30
-int tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 30
 
 // bullish conditions
 priceMasBullishAligned(_tradingDaysInAYear) =>
