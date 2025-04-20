@@ -22,13 +22,14 @@ minAdrOk(_minAdr, _len) =>
     adrCond = adr > _minAdr
     adrCond
 
-generalFilter(_minTurnoverM, _minAdr, _len) =>
+generalFilter(_minTurnoverM, _minAdr, _minPrice, _len) =>
     turnoverCond = minTurnoverOk(_minTurnoverM, _len)
     adrCond = minAdrOk(_minAdr, _len)
-    allCond = turnoverCond and adrCond
+    priceCond = close > _minPrice
+    allCond = turnoverCond and adrCond and priceCond
     allCond
 
-gFilter = generalFilter(iMinTurnover, iMinAdr, 50) and iTurnoverAndAdrCond or not iTurnoverAndAdrCond
+gFilter = generalFilter(iMinTurnover, iMinAdr, 1.0, 50) and iTurnoverAndAdrCond or not iTurnoverAndAdrCond
 
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
