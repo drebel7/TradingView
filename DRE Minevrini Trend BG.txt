@@ -39,7 +39,7 @@ iIncludeEarnings = input.bool(defval = true, title = 'Earnings', group = 'Includ
 iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', group = 'Include', minval = 0.0, maxval = 1.0, step = 0.1, inline = 'earnings')
 
 //minevrini trend calculations
-int tradingDaysInAYear = 250
+int tradingDaysInAYear = 252
 
 // bullish conditions
 priceMasBullishAligned(_tradingDaysInAYear) =>
@@ -63,44 +63,35 @@ benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.peri
 simpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63] or not iIncludeRelativeStrenth
 
 // earnings acceleratiion
-totalShares = syminfo.shares_outstanding_total
-epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares
-epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
-earningsAvailable = not na(epsAct) or not na(epsStd)
+tradingDaysInAYearAndSome = tradingDaysInAYear + 20
 
-earningsGoingUp(_eps, _candlesInAYear) =>
-    candlesOf1yearAndSome = _candlesInAYear + 40
-    candlesOf2yearsAndSome = 2 * _candlesInAYear + 40
+earningsGoingUp(_eps, _period) =>
     earningsDay = _eps != _eps[1]
-    earningsDayCountIn2Years = math.sum(earningsDay ? 1 : 0, candlesOf2yearsAndSome)
-    epsBetter_10 = earningsDay and _eps > _eps[candlesOf1yearAndSome] ? 1 : 0
-    epsBetterIn2Years = math.sum(epsBetter_10, candlesOf2yearsAndSome)
-    isEnouthEarnings = earningsDayCountIn2Years >= 8
-    betterEpsRate = epsBetterIn2Years / earningsDayCountIn2Years
-    epsGoingUp = isEnouthEarnings and betterEpsRate >= iBetterEarningsRate and _eps > _eps[candlesOf1yearAndSome]
-    epsGoingUp
+    earningsDayCountPeriod = math.sum(earningsDay ? 1 : 0, _period)
+    epsBetter_10 = earningsDay and _eps > _eps[_period] ? 1 : 0
+    epsBetterInPeriod = math.sum(epsBetter_10, _period)
+    [epsBetterInPeriod, earningsDayCountPeriod]
 
-epsActGoingUp = earningsGoingUp(epsAct, tradingDaysInAYear)
-epsStdGoingUp = earningsGoingUp(epsStd, tradingDaysInAYear)
-epsGoingUpCond = (epsActGoingUp or epsStdGoingUp) and math.max(nz(epsAct), nz(epsStd)) > 0
+earningsGoingUp(_epsAct, _epsStd, _period) =>
+    [actEpsBetter1Y, actEps1Y] = earningsGoingUp(_epsAct, _period)
+    [stdEpsBetter1Y, stdEps1Y] = earningsGoingUp(_epsStd, _period)
+    earningsDayCountPeriod = nz(actEps1Y) > nz(stdEps1Y) ? nz(actEps1Y) : nz(stdEps1Y)
+    epsBetterInPeriod = nz(actEps1Y) > nz(stdEps1Y) ? nz(actEpsBetter1Y) : nz(stdEpsBetter1Y)
+    [epsBetterInPeriod, earningsDayCountPeriod]
+
+earningsGoingUp(_period) =>
+    totalShares = syminfo.shares_outstanding_total
+    epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares
+    epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
+    [epsBetterInPeriod, earningsDayCountPeriod] = earningsGoingUp(epsAct, epsStd, _period)
+
+[epsBetter1Y, epsDays1Y] = earningsGoingUp(tradingDaysInAYearAndSome)
+earningsAvailable = epsDays1Y > 0
+epsGoingUpCond = epsBetter1Y / epsDays1Y >= iBetterEarningsRate
 earningsCond = iIncludeEarnings and epsGoingUpCond or not iIncludeEarnings or not earningsAvailable
 
 // bearish conditions
-earningsGoingDn(_eps, _candlesInAYear) =>
-    candlesOf1yearAndSome = _candlesInAYear + 40
-    candlesOf2yearsAndSome = 2 * _candlesInAYear + 40
-    earningsDay = _eps != _eps[1]
-    earningsDayCountIn2Years = math.sum(earningsDay ? 1 : 0, candlesOf2yearsAndSome)
-    epsWorse_10 = earningsDay and _eps < _eps[candlesOf1yearAndSome] ? 1 : 0
-    epsWorseIn2Years = math.sum(epsWorse_10, candlesOf2yearsAndSome)
-    isEnouthEarnings = earningsDayCountIn2Years >= 8
-    worseEpsRate = epsWorseIn2Years / earningsDayCountIn2Years
-    epsGoingDn = isEnouthEarnings and worseEpsRate >= iBetterEarningsRate and _eps < _eps[candlesOf1yearAndSome]
-    epsGoingDn
-
-epsActGoingDn = earningsGoingDn(epsAct, tradingDaysInAYear)
-epsStdGoingDn = earningsGoingDn(epsStd, tradingDaysInAYear)
-epsGoingDnCond = (epsActGoingDn or epsStdGoingDn) and math.max(nz(epsAct), nz(epsStd)) < 0
+epsGoingDnCond = (epsDays1Y - epsBetter1Y) / epsDays1Y >= iBetterEarningsRate
 earningsDnCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
 
 priceMasBearishAligned(_tradingDaysInAYear) =>
