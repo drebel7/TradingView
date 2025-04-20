@@ -43,24 +43,26 @@ epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / 
 epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
 earningsAvailable = not na(epsAct) or not na(epsStd)
 tradingDaysInAYear = 252
+tradingDaysInAYearAndSome = tradingDaysInAYear + 20
+tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 20
 
-earningsGoingUp(_eps, _candlesInAYear) =>
-    candlesOf1yearAndSome = _candlesInAYear + 20
-    candlesOf2yearsAndSome = 2 * _candlesInAYear + 20
+earningsGoingUp(_eps, _period) =>
     earningsDay = _eps != _eps[1]
-    earningsDayCountIn1Y = math.sum(earningsDay ? 1 : 0, candlesOf1yearAndSome)
-    earningsDayCountIn2Y = math.sum(earningsDay ? 1 : 0, candlesOf2yearsAndSome)
-    epsBetter_10 = earningsDay and _eps > _eps[candlesOf1yearAndSome] ? 1 : 0
-    epsBetterIn1Y = math.sum(epsBetter_10, candlesOf1yearAndSome)
-    epsBetterIn2Y = math.sum(epsBetter_10, candlesOf2yearsAndSome)
-    [epsBetterIn1Y, earningsDayCountIn1Y, epsBetterIn2Y, earningsDayCountIn2Y]
+    earningsDayCountPeriod = math.sum(earningsDay ? 1 : 0, _period)
+    epsBetter_10 = earningsDay and _eps > _eps[_period] ? 1 : 0
+    epsBetterInPeriod = math.sum(epsBetter_10, _period)
+    [epsBetterInPeriod, earningsDayCountPeriod]
 
-[actEpsBetter1Y, actEps1Y, actEpsBetter2Y, actEps2Y] = earningsGoingUp(epsAct, tradingDaysInAYear)
-[stdEpsBetter1Y, stdEps1Y, stdEpsBetter2Y, stdEps2Y] = earningsGoingUp(epsStd, tradingDaysInAYear)
-actEpsStr = str.tostring(actEpsBetter1Y) + '/' + str.tostring(actEps1Y) + ' ' + str.tostring(actEpsBetter2Y) + '/' + str.tostring(actEps2Y)
-stdEpsStr = str.tostring(stdEpsBetter1Y) + '/' + str.tostring(stdEps1Y) + ' ' + str.tostring(stdEpsBetter2Y) + '/' + str.tostring(stdEps2Y)
-epsStr = nz(actEps2Y) > nz(stdEps2Y) ? actEpsStr : stdEpsStr
+earningsGoingUp(_epsAct, _epsStd, _period) =>
+    [actEpsBetter1Y, actEps1Y] = earningsGoingUp(_epsAct, _period)
+    [stdEpsBetter1Y, stdEps1Y] = earningsGoingUp(_epsStd, _period)
+    earningsDayCountPeriod = nz(actEps1Y) > nz(stdEps1Y) ? nz(actEps1Y) : nz(stdEps1Y)
+    epsBetterInPeriod = nz(actEps1Y) > nz(stdEps1Y) ? nz(actEpsBetter1Y) : nz(stdEpsBetter1Y)
+    [epsBetterInPeriod, earningsDayCountPeriod]
 
+[epsBetter1Y, epsDays1Y] = earningsGoingUp(epsAct, epsStd, tradingDaysInAYearAndSome)
+[epsBetter2Y, epsDays2Y] = earningsGoingUp(epsAct, epsStd, tradingDaysIn2YearsAndSome)
+epsStr = str.tostring(epsBetter1Y) + '/' + str.tostring(epsDays1Y) + ' ' + str.tostring(epsBetter2Y) + '/' + str.tostring(epsDays2Y)
 
 func_ma_distance2(_maLen1, _maLen2) =>
     ma1 = ta.sma(close, _maLen1)
