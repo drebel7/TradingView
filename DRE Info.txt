@@ -6,6 +6,8 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
+import drebel/DRELib/3 as drelib
+
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')
 show_adr_50dr = input.bool(defval = false, title = 'Show ADR/50DR percentile')
@@ -42,48 +44,13 @@ tradingDaysInAYear = 252
 tradingDaysInAYearAndSome = tradingDaysInAYear + 20
 tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 20
 
-earningsGoingUp(_eps, _period) =>
-    earningsDay = _eps != _eps[1]
-    earningsDayCountPeriod = math.sum(earningsDay ? 1 : 0, _period)
-    epsBetter_10 = earningsDay and _eps > _eps[_period] ? 1 : 0
-    epsBetterInPeriod = math.sum(epsBetter_10, _period)
-    [epsBetterInPeriod, earningsDayCountPeriod]
-
-earningsGoingUp(_epsAct, _epsStd, _period) =>
-    [actEpsBetter1Y, actEps1Y] = earningsGoingUp(_epsAct, _period)
-    [stdEpsBetter1Y, stdEps1Y] = earningsGoingUp(_epsStd, _period)
-    earningsDayCountPeriod = nz(actEps1Y) > nz(stdEps1Y) ? nz(actEps1Y) : nz(stdEps1Y)
-    epsBetterInPeriod = nz(actEps1Y) > nz(stdEps1Y) ? nz(actEpsBetter1Y) : nz(stdEpsBetter1Y)
-    [epsBetterInPeriod, earningsDayCountPeriod]
-
-earningsGoingUp(_period) =>
-    totalShares = syminfo.shares_outstanding_total
-    epsAct = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares
-    epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
-    [epsBetterInPeriod, earningsDayCountPeriod] = earningsGoingUp(epsAct, epsStd, _period)
-
-[epsBetter1Y, epsDays1Y] = earningsGoingUp(tradingDaysInAYearAndSome)
-[epsBetter2Y, epsDays2Y] = earningsGoingUp(tradingDaysIn2YearsAndSome)
+[epsBetter1Y, epsDays1Y] = drelib.earningsGoingUp(tradingDaysInAYearAndSome)
+[epsBetter2Y, epsDays2Y] = drelib.earningsGoingUp(tradingDaysIn2YearsAndSome)
 earningsAvailable = epsDays1Y + epsDays2Y > 0
 epsStr = str.tostring(epsBetter1Y) + '/' + str.tostring(epsDays1Y) + ' ' + str.tostring(epsBetter2Y) + '/' + str.tostring(epsDays2Y)
 
-func_ma_distance2(_maLen1, _maLen2) =>
-    ma1 = ta.sma(close, _maLen1)
-    ma2 = ta.sma(close, _maLen2)
-    lenSum = _maLen1 + _maLen2
-    distance = math.sqrt((lenSum - _maLen1) * math.pow(ma1 - close, 2) + (lenSum - _maLen2) * math.pow(ma2 - close, 2))
-    distance
-
-func_ma_distance3(_maLen1, _maLen2, _maLen3) =>
-    ma1 = ta.sma(close, _maLen1)
-    ma2 = ta.sma(close, _maLen2)
-    ma3 = ta.sma(close, _maLen3)
-    lenSum = _maLen1 + _maLen2 + _maLen3
-    distance = math.sqrt((lenSum - _maLen1) * math.pow(ma1 - close, 2) + (lenSum - _maLen2) * math.pow(ma2 - close, 2) + (lenSum - _maLen3) * math.pow(ma3 - close, 2))
-    distance
-
-ma2DistPercentile = ta.percentrank(func_ma_distance2(10, 21), 200)
-ma3DistPercentile = ta.percentrank(func_ma_distance3(10, 21, 50), 200)
+ma2DistPercentile = ta.percentrank(drelib.ma_distance(10, 21), 200)
+ma3DistPercentile = ta.percentrank(drelib.ma_distance(10, 21, 50), 200)
 
 table t = table.new(position.top_right, 2, 11, bgcolor = bg_col)
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
