@@ -5,10 +5,10 @@
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
 //common filters inputs
-iTurnoverAndAdrCond = input.bool(defval = true, title = 'Min. Turnover[M] and ADR[%] for signal', group = 'Signal filters', inline = 'trn')
-iMinTurnover = input.float(defval = 0.2, title = '', minval = 0, group = 'Signal filters', inline = 'trn')
-iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, group = 'Signal filters', inline = 'adr')
-iSigDelay = input.int(defval = 0, title = 'Max. delay (days)', group = 'Signal filters', minval = 0, maxval = 60)
+iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
+iMinTurnover = input.float(defval = 0.2, title = 'Min. Turnover[M]', minval = 0, group = 'General filter for signal')
+iMinAdr = input.float(defval = 2.6, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
+iMinPrice = input.float(defval = 1.0, title = 'Min. price', minval = 0, step = 0.2, group = 'General filter for signal')
 
 //common filters calculations 
 minTurnoverOk(_minTurnoverM, _len) =>
@@ -29,7 +29,7 @@ generalFilter(_minTurnoverM, _minAdr, _minPrice, _len) =>
     allCond = turnoverCond and adrCond and priceCond
     allCond
 
-gFilter = generalFilter(iMinTurnover, iMinAdr, 1.0, 50) and iTurnoverAndAdrCond or not iTurnoverAndAdrCond
+gFilter = generalFilter(iMinTurnover, iMinAdr, 1.0, 50) and iGeneralFilterCond or not iGeneralFilterCond
 
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
@@ -125,8 +125,5 @@ minevriniBearishTrendSig = minevriniBearishTrend and not minevriniBearishTrend[1
 bgcolor(iBullish and minevriniTrend ? color.new(color.green, 85) : na)
 bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 
-minevriniTrendSigDelayed = ta.barssince(minevriniTrendSig) <= iSigDelay
-minevriniBearishTrendSigDelayed = ta.barssince(minevriniBearishTrendSig) <= iSigDelay
-
-alertcondition(gFilter and minevriniTrendSigDelayed, title = 'Minevrini Trend green', message = 'mTrend - green')
-alertcondition(gFilter and minevriniBearishTrendSigDelayed, title = 'Minevrini Trend red', message = 'mTrend - red')
+alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
+alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
