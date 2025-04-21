@@ -29,8 +29,12 @@ int tradingDaysInAYear = 252
 priceMasBulishAligned = drelib.priceMasBullishAligned(tradingDaysInAYear)
 
 // substitute for "RS Score > 70"
-benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
-simpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63] or not iIncludeRelativeStrenth
+simpleRelativeStrengthStrong() =>
+    benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    relativelyStrong = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
+    relativelyStrong
+
+simpleRelativeStrengthCond = simpleRelativeStrengthStrong() and iIncludeRelativeStrenth or not iIncludeRelativeStrenth
 
 // earnings acceleratiion
 tradingDaysInAYearAndSome = tradingDaysInAYear + 20
@@ -46,7 +50,12 @@ earningsDnCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or 
 
 priceMasBearishAligned = drelib.priceMasBearishAligned(tradingDaysInAYear)
 
-bearishSimpleRelativeStrengthCond = iIncludeRelativeStrenth and close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63] or not iIncludeRelativeStrenth
+simpleRelativeStrengthWeak() =>
+    benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    relativelyWeak = close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63]
+    relativelyWeak
+
+bearishSimpleRelativeStrengthCond = simpleRelativeStrengthWeak() and iIncludeRelativeStrenth or not iIncludeRelativeStrenth
 
 bearishEarningsCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
 
