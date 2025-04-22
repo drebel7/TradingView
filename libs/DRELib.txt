@@ -129,6 +129,21 @@ export priceMasBearishAligned(int _tradingDaysInAYear) =>
     allCond = masAlignedCond and priceAlignedCond and priceMasAlignedCond
     allCond
 
+// substitute for "RS Score > 70"
+export simpleRelativeStrengthStrong(int _tradingDaysInAYear) =>
+    benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    halfYearDays = _tradingDaysInAYear / 2
+    quarterYearDays = _tradingDaysInAYear / 4
+    relativelyStrong = close / benchmark > close[halfYearDays] / benchmark[halfYearDays] and close / benchmark > close[quarterYearDays] / benchmark[quarterYearDays]
+    relativelyStrong
+
+export simpleRelativeStrengthWeak(int _tradingDaysInAYear) =>
+    benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    halfYearDays = _tradingDaysInAYear / 2
+    quarterYearDays = _tradingDaysInAYear / 4
+    relativelyWeak = close / benchmark < close[halfYearDays] / benchmark[halfYearDays] and close / benchmark < close[quarterYearDays] / benchmark[quarterYearDays]
+    relativelyWeak
+
 earningsGoingUp(_eps, int _period) =>
     earningsDay = _eps != _eps[1]
     earningsDayCountPeriod = math.sum(earningsDay ? 1 : 0, _period)
@@ -149,6 +164,31 @@ export earningsGoingUp(int _period) =>
     epsStd = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares
     [epsBetterInPeriod, earningsDayCountPeriod] = earningsGoingUp(epsAct, epsStd, _period)
 
+export isMinevriniBullishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
+    priceMasBulishAlignedCond = priceMasBullishAligned(_tradingDaysInAYear)
+    simpleRelativeStrengthCond = simpleRelativeStrengthStrong(_tradingDaysInAYear) and _includeRelativeStrength or not _includeRelativeStrength
+    [epsBetter1Y, epsDays1Y] = earningsGoingUp(_tradingDaysInAYear + 20)
+    earningsAvailable = epsDays1Y > 0
+    epsGoingUpCond = epsBetter1Y / epsDays1Y >= _minEarningsChangeRate
+    earningsCond = epsGoingUpCond and _includeEarnings or not _includeEarnings or not earningsAvailable
+    bullishTrend = priceMasBulishAlignedCond and simpleRelativeStrengthCond and earningsCond
+    bullishTrend
+
+export isMinevriniBullishTrend(bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
+    isMinevriniBullishTrend(252, _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
+
+export isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
+    priceMasBearishAlignedCond = priceMasBearishAligned(_tradingDaysInAYear)
+    simpleRelativeStrengthCond = simpleRelativeStrengthWeak(_tradingDaysInAYear) and _includeRelativeStrength or not _includeRelativeStrength
+    [epsBetter1Y, epsDays1Y] = earningsGoingUp(_tradingDaysInAYear + 20)
+    earningsAvailable = epsDays1Y > 0
+    epsGoingUpCond = (epsDays1Y - epsBetter1Y) / epsDays1Y >= _minEarningsChangeRate
+    earningsCond = epsGoingUpCond and _includeEarnings or not _includeEarnings or not earningsAvailable
+    bearishTrend = priceMasBearishAlignedCond and simpleRelativeStrengthCond and earningsCond
+    bearishTrend
+
+export isMinevriniBearishTrend(bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
+    isMinevriniBearishTrend(252, _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
 
 // Signals
 export sig_parabolic_top(series float _volMa, int _downDaysAfterTop, int _prevPeriodGainLen, int _atrMulti, series float _atr) =>
@@ -157,4 +197,3 @@ export sig_parabolic_top(series float _volMa, int _downDaysAfterTop, int _prevPe
     downDaysCond = bar_index > _downDaysAfterTop and volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
     ret = barsSinceVolDown > 15 and close > localLow + _atrMulti * _atr and downDaysCond
     ret
-
