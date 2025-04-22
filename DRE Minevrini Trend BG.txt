@@ -22,48 +22,41 @@ iIncludeRelativeStrenth = input.bool(defval = true, title = 'Relative strength',
 iIncludeEarnings = input.bool(defval = true, title = 'Earnings', group = 'Include', inline = 'earnings')
 iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', group = 'Include', minval = 0.0, maxval = 1.0, step = 0.1, inline = 'earnings')
 
-//minevrini trend calculations
-int tradingDaysInAYear = 252
-
-// bullish conditions
-priceMasBulishAligned = drelib.priceMasBullishAligned(tradingDaysInAYear)
-
 // substitute for "RS Score > 70"
 simpleRelativeStrengthStrong() =>
     benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
     relativelyStrong = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
     relativelyStrong
 
-simpleRelativeStrengthCond = simpleRelativeStrengthStrong() and iIncludeRelativeStrenth or not iIncludeRelativeStrenth
-
-// earnings acceleratiion
-tradingDaysInAYearAndSome = tradingDaysInAYear + 20
-
-[epsBetter1Y, epsDays1Y] = drelib.earningsGoingUp(tradingDaysInAYearAndSome)
-earningsAvailable = epsDays1Y > 0
-epsGoingUpCond = epsBetter1Y / epsDays1Y >= iBetterEarningsRate
-earningsCond = iIncludeEarnings and epsGoingUpCond or not iIncludeEarnings or not earningsAvailable
-
-// bearish conditions
-epsGoingDnCond = (epsDays1Y - epsBetter1Y) / epsDays1Y >= iBetterEarningsRate
-earningsDnCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
-
-priceMasBearishAligned = drelib.priceMasBearishAligned(tradingDaysInAYear)
-
 simpleRelativeStrengthWeak() =>
     benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
     relativelyWeak = close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63]
     relativelyWeak
 
-bearishSimpleRelativeStrengthCond = simpleRelativeStrengthWeak() and iIncludeRelativeStrenth or not iIncludeRelativeStrenth
+isMinevriniBullishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
+    priceMasBulishAlignedCond = drelib.priceMasBullishAligned(_tradingDaysInAYear)
+    simpleRelativeStrengthCond = simpleRelativeStrengthStrong() and _includeRelativeStrength or not _includeRelativeStrength
+    [epsBetter1Y, epsDays1Y] = drelib.earningsGoingUp(_tradingDaysInAYear + 20)
+    earningsAvailable = epsDays1Y > 0
+    epsGoingUpCond = epsBetter1Y / epsDays1Y >= _minEarningsChangeRate
+    earningsCond = epsGoingUpCond and _includeEarnings or not _includeEarnings or not earningsAvailable
+    bullishTrend = priceMasBulishAlignedCond and simpleRelativeStrengthCond and earningsCond
+    bullishTrend
 
-bearishEarningsCond = iIncludeEarnings and epsGoingDnCond or not iIncludeEarnings or not earningsAvailable
+isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
+    priceMasBearishAlignedCond = drelib.priceMasBearishAligned(_tradingDaysInAYear)
+    simpleRelativeStrengthCond = simpleRelativeStrengthWeak() and _includeRelativeStrength or not _includeRelativeStrength
+    [epsBetter1Y, epsDays1Y] = drelib.earningsGoingUp(_tradingDaysInAYear + 20)
+    earningsAvailable = epsDays1Y > 0
+    epsGoingUpCond = (epsDays1Y - epsBetter1Y) / epsDays1Y >= _minEarningsChangeRate
+    earningsCond = epsGoingUpCond and _includeEarnings or not _includeEarnings or not earningsAvailable
+    bearishTrend = priceMasBearishAlignedCond and simpleRelativeStrengthCond and earningsCond
+    bearishTrend
 
-
-minevriniTrend = priceMasBulishAligned and simpleRelativeStrengthCond and earningsCond
+minevriniTrend = isMinevriniBullishTrend(252, iIncludeRelativeStrenth, iIncludeEarnings, iBetterEarningsRate)
 minevriniTrendSig = minevriniTrend and not minevriniTrend[1]
 
-minevriniBearishTrend = priceMasBearishAligned and bearishSimpleRelativeStrengthCond and bearishEarningsCond
+minevriniBearishTrend = isMinevriniBearishTrend(252, iIncludeRelativeStrenth, iIncludeEarnings, iBetterEarningsRate)
 minevriniBearishTrendSig = minevriniBearishTrend and not minevriniBearishTrend[1]
 
 
