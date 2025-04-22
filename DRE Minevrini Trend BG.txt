@@ -23,19 +23,23 @@ iIncludeEarnings = input.bool(defval = true, title = 'Earnings', group = 'Includ
 iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', group = 'Include', minval = 0.0, maxval = 1.0, step = 0.1, inline = 'earnings')
 
 // substitute for "RS Score > 70"
-simpleRelativeStrengthStrong() =>
+simpleRelativeStrengthStrong(int _tradingDaysInAYear) =>
     benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
-    relativelyStrong = close / benchmark > close[126] / benchmark[126] and close / benchmark > close[63] / benchmark[63]
+    halfYearDays = _tradingDaysInAYear / 2
+    quarterYearDays = _tradingDaysInAYear / 4
+    relativelyStrong = close / benchmark > close[halfYearDays] / benchmark[halfYearDays] and close / benchmark > close[quarterYearDays] / benchmark[quarterYearDays]
     relativelyStrong
 
-simpleRelativeStrengthWeak() =>
+simpleRelativeStrengthWeak(int _tradingDaysInAYear) =>
     benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
-    relativelyWeak = close / benchmark < close[126] / benchmark[126] and close / benchmark < close[63] / benchmark[63]
+    halfYearDays = _tradingDaysInAYear / 2
+    quarterYearDays = _tradingDaysInAYear / 4
+    relativelyWeak = close / benchmark < close[halfYearDays] / benchmark[halfYearDays] and close / benchmark < close[quarterYearDays] / benchmark[quarterYearDays]
     relativelyWeak
 
 isMinevriniBullishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
     priceMasBulishAlignedCond = drelib.priceMasBullishAligned(_tradingDaysInAYear)
-    simpleRelativeStrengthCond = simpleRelativeStrengthStrong() and _includeRelativeStrength or not _includeRelativeStrength
+    simpleRelativeStrengthCond = simpleRelativeStrengthStrong(_tradingDaysInAYear) and _includeRelativeStrength or not _includeRelativeStrength
     [epsBetter1Y, epsDays1Y] = drelib.earningsGoingUp(_tradingDaysInAYear + 20)
     earningsAvailable = epsDays1Y > 0
     epsGoingUpCond = epsBetter1Y / epsDays1Y >= _minEarningsChangeRate
@@ -45,7 +49,7 @@ isMinevriniBullishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, 
 
 isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
     priceMasBearishAlignedCond = drelib.priceMasBearishAligned(_tradingDaysInAYear)
-    simpleRelativeStrengthCond = simpleRelativeStrengthWeak() and _includeRelativeStrength or not _includeRelativeStrength
+    simpleRelativeStrengthCond = simpleRelativeStrengthWeak(_tradingDaysInAYear) and _includeRelativeStrength or not _includeRelativeStrength
     [epsBetter1Y, epsDays1Y] = drelib.earningsGoingUp(_tradingDaysInAYear + 20)
     earningsAvailable = epsDays1Y > 0
     epsGoingUpCond = (epsDays1Y - epsBetter1Y) / epsDays1Y >= _minEarningsChangeRate
