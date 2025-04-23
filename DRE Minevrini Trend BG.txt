@@ -34,3 +34,19 @@ bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 
 alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
+
+
+//Relative Measured Volatility
+rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
+    short1 = ta.atr(_shortLookback1)
+    short2 = ta.atr(_shortLookback2)
+    short3 = ta.atr(_shortLookback3)
+    shortAvg = (short1 + short2 + short3) / 3
+    highestShortAvg = ta.highest(shortAvg, _mainLookback)
+    lowestShortAvg = ta.lowest(shortAvg, _mainLookback)
+    rmvValue = (shortAvg - lowestShortAvg) / math.max(highestShortAvg - lowestShortAvg, 0.001) * 100
+    rmvValue
+
+rmv = rmv(21, 8, 5, 3)
+contraction1 = rmv < 25
+contractionCond = ta.barssince(contraction1) <=5
