@@ -36,6 +36,12 @@ alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', m
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
 
+iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
+iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookback 1', minval = 1, group = 'Contraction params')
+iRmvShortLookback2 = input.int(defval = 5, title = 'RMV short lookback 2', minval = 1, group = 'Contraction params')
+iRmvShortLookback3 = input.int(defval = 3, title = 'RMV short lookback 3', minval = 1, group = 'Contraction params')
+iMaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+
 //Relative Measured Volatility
 rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
     short1 = ta.atr(_shortLookback1)
@@ -47,6 +53,26 @@ rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookb
     rmvValue = (shortAvg - lowestShortAvg) / math.max(highestShortAvg - lowestShortAvg, 0.001) * 100
     rmvValue
 
-rmv = rmv(21, 8, 5, 3)
+rmv = rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLookback3)
 contraction1 = rmv < 25
-contractionCond = ta.barssince(contraction1) <=5
+contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
+
+iBreakoutLookback = input.int(defval = 12, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
+iMinVolumePct = input.int(defval = 180, title = 'Min. relative volume Pct.', minval = 100, group = 'Breakout params')
+
+strongBreakout(int _highestLookback, int _minVolDttPct) =>
+    lastHighest = ta.highest(_highestLookback)
+    dttVolPct = 100 * volume / ta.sma(volume, 30)
+    dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
+    breakout = close > lastHighest[1]
+    strongBreakout = dttVolPct > _minVolDttPct and breakout
+    strongBreakout
+
+strongBreakoutCond = strongBreakout(iBreakoutLookback, iMinVolumePct)
+
+minevriniTrendCond = ta.barssince(minevriniTrend) < 50
+
+minevriniTrendContractionBreakout = minevriniTrendCond and contractionCond and strongBreakoutCond
+
+alertcondition(gFilter and minevriniTrendContractionBreakout, title = 'bullish MTCB', message = 'MTCB')
+plotshape(minevriniTrendContractionBreakout, title = 'mtcb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtcb', textcolor = color.new(color.green, 0))
