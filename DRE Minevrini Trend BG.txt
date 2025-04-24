@@ -40,7 +40,7 @@ iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 
 iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookback 1', minval = 1, group = 'Contraction params')
 iRmvShortLookback2 = input.int(defval = 5, title = 'RMV short lookback 2', minval = 1, group = 'Contraction params')
 iRmvShortLookback3 = input.int(defval = 3, title = 'RMV short lookback 3', minval = 1, group = 'Contraction params')
-iMaxBarsSinceContraction = input.int(defval = 10, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
 rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
@@ -57,19 +57,21 @@ rmv = rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLoo
 contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
-iBreakoutLookback = input.int(defval = 12, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
-iMinVolumePct = input.int(defval = 135, title = 'Min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iBreakoutLookback = input.int(defval = 15, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
+iInitialMinVolumePct = input.int(defval = 235, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iDayEndMinVolumePct = input.int(defval = 135, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
-strongBreakout(int _highestLookback, int _minVolDttPct) =>
+strongBreakout(int _highestLookback, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
     lastHighest = ta.highest(_highestLookback)
-    dttVolPct = 100 * volume / ta.sma(volume, 30)
-    dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
-    dttVolTimePct = 100 * dttVolPct / dttTimePct
     breakout = close > lastHighest[1]
-    strongBreakout = dttVolTimePct > _minVolDttPct and breakout
+    dttVol = volume / ta.sma(volume, 30)
+    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    dttVolTimePct = 100 * dttVol / dttTime
+    timeSinceSessionOpenAdditionalVolPct = (1.0 - dttTime) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
+    strongBreakout = breakout and dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct
     strongBreakout
 
-strongBreakoutCond = strongBreakout(iBreakoutLookback, iMinVolumePct)
+strongBreakoutCond = strongBreakout(iBreakoutLookback, iInitialMinVolumePct, iDayEndMinVolumePct)
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 50
 
