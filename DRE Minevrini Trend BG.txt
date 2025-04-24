@@ -58,14 +58,15 @@ contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
 iBreakoutLookback = input.int(defval = 12, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
-iMinVolumePct = input.int(defval = 180, title = 'Min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iMinVolumePct = input.int(defval = 135, title = 'Min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
 strongBreakout(int _highestLookback, int _minVolDttPct) =>
     lastHighest = ta.highest(_highestLookback)
     dttVolPct = 100 * volume / ta.sma(volume, 30)
     dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
+    dttVolTimePct = dttVolPct / dttTimePct
     breakout = close > lastHighest[1]
-    strongBreakout = dttVolPct > _minVolDttPct and breakout
+    strongBreakout = dttVolTimePct > _minVolDttPct and breakout
     strongBreakout
 
 strongBreakoutCond = strongBreakout(iBreakoutLookback, iMinVolumePct)
