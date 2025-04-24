@@ -58,7 +58,7 @@ contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
 iBreakoutLookback = input.int(defval = 15, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
-iInitialMinVolumePct = input.int(defval = 235, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iInitialMinVolumePct = input.int(defval = 270, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 135, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
 strongBreakout(int _highestLookback, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
@@ -67,7 +67,8 @@ strongBreakout(int _highestLookback, int _initialMinVolDttPct, int _dayEndMinVol
     dttVol = volume / ta.sma(volume, 30)
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
     dttVolTimePct = 100 * dttVol / dttTime
-    timeSinceSessionOpenAdditionalVolPct = (1.0 - dttTime) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
+    //math.pow(x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
+    timeSinceSessionOpenAdditionalVolPct = math.pow(dttTime, 4) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
     strongBreakout = breakout and dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct
     strongBreakout
 
