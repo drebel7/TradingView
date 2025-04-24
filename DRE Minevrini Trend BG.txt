@@ -40,7 +40,7 @@ iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 
 iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookback 1', minval = 1, group = 'Contraction params')
 iRmvShortLookback2 = input.int(defval = 5, title = 'RMV short lookback 2', minval = 1, group = 'Contraction params')
 iRmvShortLookback3 = input.int(defval = 3, title = 'RMV short lookback 3', minval = 1, group = 'Contraction params')
-iMaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+iMaxBarsSinceContraction = input.int(defval = 10, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
 rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
@@ -64,7 +64,7 @@ strongBreakout(int _highestLookback, int _minVolDttPct) =>
     lastHighest = ta.highest(_highestLookback)
     dttVolPct = 100 * volume / ta.sma(volume, 30)
     dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
-    dttVolTimePct = dttVolPct / dttTimePct
+    dttVolTimePct = 100 * dttVolPct / dttTimePct
     breakout = close > lastHighest[1]
     strongBreakout = dttVolTimePct > _minVolDttPct and breakout
     strongBreakout
