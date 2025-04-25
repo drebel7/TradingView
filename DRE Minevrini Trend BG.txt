@@ -40,7 +40,7 @@ iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 
 iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookback 1', minval = 1, group = 'Contraction params')
 iRmvShortLookback2 = input.int(defval = 5, title = 'RMV short lookback 2', minval = 1, group = 'Contraction params')
 iRmvShortLookback3 = input.int(defval = 3, title = 'RMV short lookback 3', minval = 1, group = 'Contraction params')
-iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+iMaxBarsSinceContraction = input.int(defval = 10, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
 rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
@@ -70,7 +70,8 @@ strongBreakout(int _highestLookback1, int _highestLookback2, int _initialMinVolD
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 4) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
-    strongBreakout = breakout and dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct
+    volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > _dayEndMinVolDttPct
+    strongBreakout = breakout and volumeGood
     strongBreakout
 
 strongBreakoutCond = strongBreakout(iBreakoutLookback, 2 * iBreakoutLookback, iInitialMinVolumePct, iDayEndMinVolumePct)
