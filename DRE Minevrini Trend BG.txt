@@ -10,10 +10,12 @@ import drebel/DRELib/4 as drelib
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
 iMinTurnover = input.float(defval = 0.2, title = 'Min. Turnover[M]', minval = 0, group = 'General filter for signal')
 iMinAdr = input.float(defval = 2.6, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
-iMinPrice = input.float(defval = 1.0, title = 'Min. price', minval = 0, step = 0.2, group = 'General filter for signal')
+iMinPrice = input.float(defval = 1.0, title = 'Min. price', minval = 0, group = 'General filter for signal')
+iMaxPrice = input.float(defval = 1750.0, title = 'Max. price', minval = 0, group = 'General filter for signal')
 
 //common filters calculations 
-gFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, 50) and iGeneralFilterCond or not iGeneralFilterCond
+// TODO move maxPrice check into drelib.generalFilter
+gFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, 50) and close < iMaxPrice and iGeneralFilterCond or not iGeneralFilterCond
 
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
@@ -58,7 +60,7 @@ contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
 iBreakoutLookback = input.int(defval = 15, title = 'Breakout lookback (and x2)', minval = 1, group = 'Breakout params')
-iInitialMinVolumePct = input.int(defval = 270, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iInitialMinVolumePct = input.int(defval = 500, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 135, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
 strongBreakout(int _highestLookback1, int _highestLookback2, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
@@ -70,7 +72,7 @@ strongBreakout(int _highestLookback1, int _highestLookback2, int _initialMinVolD
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
-    timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 4) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
+    timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
     volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > _dayEndMinVolDttPct / 100 * volumeMa
     strongBreakout = breakout and volumeGood
     strongBreakout
