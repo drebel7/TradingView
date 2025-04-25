@@ -65,12 +65,13 @@ strongBreakout(int _highestLookback1, int _highestLookback2, int _initialMinVolD
     lastHighest1 = ta.highest(_highestLookback1)
     lastHighest2 = ta.highest(_highestLookback2)
     breakout = close > lastHighest1[1] or close > lastHighest2[1]
-    dttVol = volume / ta.sma(volume, 30)
+    volumeMa = ta.sma(volume, 30)
+    dttVol = volume / volumeMa
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 4) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
-    volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > _dayEndMinVolDttPct
+    volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > _dayEndMinVolDttPct / 100 * volumeMa
     strongBreakout = breakout and volumeGood
     strongBreakout
 
