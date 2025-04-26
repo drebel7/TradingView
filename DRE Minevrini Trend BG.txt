@@ -8,10 +8,10 @@ import drebel/DRELib/4 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
-iMinTurnover = input.float(defval = 0.2, title = 'Min. Turnover[M]', minval = 0, group = 'General filter for signal')
+iMinTurnover = input.float(defval = 0.2, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
 iMinAdr = input.float(defval = 2.6, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
-iMinPrice = input.float(defval = 1.0, title = 'Min. price', minval = 0, group = 'General filter for signal')
-iMaxPrice = input.float(defval = 1750.0, title = 'Max. price', minval = 0, group = 'General filter for signal')
+iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
+iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
 
 //common filters calculations 
 // TODO move maxPrice check into drelib.generalFilter
@@ -39,9 +39,9 @@ alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend re
 
 
 iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
-iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookback 1', minval = 1, group = 'Contraction params')
-iRmvShortLookback2 = input.int(defval = 5, title = 'RMV short lookback 2', minval = 1, group = 'Contraction params')
-iRmvShortLookback3 = input.int(defval = 3, title = 'RMV short lookback 3', minval = 1, group = 'Contraction params')
+iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvShortLookback2 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
 iMaxBarsSinceContraction = input.int(defval = 10, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
@@ -59,25 +59,24 @@ rmv = rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLoo
 contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
-iBreakoutLookback = input.int(defval = 15, title = 'Breakout lookback (and x2)', minval = 1, group = 'Breakout params')
+iBreakoutLookback = input.int(defval = 15, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
 iInitialMinVolumePct = input.int(defval = 500, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 135, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
-strongBreakout(int _highestLookback1, int _highestLookback2, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
+strongBreakout(int _highestLookback1, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
     lastHighest1 = ta.highest(_highestLookback1)
-    lastHighest2 = ta.highest(_highestLookback2)
-    breakout = close > lastHighest1[1] or close > lastHighest2[1]
+    breakout = close > lastHighest1[1]
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
-    volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > _dayEndMinVolDttPct / 100 * volumeMa
+    volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > (_dayEndMinVolDttPct / 100) * volumeMa
     strongBreakout = breakout and volumeGood
     strongBreakout
 
-strongBreakoutCond = strongBreakout(iBreakoutLookback, 2 * iBreakoutLookback, iInitialMinVolumePct, iDayEndMinVolumePct)
+strongBreakoutCond = strongBreakout(iBreakoutLookback, iInitialMinVolumePct, iDayEndMinVolumePct)
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 50
 
