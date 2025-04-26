@@ -66,6 +66,7 @@ iDayEndMinVolumePct = input.int(defval = 135, title = 'Day end min. relative vol
 strongBreakout(int _highestLookback1, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
     lastHighest1 = ta.highest(_highestLookback1)
     breakout = close > lastHighest1[1]
+    breakoutNew = not breakout[1] and not breakout[2] and not breakout[3]
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
@@ -73,7 +74,7 @@ strongBreakout(int _highestLookback1, int _initialMinVolDttPct, int _dayEndMinVo
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
     volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > (_dayEndMinVolDttPct / 100) * volumeMa
-    strongBreakout = breakout and volumeGood
+    strongBreakout = breakout and breakoutNew and volumeGood
     strongBreakout
 
 strongBreakoutCond = strongBreakout(iBreakoutLookback, iInitialMinVolumePct, iDayEndMinVolumePct)
