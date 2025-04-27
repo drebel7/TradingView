@@ -59,14 +59,22 @@ rmv = rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLoo
 contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
-iBreakoutLookback = input.int(defval = 15, title = 'Breakout lookback', minval = 1, group = 'Breakout params')
+iBreakoutLookback = input.int(defval = 15, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
+iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
 iInitialMinVolumePct = input.int(defval = 500, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 135, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
-strongBreakout(int _highestLookback1, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
-    lastHighest1 = ta.highest(_highestLookback1)
+strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct) =>
+    lastHighest1 = ta.highest(_lookback1)
+    lastHighest2 = ta.highest(2 * _lookback1)
+    lastHighest3 = ta.highest(3 * _lookback1)
     breakout = close > lastHighest1[1]
+    breakout2 = close > lastHighest2[1]
+    breakout3 = close > lastHighest3[1]
     breakoutNew = not breakout[1] and not breakout[2] and not breakout[3]
+    breakout2New = not breakout2[1] and not breakout2[2] and not breakout2[3]
+    breakout3New = not breakout3[1] and not breakout3[2] and not breakout3[3]
+    breakoutCond = breakoutNew or _lookbackMultiples and (breakout2New or breakout3New)
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
@@ -74,12 +82,12 @@ strongBreakout(int _highestLookback1, int _initialMinVolDttPct, int _dayEndMinVo
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
     volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > (_dayEndMinVolDttPct / 100) * volumeMa
-    strongBreakout = breakout and breakoutNew and volumeGood
+    strongBreakout = breakout and breakoutCond and volumeGood
     strongBreakout
 
-strongBreakoutCond = strongBreakout(iBreakoutLookback, iInitialMinVolumePct, iDayEndMinVolumePct)
+strongBreakoutCond = strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct)
 
-minevriniTrendCond = ta.barssince(minevriniTrend) < 50
+minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
 minevriniTrendContractionBreakout = minevriniTrendCond and contractionCond and strongBreakoutCond
 
