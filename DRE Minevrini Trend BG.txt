@@ -81,7 +81,8 @@ strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct)
-    volumeGood = dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct or volume > (_dayEndMinVolDttPct / 100) * volumeMa
+    initialFlat = 0.01
+    volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * _initialMinVolDttPct * volumeMa) or volume > (_dayEndMinVolDttPct / 100) * volumeMa
     strongBreakout = breakout and breakoutCond and volumeGood
     strongBreakout
 
