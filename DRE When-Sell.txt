@@ -1,0 +1,68 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator(title = 'DRE When-Sell', overlay = true, timeframe = '1D')
+
+import drebel/DRELib/4 as drelib
+
+iSmaLen1 = input.int(defval = 10, title = 'SMA length 1', minval = 1, group = 'Moving averages')
+iSmaLen2 = input.int(defval = 20, title = 'SMA length 2', minval = 1, group = 'Moving averages')
+iSmaLen3 = input.int(defval = 50, title = 'SMA length 3', minval = 1, group = 'Moving averages')
+
+iShowParabolicRiseStop = input.bool(defval = true, title = 'Show break of LOD', group = 'Parabolic rise')
+iParabolicRisePercentile = input.int(defval = 99, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise')
+iParabolicRiseBigRedCandle = input.int(defval = 230, title = 'Min. ADR[%] LOD break', minval = 0, maxval = 500, step = 10, group = 'Parabolic rise')
+iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', group = 'Parabolic rise')
+iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top')
+iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1')
+iShowCloseBelowSma2 = input.bool(defval = false, title = 'Show close below sma2')
+iShowCloseBelowSma3 = input.bool(defval = false, title = 'Show close below sma3')
+
+sma1 = ta.sma(close, iSmaLen1)
+sma2 = ta.sma(close, iSmaLen2)
+sma3 = ta.sma(close, iSmaLen3)
+adr50 = ta.sma(high - low, 50)
+volHighest10 = ta.highest(volume, 10)
+volMa = ta.sma(volume, 30)
+atr200 = ta.atr(200)
+
+//candle parameters
+highShadow = high != low ? (high - math.max(open, close)) / (high-low) : 0
+candleBody = high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
+lowShadow = high != low ? (math.min(open, close) - low) / (high-low) : 0
+candleColor = close > open ? 1 : close < open ? -1 : 0
+
+isMarubozuGreen = candleBody > 0.75 and candleColor == 1
+
+//parabolic rise LOD break
+aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
+aboveSma2PctCond = ta.percentrank(high - sma2, 500) >= iParabolicRisePercentile
+aboveSma3PctCond = ta.percentrank(high - sma3, 500) >= iParabolicRisePercentile
+volumeCond = iParabolicRiseVolumeCond and (volume == volHighest10 or volume[1] == volHighest10[1] or volume[2] == volHighest10[2]) or not iParabolicRiseVolumeCond
+
+parabolicRiseCond = aboveSma1PctCond and aboveSma2PctCond and aboveSma3PctCond and close > 1.7 * close[100]
+parabolicRiseLodBreak = (parabolicRiseCond[1] or parabolicRiseCond) and low < low[1] and (high - low) > adr50 * (iParabolicRiseBigRedCandle / 100) and not isMarubozuGreen
+parabolicRiseLodBreakCond = parabolicRiseLodBreak and not parabolicRiseLodBreak[1] and not parabolicRiseLodBreak[2] and not parabolicRiseLodBreak[3] and volumeCond
+
+//parabolic top
+top1Sig = drelib.sig_parabolic_top(volMa, 2, 100, 8, atr200)
+top2Sig = drelib.sig_parabolic_top(volMa, 3, 100, 8, atr200)
+top3Sig = drelib.sig_parabolic_top(volMa, 4, 100, 8, atr200)
+topSig = top1Sig or top2Sig or top3Sig
+
+
+alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
+plotshape(iShowParabolicRiseStop and parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
+
+alertcondition(topSig, title = 'parabolic top', message = 'top')
+plotshape(iShowParabolicTop and topSig, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
+
+alertcondition(close < sma1, title = 'close below sma1', message = 'close < sma1')
+plotshape(iShowCloseBelowSma1 and close < sma1, title = 'close below sma1', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
+
+alertcondition(close < sma2, title = 'close below sma2', message = 'close < sma2')
+plotshape(iShowCloseBelowSma2 and close < sma2, title = 'close below sma2', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
+
+alertcondition(close < sma3, title = 'close below sma3', message = 'close < sma3')
+plotshape(iShowCloseBelowSma3 and close < sma3, title = 'close below sma3', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
