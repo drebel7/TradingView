@@ -10,14 +10,16 @@ import drebel/DRELib/3 as drelib
 
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')
-show_adr_50dr = input.bool(defval = false, title = 'Show ADR/50DR percentile')
+show_lod_dist = input.bool(defval = true, title = 'Show LoD distance')
+show_lod_price = input.bool(defval = true, title = 'Show LoD price')
 show_turnover = input.bool(defval = true, title = 'Show avg. turnover')
 show_dtt_volume = input.bool(defval = true, title = 'Day to time volume %')
-show_dtt_time = input.bool(defval = true, title = 'Day to time time %')
+show_dtt_time = input.bool(defval = false, title = 'Day to time time %')
 show_short_ma_percentile = input.bool(defval = false, title = 'Short MA dist. percentile')
 show_mid_ma_percentile = input.bool(defval = false, title = 'Short-Mid. MA dist. percentile')
-show_sharpe_ratio = input.bool(defval = true, title = 'Sharpe ratio')
+show_sharpe_ratio = input.bool(defval = false, title = 'Sharpe ratio')
 show_earnings_up = input.bool(defval = true, title = 'Earnings going up')
+show_industry_sector = input.bool(defval = true, title = 'Industry and Sector')
 
 len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
 riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
@@ -25,12 +27,13 @@ bg_col = input.color(defval = #00000000, title = 'Background Color')
 adrp_col = input.color(defval = color.black, title = 'Text Color')
 show_empty_row = input.bool(defval = true, title = 'Add an empty row above the displayed values', tooltip = 'Serves the purpose of not having the pane icons overlap with the ' + 'text in the table if multiple panes are shown and the chart pane is hovered')
 
+hiloAvg = ta.sma(high - low, len)
 arp = 100 * (ta.sma(high / low, len) - 1)
 [dAdr, dAtr, dAvgTurnover] = request.security(symbol = syminfo.tickerid, timeframe = 'D', expression = [arp, ta.atr(len), ta.sma(close * volume, len) / 1000000])
+lodDist = 100 * (close - low) / hiloAvg
 dttVolPct = 100 * volume / ta.sma(volume, len)
 dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
 dttVolTimePct = 100 * dttVolPct / dttTimePct
-adr_50dr_contraction = ta.percentrank(dAdr / (ta.highest(len / 2) - ta.lowest(len / 2)), len)
 
 // Sharpe Ratio
 riskFreeRateDaily = riskFreeRateAnnual / 252
@@ -53,38 +56,51 @@ epsStr = str.tostring(epsBetter1Y) + '/' + str.tostring(epsDays1Y) + ' ' + str.t
 ma2DistPercentile = ta.percentrank(drelib.ma_distance(10, 21), 200)
 ma3DistPercentile = ta.percentrank(drelib.ma_distance(10, 21, 50), 200)
 
-table t = table.new(position.top_right, 2, 11, bgcolor = bg_col)
+sector = syminfo.sector
+ind = syminfo.industry
+
+table t = table.new(position.top_right, 2, 14, bgcolor = bg_col)
+txtSize = size.small
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_empty_row
         table.cell(t, 0, 0, '')
         table.cell(t, 1, 0, '')
     if show_adrp
-        table.cell(t, 0, 1, 'ADR [%]', text_color = adrp_col)
-        table.cell(t, 1, 1, str.tostring(math.round(dAdr, 1)), text_color = adrp_col)
+        table.cell(t, 0, 1, 'ADR [%]', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 1, str.tostring(math.round(dAdr, 1)), text_color = adrp_col, text_size = txtSize)
     if show_atr
-        table.cell(t, 0, 2, 'ATR', text_color = adrp_col)
-        table.cell(t, 1, 2, str.tostring(math.round(dAtr, 2)), text_color = adrp_col)
-    if show_adr_50dr
-        table.cell(t, 0, 3, 'ADR/50DR', text_color = adrp_col)
-        table.cell(t, 1, 3, str.tostring(math.round(adr_50dr_contraction)), text_color = adrp_col)
+        table.cell(t, 0, 2, 'ATR', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 2, str.tostring(math.round(dAtr, 2)), text_color = adrp_col, text_size = txtSize)
+    if show_lod_dist
+        table.cell(t, 0, 3, 'LoD dist. [%]', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 3, str.tostring(math.round(lodDist)), text_color = adrp_col, text_size = txtSize)
+    if show_lod_price
+        table.cell(t, 0, 4, 'LoD price', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 4, str.tostring(low), text_color = adrp_col, text_size = txtSize)
     if show_turnover
-        table.cell(t, 0, 4, 'Avg. turnover [M]', text_color = adrp_col)
-        table.cell(t, 1, 4, str.tostring(math.round(dAvgTurnover, 2)), text_color = adrp_col)
+        table.cell(t, 0, 5, 'Avg. turnover [M]', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 5, str.tostring(math.round(dAvgTurnover, 2)), text_color = adrp_col, text_size = txtSize)
     if show_dtt_volume
-        table.cell(t, 0, 5, 'Dtt vol. [%] (proj.)', text_color = adrp_col)
-        table.cell(t, 1, 5, str.tostring(math.round(dttVolPct)) + ' (' + str.tostring(math.round(dttVolTimePct)) + ')', text_color = adrp_col)
+        table.cell(t, 0, 6, 'Dtt vol. [%] (proj.)', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 6, str.tostring(math.round(dttVolPct)) + ' (' + str.tostring(math.round(dttVolTimePct)) + ')', text_color = adrp_col, text_size = txtSize)
     if show_dtt_time
-        table.cell(t, 0, 6, 'Dtt time [%]', text_color = adrp_col)
-        table.cell(t, 1, 6, str.tostring(math.round(dttTimePct)), text_color = adrp_col)
+        table.cell(t, 0, 7, 'Dtt time [%]', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 7, str.tostring(math.round(dttTimePct)), text_color = adrp_col, text_size = txtSize)
     if show_short_ma_percentile
-        table.cell(t, 0, 7, 'Short MAs prctl.', text_color = adrp_col)
-        table.cell(t, 1, 7, str.tostring(math.round(ma2DistPercentile)), text_color = adrp_col)
+        table.cell(t, 0, 8, 'Short MAs prctl.', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 8, str.tostring(math.round(ma2DistPercentile)), text_color = adrp_col, text_size = txtSize)
     if show_mid_ma_percentile
-        table.cell(t, 0, 8, 'Short-Mid MAs prctl.', text_color = adrp_col)
-        table.cell(t, 1, 8, str.tostring(math.round(ma3DistPercentile)), text_color = adrp_col)
+        table.cell(t, 0, 9, 'Short-Mid MAs prctl.', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 9, str.tostring(math.round(ma3DistPercentile)), text_color = adrp_col, text_size = txtSize)
     if show_sharpe_ratio
-        table.cell(t, 0, 9, 'Sharpe ratio', text_color = adrp_col)
-        table.cell(t, 1, 9, str.tostring(math.round(sharpeRatio, 1)), text_color = adrp_col)
+        table.cell(t, 0, 10, 'Sharpe ratio', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 10, str.tostring(math.round(sharpeRatio, 1)), text_color = adrp_col, text_size = txtSize)
     if show_earnings_up
-        table.cell(t, 0, 10, 'EPS up 1y 2y', text_color = adrp_col)
-        table.cell(t, 1, 10, epsStr, text_color = adrp_col)
+        table.cell(t, 0, 11, 'EPS up 1y 2y', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 11, epsStr, text_color = adrp_col, text_size = txtSize)
+    if show_industry_sector
+        table.cell(t, 0, 12, 'sector', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 12, sector, text_color = adrp_col, text_size = txtSize)
+    if show_industry_sector
+        table.cell(t, 0, 13, 'industry', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 13, ind, text_color = adrp_col, text_size = txtSize)
