@@ -58,11 +58,22 @@ plotshape(iShowParabolicRiseStop and parabolicRiseLodBreakCond, title = 'parabol
 alertcondition(topSig, title = 'parabolic top', message = 'top')
 plotshape(iShowParabolicTop and topSig, title = 'parabolic top', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
 
-alertcondition(close < sma1, title = 'close below sma1', message = 'close < sma1')
-plotshape(iShowCloseBelowSma1 and close < sma1, title = 'close below sma1', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
+belowSma1 = close < sma1
+newBelowSma1 = belowSma1 and not belowSma1[1]
+alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
+plotshape(iShowCloseBelowSma1 and newBelowSma1, title = 'close below sma1', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
 
-alertcondition(close < sma2, title = 'close below sma2', message = 'close < sma2')
-plotshape(iShowCloseBelowSma2 and close < sma2, title = 'close below sma2', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
+belowSma2 = close < sma2
+newBelowSma2 = belowSma2 and not belowSma2[1]
+alertcondition(newBelowSma2, title = 'close below sma2', message = 'close < sma2')
+plotshape(iShowCloseBelowSma2 and newBelowSma2, title = 'close below sma2', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
 
-alertcondition(close < sma3, title = 'close below sma3', message = 'close < sma3')
-plotshape(iShowCloseBelowSma3 and close < sma3, title = 'close below sma3', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
+belowSma3 = close < sma3
+newBelowSma3 = belowSma3 and not belowSma3[1]
+alertcondition(newBelowSma3, title = 'close below sma3', message = 'close < sma3')
+plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
+
+dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
+onSessionCloseConditions = dttTimePct == 100 and (topSig or newBelowSma1 or newBelowSma2 or newBelowSma3)
+allCond = parabolicRiseLodBreakCond or onSessionCloseConditions
+alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
