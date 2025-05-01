@@ -54,33 +54,33 @@ topSig = top1Sig or top2Sig or top3Sig
 
 alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
 if iShowParabolicRiseStop and parabolicRiseLodBreakCond
-    label.new(bar_index, low[1], tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, low[1], tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_diamond, size = size.tiny)
 //plotshape(iShowParabolicRiseStop and parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
 
 alertcondition(topSig, title = 'parabolic top', message = 'top')
 if iShowParabolicTop and topSig
-    label.new(bar_index, close, tooltip = 'top', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'top', color = color.new(color.red, 70), style = label.style_triangledown, size = size.tiny)
 //plotshape(iShowParabolicTop and topSig ? close : na, title = 'parabolic top', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
 
 belowSma1 = close < sma1
 newBelowSma1 = belowSma1 and not belowSma1[1]
 alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
 if iShowCloseBelowSma1 and newBelowSma1
-    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
 //plotshape(iShowCloseBelowSma1 and newBelowSma1, title = 'close below sma1', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
 
 belowSma2 = close < sma2
 newBelowSma2 = belowSma2 and not belowSma2[1]
 alertcondition(newBelowSma2, title = 'close below sma2', message = 'close < sma2')
 if iShowCloseBelowSma2 and newBelowSma2
-    label.new(bar_index, close, tooltip = 'close < sma2', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma2', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
 //plotshape(iShowCloseBelowSma2 and newBelowSma2, title = 'close below sma2', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
 
 belowSma3 = close < sma3
 newBelowSma3 = belowSma3 and not belowSma3[1]
 alertcondition(newBelowSma3, title = 'close below sma3', message = 'close < sma3')
 if iShowCloseBelowSma3 and newBelowSma3
-    label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
 //plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
 
 dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
