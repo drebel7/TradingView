@@ -54,7 +54,7 @@ topSig = top1Sig or top2Sig or top3Sig
 
 alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
 if iShowParabolicRiseStop and parabolicRiseLodBreakCond
-    label.new(bar_index, low[1], tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_diamond, size = size.tiny)
+    label.new(bar_index, math.min(low[1], open), tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_diamond, size = size.tiny)
 //plotshape(iShowParabolicRiseStop and parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
 
 alertcondition(topSig, title = 'parabolic top', message = 'top')
