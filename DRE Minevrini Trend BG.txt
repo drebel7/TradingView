@@ -4,7 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/4 as drelib
+import drebel/DRELib/5 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -14,9 +14,7 @@ iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inl
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
 
 //common filters calculations 
-// TODO move maxPrice check into drelib.generalFilter
-// TODO sprawadzać cene tylko dla syminfo.type == 'stock'
-gFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, 30) and close < iMaxPrice and iGeneralFilterCond or not iGeneralFilterCond
+gFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30) and iGeneralFilterCond or not iGeneralFilterCond
 
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
@@ -25,7 +23,6 @@ iIncludeRelativeStrenth = input.bool(defval = true, title = 'Relative strength',
 iIncludeEarnings = input.bool(defval = true, title = 'Earnings', group = 'Include', inline = 'earnings')
 iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', group = 'Include', minval = 0.0, maxval = 1.0, step = 0.1, inline = 'earnings')
 
-// TODO dla relative strength dodać NewConnect -> porownanie do GPW
 minevriniTrend = drelib.isMinevriniBullishTrend(iIncludeRelativeStrenth, iIncludeEarnings, iBetterEarningsRate)
 minevriniTrendSig = minevriniTrend and not minevriniTrend[1]
 

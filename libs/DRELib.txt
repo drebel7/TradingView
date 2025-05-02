@@ -83,9 +83,11 @@ export crossunder2(series float _source1, series float _source2) =>
 
 // general filter
 export minTurnoverOk(float _minTurnoverM, int _len) =>
+    hasEnoughBars = bar_index >= _len
+    minVolume = ta.lowest(volume, _len)
     turnoverMa = ta.sma(close * volume, _len) / 1000000.0
     turnoverMedian = ta.median(close * volume, _len) / 1000000.0
-    turnoverCond = turnoverMa > _minTurnoverM and turnoverMedian > _minTurnoverM or not na(volume)
+    turnoverCond = (not na(volume) and hasEnoughBars and minVolume > 0 and turnoverMa > _minTurnoverM and turnoverMedian > _minTurnoverM) or na(volume)
     turnoverCond
 
 export minAdrOk(float _minAdr, int _len) =>
@@ -96,7 +98,14 @@ export minAdrOk(float _minAdr, int _len) =>
 export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, int _len) =>
     turnoverCond = minTurnoverOk(_minTurnoverM, _len)
     adrCond = minAdrOk(_minAdr, _len)
-    priceCond = close > _minPrice
+    priceCond = close > _minPrice and syminfo.type == 'stock'
+    allCond = turnoverCond and adrCond and priceCond
+    allCond
+
+export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float _maxPrice, int _len) =>
+    turnoverCond = minTurnoverOk(_minTurnoverM, _len)
+    adrCond = minAdrOk(_minAdr, _len)
+    priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
     allCond = turnoverCond and adrCond and priceCond
     allCond
 
@@ -131,14 +140,14 @@ export priceMasBearishAligned(int _tradingDaysInAYear) =>
 
 // substitute for "RS Score > 70"
 export simpleRelativeStrengthStrong(int _tradingDaysInAYear) =>
-    benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    benchmark = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
     halfYearDays = _tradingDaysInAYear / 2
     quarterYearDays = _tradingDaysInAYear / 4
     relativelyStrong = close / benchmark > close[halfYearDays] / benchmark[halfYearDays] and close / benchmark > close[quarterYearDays] / benchmark[quarterYearDays]
     relativelyStrong
 
 export simpleRelativeStrengthWeak(int _tradingDaysInAYear) =>
-    benchmark = syminfo.prefix == 'GPW' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    benchmark = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
     halfYearDays = _tradingDaysInAYear / 2
     quarterYearDays = _tradingDaysInAYear / 4
     relativelyWeak = close / benchmark < close[halfYearDays] / benchmark[halfYearDays] and close / benchmark < close[quarterYearDays] / benchmark[quarterYearDays]
