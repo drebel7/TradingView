@@ -67,13 +67,16 @@ strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct
     lastHighest1 = ta.highest(_lookback1)
     lastHighest2 = ta.highest(2 * _lookback1)
     lastHighest3 = ta.highest(3 * _lookback1)
+    lastHighest4 = ta.highest(4 * _lookback1)
     breakout = close > lastHighest1[1]
     breakout2 = close > lastHighest2[1]
     breakout3 = close > lastHighest3[1]
+    breakout4 = close > lastHighest4[1]
     breakoutNew = not breakout[1] and not breakout[2] and not breakout[3]
     breakout2New = not breakout2[1] and not breakout2[2] and not breakout2[3]
     breakout3New = not breakout3[1] and not breakout3[2] and not breakout3[3]
-    breakoutCond = breakoutNew or _lookbackMultiples and (breakout2New or breakout3New)
+    breakout4New = not breakout4[1] and not breakout4[2] and not breakout4[3]
+    breakoutCond = breakoutNew or _lookbackMultiples and (breakout2New or breakout3New or breakout4New)
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
     dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
