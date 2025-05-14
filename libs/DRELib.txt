@@ -154,9 +154,10 @@ export simpleRelativeStrengthWeak(int _tradingDaysInAYear) =>
     relativelyWeak
 
 earningsGoingUp(_eps, int _period) =>
+    tradingDaysInAYearAndSome = 252 + 20
     earningsDay = _eps != _eps[1]
     earningsDayCountPeriod = math.sum(earningsDay ? 1 : 0, _period)
-    epsBetter_10 = earningsDay and _eps > _eps[_period] ? 1 : 0
+    epsBetter_10 = earningsDay and _eps > _eps[tradingDaysInAYearAndSome] ? 1 : 0
     epsBetterInPeriod = math.sum(epsBetter_10, _period)
     [epsBetterInPeriod, earningsDayCountPeriod]
 
