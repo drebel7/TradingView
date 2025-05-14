@@ -168,10 +168,10 @@ earningsGoingUp(_epsAct, _epsStd, int _period) =>
     [epsBetterInPeriod, earningsDayCountPeriod]
 
 export earningsGoingUp(int _period) =>
-    totalShares1K = syminfo.shares_outstanding_total / 1000
-    epsAct1K = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares1K
-    epsStd1K = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares1K
-    [epsBetterInPeriod, earningsDayCountPeriod] = earningsGoingUp(epsAct1K, epsAct1K, _period)
+    totalShares1M = syminfo.shares_outstanding_total / 1000000.0
+    epsAct1M = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares1M
+    epsStd1M = request.earnings(ticker = syminfo.tickerid, field = earnings.standardized) / totalShares1M
+    [epsBetterInPeriod, earningsDayCountPeriod] = earningsGoingUp(epsAct1M, epsStd1M, _period)
 
 export isMinevriniBullishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
     priceMasBulishAlignedCond = priceMasBullishAligned(_tradingDaysInAYear)
