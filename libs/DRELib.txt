@@ -149,10 +149,9 @@ export simpleRelativeStrengthWeak(int _tradingDaysInAYear) =>
     relativelyWeak
 
 earningsGoingUp(_eps, int _period) =>
-    tradingDaysInAYearAndSome = 252 + 20
     earningsDay = _eps != _eps[1]
     earningsDayCountPeriod = math.sum(earningsDay ? 1 : 0, _period)
-    epsBetter_10 = earningsDay and _eps > _eps[tradingDaysInAYearAndSome] ? 1 : 0
+    epsBetter_10 = earningsDay and _eps > _eps[getDefaultStockTradingDaysInAYear()] ? 1 : 0
     epsBetterInPeriod = math.sum(epsBetter_10, _period)
     [epsBetterInPeriod, earningsDayCountPeriod]
 
@@ -180,7 +179,7 @@ export isMinevriniBullishTrend(int _tradingDaysInAYear, bool _includeRelativeStr
     bullishTrend
 
 export isMinevriniBullishTrend(bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
-    isMinevriniBullishTrend(252, _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
+    isMinevriniBullishTrend(getDefaultStockTradingDaysInAYear(), _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
 
 export isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
     priceMasBearishAlignedCond = priceMasBearishAligned(_tradingDaysInAYear)
@@ -193,7 +192,7 @@ export isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStr
     bearishTrend
 
 export isMinevriniBearishTrend(bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
-    isMinevriniBearishTrend(252, _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
+    isMinevriniBearishTrend(getDefaultStockTradingDaysInAYear(), _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
 
 // general filter
 export minTurnoverOk(float _minTurnoverM, int _len) =>
@@ -230,6 +229,18 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     isBenchmarkBearish = defaultBenchmarkMasBearishAligned(getDefaultStockTradingDaysInAYear())
     isBenchmarkNotRecentlyBearishCond = ta.barssince(isBenchmarkBearish) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
     allCond = turnoverCond and adrCond and priceCond and isBenchmarkNotRecentlyBearishCond
+    allCond
+
+export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float _maxPrice, int _len, bool _checkBenchmarkNotBearishTrend, int _minBenchmarkNotBearishSince, int _maxDistFromLoDPct) =>
+    turnoverCond = minTurnoverOk(_minTurnoverM, _len)
+    adrCond = minAdrOk(_minAdr, _len)
+    priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
+    isBenchmarkBearish = defaultBenchmarkMasBearishAligned(getDefaultStockTradingDaysInAYear())
+    isBenchmarkNotRecentlyBearishCond = ta.barssince(isBenchmarkBearish) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
+    hiloAvg = ta.sma(high - low, _len)
+    loDDistPct = 100 * (close - low) / hiloAvg
+    loDDistCond = loDDistPct <= _maxDistFromLoDPct
+    allCond = turnoverCond and adrCond and priceCond and isBenchmarkNotRecentlyBearishCond and loDDistCond
     allCond
 
 // Signals

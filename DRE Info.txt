@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/9 as drelib
+import drebel/DRELib/11 as drelib
 
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')

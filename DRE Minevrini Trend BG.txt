@@ -4,7 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/10 as drelib
+import drebel/DRELib/11 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -12,16 +12,13 @@ iMinTurnover = input.float(defval = 0.2, title = 'Min. Turnover[M]', minval = 0.
 iMinAdr = input.float(defval = 2.6, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
 iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
-iMaxMoveFromLoDPct = input.int(defval = 70, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
+iMaxDistFromLoDPct = input.int(defval = 75, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
 iCheckBenchmarkNotBearish = input.bool(defval = true, title = 'Check benchmark not bearish trend', group = 'General filter for signal')
 iMinBenchmarkNotBearishSince = input.int(defval = 22, title = 'Min. days from benchmark bearish', minval = 0, maxval = 50, group = 'General filter for signal')
 
 //common filters calculations 
-generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iCheckBenchmarkNotBearish, iMinBenchmarkNotBearishSince)
-hiloAvg = ta.sma(high - low, 30)
-loDDist = 100 * (close - low) / hiloAvg
-loDDistCond = loDDist <= iMaxMoveFromLoDPct
-gFilter = generalFilter and loDDistCond and iGeneralFilterCond or not iGeneralFilterCond
+generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iCheckBenchmarkNotBearish, iMinBenchmarkNotBearishSince, iMaxDistFromLoDPct)
+gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
