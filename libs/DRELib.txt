@@ -8,6 +8,9 @@ library('DRELib')
 
 export getDefaultStockTradingDaysInAYear() => 252
 
+export getDefaultBenchmarkOpen() =>
+    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, open) : request.security('SP:SPX', timeframe.period, open)
+
 export getDefaultBenchmarkClose() =>
     syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
 
