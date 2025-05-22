@@ -8,17 +8,29 @@ library('DRELib')
 
 export getDefaultStockTradingDaysInAYear() => 252
 
+export getDefaultBenchmarkOpen(string _period) =>
+    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, open) : request.security('SP:SPX', _period, open)
+
 export getDefaultBenchmarkOpen() =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, open) : request.security('SP:SPX', timeframe.period, open)
+    getDefaultBenchmarkOpen(timeframe.period)
+
+export getDefaultBenchmarkClose(string _period) =>
+    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, close) : request.security('SP:SPX', _period, close)
 
 export getDefaultBenchmarkClose() =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    getDefaultBenchmarkClose(timeframe.period)
+
+export getDefaultBenchmarkLow(string _period) =>
+    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, low) : request.security('SP:SPX', _period, low)
 
 export getDefaultBenchmarkLow() =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, low) : request.security('SP:SPX', timeframe.period, low)
+    getDefaultBenchmarkLow(timeframe.period)
+
+export getDefaultBenchmarkHigh(string _period) =>
+    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, high) : request.security('SP:SPX', _period, high)
 
 export getDefaultBenchmarkHigh() =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, high) : request.security('SP:SPX', timeframe.period, high)
+    getDefaultBenchmarkHigh(timeframe.period)
 
 // from MLExtensions by jdehorty
 // @function Rescales a source value with an unbounded range to a target range.
