@@ -242,7 +242,7 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     adrCond = minAdrOk(_minAdr, _len)
     priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
     isBenchmarkBearish = defaultBenchmarkMasBearishAligned(getDefaultStockTradingDaysInAYear())
-    isBenchmarkNotRecentlyBearishCond = ta.barssince(isBenchmarkBearish) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
+    isBenchmarkNotRecentlyBearishCond = nz(ta.barssince(isBenchmarkBearish), 9999) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
     allCond = turnoverCond and adrCond and priceCond and isBenchmarkNotRecentlyBearishCond
     allCond
 
@@ -251,7 +251,7 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     adrCond = minAdrOk(_minAdr, _len)
     priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
     isBenchmarkBearish = defaultBenchmarkMasBearishAligned(getDefaultStockTradingDaysInAYear())
-    isBenchmarkNotRecentlyBearishCond = ta.barssince(isBenchmarkBearish) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
+    isBenchmarkNotRecentlyBearishCond = nz(ta.barssince(isBenchmarkBearish), 9999) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
     hiloAvg = ta.sma(high - low, _len)
     loDDistPct = 100 * (close - low) / hiloAvg
     loDDistCond = loDDistPct <= _maxDistFromLoDPct
