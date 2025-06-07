@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/11 as drelib
+import drebel/DRELib/14 as drelib
 
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')
@@ -60,7 +60,37 @@ ma3DistPercentile = ta.percentrank(drelib.ma_distance(10, 21, 50), 200)
 sector = syminfo.sector
 ind = syminfo.industry
 
-table t = table.new(position.top_right, 2, 15, bgcolor = bg_col)
+string sectorIndex = ''
+if syminfo.sector == 'Finance' and (syminfo.industry == 'Regional Banks' or syminfo.industry == 'Major Banks')
+    sectorIndex := 'GPW:WIG_BANKI'
+else if syminfo.industry == 'Engineering & Construction' or syminfo.industry == 'Construction Materials' or syminfo.industry == 'Building Products' or syminfo.industry == 'Steel' 
+    sectorIndex := 'GPW:WIG_BUDOW'
+else if str.contains(syminfo.industry, 'Chemicals') or str.contains(syminfo.industry, 'Oil Refining')
+    sectorIndex := 'GPW:WIG_CHEMIA'
+else if syminfo.industry == 'Electric Utilities' or syminfo.industry == 'Alternative Power Generation'
+    sectorIndex := 'GPW:WIG_ENERG'
+else if str.contains(syminfo.industry, 'Minerals') or syminfo.industry == 'Coal'
+    sectorIndex := 'GPW:WIG_GORNIC'
+else if syminfo.sector == 'Technology Services' or syminfo.sector == 'Electronic Technology'
+    sectorIndex := 'GPW:WIG_INFO'
+else if syminfo.sector == 'Health Technology'
+    sectorIndex := 'GPW:WIG_LEKI'
+else if str.contains(syminfo.industry, 'Entertainment') or str.contains(syminfo.industry, 'Marketing') or str.contains(syminfo.industry, 'Magazines') or syminfo.industry == 'Broadcasting'
+    sectorIndex := 'GPW:WIG_MEDIA'
+else if str.contains(syminfo.industry, 'Auto Parts') or syminfo.industry == 'Broadcasting' or syminfo.tickerid == 'GPW:APR' or syminfo.tickerid == 'GPW:SNK'
+    sectorIndex := 'GPW:WIG_MOTO'
+else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
+    sectorIndex := 'GPW:WIG_NRCHOM'
+else if syminfo.sector == 'Consumer Non-Durables' or str.contains(syminfo.industry, 'Aparel/Footwear') or syminfo.industry == 'Textiles'
+    sectorIndex := 'GPW:WIG_ODZIEZ'
+else if syminfo.sector == 'Energy Minerals' or syminfo.industry == 'Gas Distributors'
+    sectorIndex := 'GPW:WIG_PALIWA'
+else if str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
+    sectorIndex := 'GPW:WIG_SPOZYW'
+else if syminfo.tickerid == 'GPW:AGL' or syminfo.tickerid == 'GPW:AGT' or syminfo.tickerid == 'GPW:AST' or syminfo.tickerid == 'GPW:CLE' or syminfo.tickerid == 'GPW:IMC' or syminfo.tickerid == 'GPW:KER' or syminfo.tickerid == 'GPW:KSG' or syminfo.tickerid == 'GPW:MLK'
+    sectorIndex := 'GPW:WIG_UKRAIN'
+
+table t = table.new(position.top_right, 2, 16, bgcolor = bg_col)
 txtSize = size.small
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_empty_row
@@ -108,3 +138,6 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_industry_sector
         table.cell(t, 0, 14, 'industry', text_color = adrp_col, text_size = txtSize)
         table.cell(t, 1, 14, ind, text_color = adrp_col, text_size = txtSize)
+    if show_industry_sector
+        table.cell(t, 0, 15, 'bench. index', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 15, sectorIndex, text_color = adrp_col, text_size = txtSize)
