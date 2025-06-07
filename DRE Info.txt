@@ -63,8 +63,10 @@ ind = syminfo.industry
 bool isGPW = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT'
 string sectorIndex = ''
 if isGPW
-    if syminfo.tickerid == 'GPW:AGL' or syminfo.tickerid == 'GPW:AGT' or syminfo.tickerid == 'GPW:AST' or syminfo.tickerid == 'GPW:CLE' or syminfo.tickerid == 'GPW:IMC' or syminfo.tickerid == 'GPW:KER' or syminfo.tickerid == 'GPW:KSG' or syminfo.tickerid == 'GPW:MLK'
+    if str.contains("NEWCONNECT:AGL,GPW:AGT,GPW:AST,GPW:CLE,GPW:IMC,GPW:KER,GPW:KSG,GPW:MLK", syminfo.tickerid)
         sectorIndex := 'GPW:WIG_UKRAIN'
+    else if str.contains("GPW:11B,GPW:3RG,GPW:ART,GPW:BBT,GPW:BCS,GPW:BLO,GPW:CDR,GPW:CIG,GPW:CRJ,GPW:DGE,GPW:GIF,GPW:GOP,GPW:HUG,GPW:MOV,GPW:PCF,GPW:PLW,GPW:RND,GPW:SIM,GPW:TEN,GPW:ULG,GPW:VVD", syminfo.tickerid)
+        sectorIndex := 'GPW:WIG_GRY'
     else if syminfo.sector == 'Finance' and (syminfo.industry == 'Regional Banks' or syminfo.industry == 'Major Banks')
         sectorIndex := 'GPW:WIG_BANKI'
     else if syminfo.industry == 'Engineering & Construction' or syminfo.industry == 'Construction Materials' or syminfo.industry == 'Building Products' or syminfo.industry == 'Steel' 
