@@ -104,7 +104,9 @@ else
         sectorIndex := 'NASDAQ:SOX'
     else if syminfo.sector == 'Electronic Technology' or syminfo.sector == 'Technology Services'
         sectorIndex := 'AMEX:XLK'
-    else if syminfo.sector == 'Heath Services' or syminfo.sector == 'Heath Technology'
+    else if syminfo.sector == 'Finance' and (syminfo.industry == 'Regional Banks' or syminfo.industry == 'Major Banks')
+        sectorIndex := 'AMEX:XLF'
+    else if syminfo.sector == 'Health Services' or syminfo.sector == 'Health Technology'
         sectorIndex := 'AMEX:XBI'
     else if syminfo.sector == 'Consumer Services' or syminfo.sector == 'Consumer Durables' or syminfo.sector == 'Retail Trade'
         sectorIndex := 'AMEX:XLY'
@@ -112,6 +114,10 @@ else
         sectorIndex := 'AMEX:XLRE'
     else if syminfo.industry == 'Airlines'
         sectorIndex := 'AMEX:JETS'
+    else if syminfo.industry == 'Restaurants' or str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
+        sectorIndex := 'AMEX:VEGI'
+    else if str.contains(syminfo.industry, 'Agricultural')
+        sectorIndex := 'AMEX:DBA'
 
 table t = table.new(position.top_right, 2, 16, bgcolor = bg_col)
 txtSize = size.small
