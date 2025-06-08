@@ -79,7 +79,7 @@ if isGPW
         sectorIndex := 'GPW:WIG_GORNIC'
     else if syminfo.sector == 'Technology Services' or syminfo.sector == 'Electronic Technology'
         sectorIndex := 'GPW:WIG_INFO'
-    else if syminfo.sector == 'Health Technology'
+    else if syminfo.sector == 'Health Technology' or str.contains(syminfo.industry, 'Medical')
         sectorIndex := 'GPW:WIG_LEKI'
     else if str.contains(syminfo.industry, 'Entertainment') or str.contains(syminfo.industry, 'Marketing') or str.contains(syminfo.industry, 'Magazines') or syminfo.industry == 'Broadcasting'
         sectorIndex := 'GPW:WIG_MEDIA'
@@ -98,13 +98,17 @@ else
         sectorIndex := 'AMEX:XAU'
     else if syminfo.sector == 'Non-Energy Minerals'
         sectorIndex := 'AMEX:XLB'
+    else if str.contains(syminfo.industry, 'Gas')
+        sectorIndex := 'AMEX:UNG'
+    else if str.contains(syminfo.industry, 'Oil')
+        sectorIndex := 'AMEX:XOP'
     else if syminfo.sector == 'Energy Minerals'
         sectorIndex := 'AMEX:XLE'
     else if syminfo.industry == 'Semiconductors'
         sectorIndex := 'NASDAQ:SOX'
     else if syminfo.sector == 'Electronic Technology' or syminfo.sector == 'Technology Services'
         sectorIndex := 'AMEX:XLK'
-    else if syminfo.sector == 'Finance' and (syminfo.industry == 'Regional Banks' or syminfo.industry == 'Major Banks')
+    else if syminfo.sector == 'Finance' and str.contains(syminfo.industry, 'Banks')
         sectorIndex := 'AMEX:XLF'
     else if syminfo.sector == 'Health Services' or syminfo.sector == 'Health Technology'
         sectorIndex := 'AMEX:XBI'
@@ -116,8 +120,10 @@ else
         sectorIndex := 'AMEX:JETS'
     else if syminfo.industry == 'Restaurants' or str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
         sectorIndex := 'AMEX:VEGI'
-    else if str.contains(syminfo.industry, 'Agricultural')
+    else if str.contains(syminfo.industry, 'Agricultural') or str.contains(syminfo.industry, 'Farm')
         sectorIndex := 'AMEX:DBA'
+    else if syminfo.industry == 'Water Utilities'
+        sectorIndex := 'NASDAQ:PHO'
 
 table t = table.new(position.top_right, 2, 16, bgcolor = bg_col)
 txtSize = size.small
