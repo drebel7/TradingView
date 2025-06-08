@@ -93,6 +93,25 @@ if isGPW
         sectorIndex := 'GPW:WIG_PALIWA'
     else if str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
         sectorIndex := 'GPW:WIG_SPOZYW'
+else
+    if syminfo.sector == 'Non-Energy Minerals' and syminfo.industry == 'Precious Metals'
+        sectorIndex := 'AMEX:XAU'
+    else if syminfo.sector == 'Non-Energy Minerals'
+        sectorIndex := 'AMEX:XLB'
+    else if syminfo.sector == 'Energy Minerals'
+        sectorIndex := 'AMEX:XLE'
+    else if syminfo.industry == 'Semiconductors'
+        sectorIndex := 'NASDAQ:SOX'
+    else if syminfo.sector == 'Electronic Technology' or syminfo.sector == 'Technology Services'
+        sectorIndex := 'AMEX:XLK'
+    else if syminfo.sector == 'Heath Services' or syminfo.sector == 'Heath Technology'
+        sectorIndex := 'AMEX:XBI'
+    else if syminfo.sector == 'Consumer Services' or syminfo.sector == 'Consumer Durables' or syminfo.sector == 'Retail Trade'
+        sectorIndex := 'AMEX:XLY'
+    else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
+        sectorIndex := 'AMEX:XLRE'
+    else if syminfo.industry == 'Airlines'
+        sectorIndex := 'AMEX:JETS'
 
 table t = table.new(position.top_right, 2, 16, bgcolor = bg_col)
 txtSize = size.small
