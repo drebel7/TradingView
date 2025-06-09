@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/14 as drelib
+import drebel/DRELib/15 as drelib
 
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')
@@ -125,6 +125,21 @@ else
     else if syminfo.industry == 'Water Utilities'
         sectorIndex := 'NASDAQ:PHO'
 
+wideIndexClose = drelib.getDefaultBenchmarkClose()
+wideIndexBullish = drelib.priceMasBullishAligned(wideIndexClose)
+isWideIndexRecentlyBullishCond = nz(ta.barssince(wideIndexBullish), 9999) < 22
+wideIndexBearish = drelib.priceMasBearishAligned(wideIndexClose)
+isWideIndexRecentlyBearishCond = nz(ta.barssince(wideIndexBearish), 9999) < 22
+
+sectorIndexClose = request.security(sectorIndex, "D", close)        
+sectorIndexBullish = drelib.priceMasBullishAligned(sectorIndexClose)
+isSectorRecentlyBullishCond = nz(ta.barssince(sectorIndexBullish), 9999) < 22
+sectorIndexBearish = drelib.priceMasBearishAligned(sectorIndexClose)
+isSectorRecentlyBearishCond = nz(ta.barssince(sectorIndexBearish), 9999) < 22
+
+mod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
+modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '(-)' : '(--)'
+
 table t = table.new(position.top_right, 2, 16, bgcolor = bg_col)
 txtSize = size.small
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
@@ -175,4 +190,4 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
         table.cell(t, 1, 14, ind, text_color = adrp_col, text_size = txtSize)
     if show_industry_sector
         table.cell(t, 0, 15, 'bench. index', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 15, sectorIndex, text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 15, sectorIndex + modStr, text_color = adrp_col, text_size = txtSize)
