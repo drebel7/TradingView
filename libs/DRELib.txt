@@ -108,19 +108,34 @@ export crossunder2(series float _source1, series float _source2) =>
     _source1[1] >= _source2[1] and _source1 < _source2
 
 // Minevrini trend
-export priceMasBullishAligned(int _tradingDaysInAYear) =>
-    ma200 = ta.sma(close, 200)
-    ma150 = ta.sma(close, 150)
-    ma50 = ta.sma(close, 50)
-    yLow = ta.lowest(_tradingDaysInAYear)
-    yHigh = ta.highest(_tradingDaysInAYear)
+export priceMasBullishAligned(series float closePrice, series float lowPrice, series float highPrice, int _tradingDaysInAYear) =>
+    ma200 = ta.sma(closePrice, 200)
+    ma150 = ta.sma(closePrice, 150)
+    ma50 = ta.sma(closePrice, 50)
+    yLow = ta.lowest(lowPrice, _tradingDaysInAYear)
+    yHigh = ta.highest(highPrice, _tradingDaysInAYear)
     ma200GoingUp_10 = ma200 > ma200[1] ? 1 : 0
     ma200GoingUpCond = math.sum(ma200GoingUp_10, 35) > 30
     masAlignedCond = ma50 > ma150 and ma50 > ma200 and ma150 > ma200 and ma200GoingUpCond
-    priceAlignedCond = close > 1.25 * yLow and close > yHigh / 1.25
-    priceMasAlignedCond = close > ma50 / 1.08 and close > ma150 and close > ma200
+    priceAlignedCond = closePrice > 1.25 * yLow and closePrice > yHigh / 1.25
+    priceMasAlignedCond = closePrice > ma50 / 1.08 and closePrice > ma150 and closePrice > ma200
     allCond = masAlignedCond and priceAlignedCond and priceMasAlignedCond
     allCond
+
+export priceMasBullishAligned(series float closePrice, series float lowPrice, series float highPrice) =>
+    priceMasBullishAligned(closePrice, lowPrice, highPrice, getDefaultStockTradingDaysInAYear())
+
+export priceMasBullishAligned(series float closePrice) =>
+    priceMasBullishAligned(closePrice, closePrice, closePrice, getDefaultStockTradingDaysInAYear())
+
+export priceMasBullishAligned() =>
+    priceMasBullishAligned(close, low, high, getDefaultStockTradingDaysInAYear())
+
+export priceMasBullishAligned(int _tradingDaysInAYear) =>
+    priceMasBullishAligned(close, low, high, _tradingDaysInAYear)
+
+export priceMasBullishAligned(series float closePrice, int _tradingDaysInAYear) =>
+    priceMasBullishAligned(closePrice, closePrice, closePrice, _tradingDaysInAYear)
 
 export priceMasBearishAligned(series float closePrice, series float lowPrice, series float highPrice, int _tradingDaysInAYear) =>
     ma200 = ta.sma(closePrice, 200)
@@ -135,6 +150,15 @@ export priceMasBearishAligned(series float closePrice, series float lowPrice, se
     priceMasAlignedCond = closePrice < ma50 * 1.08 and closePrice < ma150 and closePrice < ma200
     allCond = masAlignedCond and priceAlignedCond and priceMasAlignedCond
     allCond
+
+export priceMasBearishAligned(series float closePrice, series float lowPrice, series float highPrice) =>
+    priceMasBearishAligned(closePrice, lowPrice, highPrice, getDefaultStockTradingDaysInAYear())
+
+export priceMasBearishAligned(series float closePrice) =>
+    priceMasBearishAligned(closePrice, closePrice, closePrice, getDefaultStockTradingDaysInAYear())
+
+export priceMasBearishAligned() =>
+    priceMasBearishAligned(close, low, high, getDefaultStockTradingDaysInAYear())
 
 export priceMasBearishAligned(int _tradingDaysInAYear) =>
     priceMasBearishAligned(close, low, high, _tradingDaysInAYear)
