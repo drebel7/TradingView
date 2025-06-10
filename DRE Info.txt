@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/15 as drelib
+import drebel/DRELib/16 as drelib
 
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
 show_atr = input.bool(defval = false, title = 'Show ATR')
@@ -60,85 +60,8 @@ ma3DistPercentile = ta.percentrank(drelib.ma_distance(10, 21, 50), 200)
 sector = syminfo.sector
 ind = syminfo.industry
 
-bool isGPW = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT'
-string sectorIndex = ''
-if isGPW
-    if str.contains("NEWCONNECT:AGL,GPW:AGT,GPW:AST,GPW:CLE,GPW:IMC,GPW:KER,GPW:KSG,GPW:MLK", syminfo.tickerid)
-        sectorIndex := 'GPW:WIG_UKRAIN'
-    else if str.contains("GPW:11B,GPW:3RG,GPW:ART,GPW:BBT,GPW:BCS,GPW:BLO,GPW:CDR,GPW:CIG,GPW:CRJ,GPW:DGE,GPW:GIF,GPW:GOP,GPW:HUG,GPW:MOV,GPW:PCF,GPW:PLW,GPW:RND,GPW:SIM,GPW:TEN,GPW:ULG,GPW:VVD", syminfo.tickerid)
-        sectorIndex := 'GPW:WIG_GRY'
-    else if syminfo.sector == 'Finance' and (syminfo.industry == 'Regional Banks' or syminfo.industry == 'Major Banks')
-        sectorIndex := 'GPW:WIG_BANKI'
-    else if syminfo.industry == 'Engineering & Construction' or syminfo.industry == 'Construction Materials' or syminfo.industry == 'Building Products' or syminfo.industry == 'Steel' 
-        sectorIndex := 'GPW:WIG_BUDOW'
-    else if str.contains(syminfo.industry, 'Chemicals') or str.contains(syminfo.industry, 'Oil Refining')
-        sectorIndex := 'GPW:WIG_CHEMIA'
-    else if syminfo.industry == 'Electric Utilities' or syminfo.industry == 'Alternative Power Generation'
-        sectorIndex := 'GPW:WIG_ENERG'
-    else if str.contains(syminfo.industry, 'Minerals') or syminfo.industry == 'Coal'
-        sectorIndex := 'GPW:WIG_GORNIC'
-    else if syminfo.sector == 'Technology Services' or syminfo.sector == 'Electronic Technology'
-        sectorIndex := 'GPW:WIG_INFO'
-    else if syminfo.sector == 'Health Technology' or str.contains(syminfo.industry, 'Medical')
-        sectorIndex := 'GPW:WIG_LEKI'
-    else if str.contains(syminfo.industry, 'Entertainment') or str.contains(syminfo.industry, 'Marketing') or str.contains(syminfo.industry, 'Magazines') or syminfo.industry == 'Broadcasting'
-        sectorIndex := 'GPW:WIG_MEDIA'
-    else if str.contains(syminfo.industry, 'Auto Parts') or syminfo.industry == 'Broadcasting' or syminfo.tickerid == 'GPW:APR' or syminfo.tickerid == 'GPW:SNK'
-        sectorIndex := 'GPW:WIG_MOTO'
-    else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
-        sectorIndex := 'GPW:WIG_NRCHOM'
-    else if syminfo.sector == 'Consumer Non-Durables' or str.contains(syminfo.industry, 'Aparel/Footwear') or syminfo.industry == 'Textiles'
-        sectorIndex := 'GPW:WIG_ODZIEZ'
-    else if syminfo.sector == 'Energy Minerals' or syminfo.industry == 'Gas Distributors'
-        sectorIndex := 'GPW:WIG_PALIWA'
-    else if str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
-        sectorIndex := 'GPW:WIG_SPOZYW'
-else
-    if syminfo.sector == 'Non-Energy Minerals' and syminfo.industry == 'Precious Metals'
-        sectorIndex := 'NASDAQ:XAU'
-    else if syminfo.sector == 'Non-Energy Minerals'
-        sectorIndex := 'AMEX:XLB'
-    else if str.contains(syminfo.industry, 'Gas')
-        sectorIndex := 'AMEX:UNG'
-    else if str.contains(syminfo.industry, 'Oil')
-        sectorIndex := 'AMEX:XOP'
-    else if syminfo.sector == 'Energy Minerals'
-        sectorIndex := 'AMEX:XLE'
-    else if syminfo.industry == 'Semiconductors'
-        sectorIndex := 'NASDAQ:SOX'
-    else if syminfo.sector == 'Electronic Technology' or syminfo.sector == 'Technology Services'
-        sectorIndex := 'AMEX:XLK'
-    else if syminfo.sector == 'Finance' and str.contains(syminfo.industry, 'Banks')
-        sectorIndex := 'AMEX:XLF'
-    else if syminfo.sector == 'Health Services' or syminfo.sector == 'Health Technology'
-        sectorIndex := 'AMEX:XBI'
-    else if syminfo.sector == 'Consumer Services' or syminfo.sector == 'Consumer Durables' or syminfo.sector == 'Retail Trade'
-        sectorIndex := 'AMEX:XLY'
-    else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
-        sectorIndex := 'AMEX:XLRE'
-    else if syminfo.industry == 'Airlines'
-        sectorIndex := 'AMEX:JETS'
-    else if syminfo.industry == 'Restaurants' or str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
-        sectorIndex := 'AMEX:VEGI'
-    else if str.contains(syminfo.industry, 'Agricultural') or str.contains(syminfo.industry, 'Farm')
-        sectorIndex := 'AMEX:DBA'
-    else if syminfo.industry == 'Water Utilities'
-        sectorIndex := 'NASDAQ:PHO'
-
-wideIndexClose = drelib.getDefaultBenchmarkClose()
-wideIndexBullish = drelib.priceMasBullishAligned(wideIndexClose)
-isWideIndexRecentlyBullishCond = nz(ta.barssince(wideIndexBullish), 9999) < 22
-wideIndexBearish = drelib.priceMasBearishAligned(wideIndexClose)
-isWideIndexRecentlyBearishCond = nz(ta.barssince(wideIndexBearish), 9999) < 22
-
-
-sectorIndexClose = sectorIndex != '' ? request.security(sectorIndex, "D", close) : na        
-sectorIndexBullish = sectorIndex != '' ? drelib.priceMasBullishAligned(sectorIndexClose) : false
-isSectorRecentlyBullishCond = nz(ta.barssince(sectorIndexBullish), 9999) < 22
-sectorIndexBearish = sectorIndex != '' ? drelib.priceMasBearishAligned(sectorIndexClose) : false
-isSectorRecentlyBearishCond = nz(ta.barssince(sectorIndexBearish), 9999) < 22
-
-mod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
+string sectorIndex = drelib.getSectorIndex()
+mod = drelib.getWideIndexAndSectorSignalMod(22)
 modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '(-)' : '(--)'
 
 table t = table.new(position.top_right, 2, 16, bgcolor = bg_col)

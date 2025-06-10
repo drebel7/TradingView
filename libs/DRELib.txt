@@ -32,6 +32,73 @@ export getDefaultBenchmarkHigh(string _period) =>
 export getDefaultBenchmarkHigh() =>
     getDefaultBenchmarkHigh(timeframe.period)
 
+export getSectorIndex() =>
+    bool isGPW = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT'
+    string sectorIndex = ''
+    if isGPW
+        if str.contains("NEWCONNECT:AGL,GPW:AGT,GPW:AST,GPW:CLE,GPW:IMC,GPW:KER,GPW:KSG,GPW:MLK", ticker.standard())
+            sectorIndex := 'GPW:WIG_UKRAIN'
+        else if str.contains("GPW:11B,GPW:3RG,GPW:ART,GPW:BBT,GPW:BCS,GPW:BLO,GPW:CDR,GPW:CIG,GPW:CRJ,GPW:DGE,GPW:GIF,GPW:GOP,GPW:HUG,GPW:MOV,GPW:PCF,GPW:PLW,GPW:RND,GPW:SIM,GPW:TEN,GPW:ULG,GPW:VVD", ticker.standard())
+            sectorIndex := 'GPW:WIG_GRY'
+        else if syminfo.sector == 'Finance' and (syminfo.industry == 'Regional Banks' or syminfo.industry == 'Major Banks')
+            sectorIndex := 'GPW:WIG_BANKI'
+        else if syminfo.industry == 'Engineering & Construction' or syminfo.industry == 'Construction Materials' or syminfo.industry == 'Building Products' or syminfo.industry == 'Steel' 
+            sectorIndex := 'GPW:WIG_BUDOW'
+        else if str.contains(syminfo.industry, 'Chemicals') or str.contains(syminfo.industry, 'Oil Refining')
+            sectorIndex := 'GPW:WIG_CHEMIA'
+        else if syminfo.industry == 'Electric Utilities' or syminfo.industry == 'Alternative Power Generation'
+            sectorIndex := 'GPW:WIG_ENERG'
+        else if str.contains(syminfo.industry, 'Minerals') or syminfo.industry == 'Coal'
+            sectorIndex := 'GPW:WIG_GORNIC'
+        else if syminfo.sector == 'Technology Services' or syminfo.sector == 'Electronic Technology'
+            sectorIndex := 'GPW:WIG_INFO'
+        else if syminfo.sector == 'Health Technology' or str.contains(syminfo.industry, 'Medical')
+            sectorIndex := 'GPW:WIG_LEKI'
+        else if str.contains(syminfo.industry, 'Entertainment') or str.contains(syminfo.industry, 'Marketing') or str.contains(syminfo.industry, 'Magazines') or syminfo.industry == 'Broadcasting'
+            sectorIndex := 'GPW:WIG_MEDIA'
+        else if str.contains(syminfo.industry, 'Auto Parts') or syminfo.industry == 'Broadcasting' or ticker.standard() == 'GPW:APR' or ticker.standard() == 'GPW:SNK'
+            sectorIndex := 'GPW:WIG_MOTO'
+        else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
+            sectorIndex := 'GPW:WIG_NRCHOM'
+        else if syminfo.sector == 'Consumer Non-Durables' or str.contains(syminfo.industry, 'Aparel/Footwear') or syminfo.industry == 'Textiles'
+            sectorIndex := 'GPW:WIG_ODZIEZ'
+        else if syminfo.sector == 'Energy Minerals' or syminfo.industry == 'Gas Distributors'
+            sectorIndex := 'GPW:WIG_PALIWA'
+        else if str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
+            sectorIndex := 'GPW:WIG_SPOZYW'
+    else
+        if syminfo.sector == 'Non-Energy Minerals' and syminfo.industry == 'Precious Metals'
+            sectorIndex := 'NASDAQ:XAU'
+        else if syminfo.sector == 'Non-Energy Minerals'
+            sectorIndex := 'AMEX:XLB'
+        else if str.contains(syminfo.industry, 'Gas')
+            sectorIndex := 'AMEX:UNG'
+        else if str.contains(syminfo.industry, 'Oil')
+            sectorIndex := 'AMEX:XOP'
+        else if syminfo.sector == 'Energy Minerals'
+            sectorIndex := 'AMEX:XLE'
+        else if syminfo.industry == 'Semiconductors'
+            sectorIndex := 'NASDAQ:SOX'
+        else if syminfo.sector == 'Electronic Technology' or syminfo.sector == 'Technology Services'
+            sectorIndex := 'AMEX:XLK'
+        else if syminfo.sector == 'Finance' and str.contains(syminfo.industry, 'Banks')
+            sectorIndex := 'AMEX:XLF'
+        else if syminfo.sector == 'Health Services' or syminfo.sector == 'Health Technology'
+            sectorIndex := 'AMEX:XBI'
+        else if syminfo.sector == 'Consumer Services' or syminfo.sector == 'Consumer Durables' or syminfo.sector == 'Retail Trade'
+            sectorIndex := 'AMEX:XLY'
+        else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
+            sectorIndex := 'AMEX:XLRE'
+        else if syminfo.industry == 'Airlines'
+            sectorIndex := 'AMEX:JETS'
+        else if syminfo.industry == 'Restaurants' or str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
+            sectorIndex := 'AMEX:VEGI'
+        else if str.contains(syminfo.industry, 'Agricultural') or str.contains(syminfo.industry, 'Farm')
+            sectorIndex := 'AMEX:DBA'
+        else if syminfo.industry == 'Water Utilities'
+            sectorIndex := 'NASDAQ:PHO'
+    sectorIndex
+
 // from MLExtensions by jdehorty
 // @function Rescales a source value with an unbounded range to a target range.
 // @param src <series float> The input series
@@ -233,6 +300,21 @@ export isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStr
 export isMinevriniBearishTrend(bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
     isMinevriniBearishTrend(getDefaultStockTradingDaysInAYear(), _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
 
+export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
+    wideIndexClose = getDefaultBenchmarkClose()
+    wideIndexBullish = priceMasBullishAligned(wideIndexClose)
+    isWideIndexRecentlyBullishCond = nz(ta.barssince(wideIndexBullish), 9999) < daysSinceTrend
+    wideIndexBearish = priceMasBearishAligned(wideIndexClose)
+    isWideIndexRecentlyBearishCond = nz(ta.barssince(wideIndexBearish), 9999) < daysSinceTrend
+    sectorIndex = getSectorIndex()
+    sectorIndexClose = sectorIndex != '' ? request.security(sectorIndex, "D", close) : na        
+    sectorIndexBullish = sectorIndex != '' ? priceMasBullishAligned(sectorIndexClose) : false
+    isSectorRecentlyBullishCond = nz(ta.barssince(sectorIndexBullish), 9999) < daysSinceTrend
+    sectorIndexBearish = sectorIndex != '' ? priceMasBearishAligned(sectorIndexClose) : false
+    isSectorRecentlyBearishCond = nz(ta.barssince(sectorIndexBearish), 9999) < daysSinceTrend
+    sigMod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
+    sigMod
+
 // general filter
 export minTurnoverOk(float _minTurnoverM, int _len) =>
     hasEnoughBars = bar_index >= _len
@@ -261,6 +343,16 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     allCond = turnoverCond and adrCond and priceCond
     allCond
 
+export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float _maxPrice, int _len, int _maxDistFromLoDPct, int sigMod) =>
+    turnoverCond = minTurnoverOk(_minTurnoverM, _len)
+    adrCond = minAdrOk(_minAdr, _len)
+    priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
+    hiloAvg = ta.sma(high - low, _len)
+    loDDistPct = 100 * (close - low) / hiloAvg
+    loDDistCond = loDDistPct <= _maxDistFromLoDPct * (1 + sigMod * 0.1)
+    allCond = turnoverCond and adrCond and priceCond and loDDistCond
+    allCond
+
 export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float _maxPrice, int _len, bool _checkBenchmarkNotBearishTrend, int _minBenchmarkNotBearishSince) =>
     turnoverCond = minTurnoverOk(_minTurnoverM, _len)
     adrCond = minAdrOk(_minAdr, _len)
@@ -281,6 +373,33 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     loDDistCond = loDDistPct <= _maxDistFromLoDPct
     allCond = turnoverCond and adrCond and priceCond and isBenchmarkNotRecentlyBearishCond and loDDistCond
     allCond
+
+// breakouts
+export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int sigMod) =>
+    lastHighest1 = ta.highest(_lookback1)
+    lastHighest2 = ta.highest(2 * _lookback1)
+    lastHighest3 = ta.highest(3 * _lookback1)
+    lastHighest4 = ta.highest(4 * _lookback1)
+    breakout = close > lastHighest1[1]
+    breakout2 = close > lastHighest2[1]
+    breakout3 = close > lastHighest3[1]
+    breakout4 = close > lastHighest4[1]
+    breakoutNew = not breakout[1] and not breakout[2] and not breakout[3]
+    breakout2New = not breakout2[1] and not breakout2[2] and not breakout2[3]
+    breakout3New = not breakout3[1] and not breakout3[2] and not breakout3[3]
+    breakout4New = not breakout4[1] and not breakout4[2] and not breakout4[3]
+    breakoutCond = breakoutNew or _lookbackMultiples and (breakout2New or breakout3New or breakout4New)
+    volumeSigMod = 1 - sigMod * 0.1
+    volumeMa = ta.sma(volume, 30)
+    dttVol = volume / volumeMa
+    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    dttVolTimePct = 100 * dttVol / dttTime
+    //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
+    timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct) * volumeSigMod
+    initialFlat = 0.01
+    volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * _initialMinVolDttPct * volumeMa * volumeSigMod) or volume > (_dayEndMinVolDttPct * volumeSigMod / 100) * volumeMa
+    strongBreakout = breakout and breakoutCond and volumeGood
+    strongBreakout
 
 // Signals
 export sig_parabolic_top(series float _volMa, int _downDaysAfterTop, int _prevPeriodGainLen, int _atrMulti, series float _atr) =>
