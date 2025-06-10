@@ -95,7 +95,7 @@ if isGPW
         sectorIndex := 'GPW:WIG_SPOZYW'
 else
     if syminfo.sector == 'Non-Energy Minerals' and syminfo.industry == 'Precious Metals'
-        sectorIndex := 'AMEX:XAU'
+        sectorIndex := 'NASDAQ:XAU'
     else if syminfo.sector == 'Non-Energy Minerals'
         sectorIndex := 'AMEX:XLB'
     else if str.contains(syminfo.industry, 'Gas')
@@ -131,10 +131,11 @@ isWideIndexRecentlyBullishCond = nz(ta.barssince(wideIndexBullish), 9999) < 22
 wideIndexBearish = drelib.priceMasBearishAligned(wideIndexClose)
 isWideIndexRecentlyBearishCond = nz(ta.barssince(wideIndexBearish), 9999) < 22
 
-sectorIndexClose = request.security(sectorIndex, "D", close)        
-sectorIndexBullish = drelib.priceMasBullishAligned(sectorIndexClose)
+
+sectorIndexClose = sectorIndex != '' ? request.security(sectorIndex, "D", close) : na        
+sectorIndexBullish = sectorIndex != '' ? drelib.priceMasBullishAligned(sectorIndexClose) : false
 isSectorRecentlyBullishCond = nz(ta.barssince(sectorIndexBullish), 9999) < 22
-sectorIndexBearish = drelib.priceMasBearishAligned(sectorIndexClose)
+sectorIndexBearish = sectorIndex != '' ? drelib.priceMasBearishAligned(sectorIndexClose) : false
 isSectorRecentlyBearishCond = nz(ta.barssince(sectorIndexBearish), 9999) < 22
 
 mod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
