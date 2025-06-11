@@ -41,11 +41,11 @@ alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', m
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
 
-iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
+iRmvMainLookback = input.int(defval = 16, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
 iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
 iRmvShortLookback2 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
 iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iMaxBarsSinceContraction = input.int(defval = 10, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
 rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
@@ -64,8 +64,8 @@ contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
 iBreakoutLookback = input.int(defval = 15, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
-iInitialMinVolumePct = input.int(defval = 550, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
-iDayEndMinVolumePct = input.int(defval = 115, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
 strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod)
 
