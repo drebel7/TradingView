@@ -315,6 +315,17 @@ export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
     sigMod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
     sigMod
 
+//Relative Measured Volatility
+export rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
+    short1 = ta.atr(_shortLookback1)
+    short2 = ta.atr(_shortLookback2)
+    short3 = ta.atr(_shortLookback3)
+    shortAvg = (short1 + short2 + short3) / 3
+    highestShortAvg = ta.highest(shortAvg, _mainLookback)
+    lowestShortAvg = ta.lowest(shortAvg, _mainLookback)
+    rmvValue = (shortAvg - lowestShortAvg) / math.max(highestShortAvg - lowestShortAvg, 0.001) * 100
+    rmvValue
+
 // general filter
 export minTurnoverOk(float _minTurnoverM, int _len) =>
     hasEnoughBars = bar_index >= _len

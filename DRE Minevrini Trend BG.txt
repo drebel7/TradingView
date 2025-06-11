@@ -4,7 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/17 as drelib
+import drebel/DRELib/18 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -48,17 +48,7 @@ iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv
 iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
-rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
-    short1 = ta.atr(_shortLookback1)
-    short2 = ta.atr(_shortLookback2)
-    short3 = ta.atr(_shortLookback3)
-    shortAvg = (short1 + short2 + short3) / 3
-    highestShortAvg = ta.highest(shortAvg, _mainLookback)
-    lowestShortAvg = ta.lowest(shortAvg, _mainLookback)
-    rmvValue = (shortAvg - lowestShortAvg) / math.max(highestShortAvg - lowestShortAvg, 0.001) * 100
-    rmvValue
-
-rmv = rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLookback3)
+rmv = drelib.rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLookback3)
 contraction1 = rmv < 25
 contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
