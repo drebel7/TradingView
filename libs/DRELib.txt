@@ -394,6 +394,13 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     allCond
 
 // breakouts
+export isAboveRecentHighVwap(int _lookback) =>
+    localHigh = ta.highest(_lookback)
+    localHighCandlesAgo = ta.barssince(high == localHigh)
+    localHighVwap = ta.vwap(ohlc4, high == localHigh)
+    aboveVwap = close > localHighVwap
+    aboveVwap
+
 export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int sigMod) =>
     lastHighest1 = ta.highest(_lookback1)
     lastHighest2 = ta.highest(2 * _lookback1)
@@ -418,6 +425,13 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
     initialFlat = 0.01
     volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * _initialMinVolDttPct * volumeMa * volumeSigMod) or volume > (_dayEndMinVolDttPct * volumeSigMod / 100) * volumeMa
     strongBreakout = breakout and breakoutCond and volumeGood
+    strongBreakout
+
+export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int sigMod, bool useVwap) =>
+    sBreakout = strongBreakout(_lookback1, _lookbackMultiples, _initialMinVolDttPct, _dayEndMinVolDttPct, sigMod)
+    isAboveHighVwap = isAboveRecentHighVwap(100)
+    aboveHighVwapCond = useVwap and isAboveHighVwap or not useVwap
+    strongBreakout = sBreakout and aboveHighVwapCond
     strongBreakout
 
 // Signals
