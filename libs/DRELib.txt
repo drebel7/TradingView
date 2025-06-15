@@ -56,7 +56,7 @@ export getSectorIndex() =>
             sectorIndex := 'GPW:WIG_LEKI'
         else if str.contains(syminfo.industry, 'Entertainment') or str.contains(syminfo.industry, 'Marketing') or str.contains(syminfo.industry, 'Magazines') or syminfo.industry == 'Broadcasting'
             sectorIndex := 'GPW:WIG_MEDIA'
-        else if str.contains(syminfo.industry, 'Auto Parts') or syminfo.industry == 'Broadcasting' or ticker.standard() == 'GPW:APR' or ticker.standard() == 'GPW:SNK'
+        else if str.contains(syminfo.industry, 'Auto Parts') or syminfo.industry == 'Broadcasting' or str.contains("GPW:APR,GPW:SNK", ticker.standard())
             sectorIndex := 'GPW:WIG_MOTO'
         else if str.contains(syminfo.industry, 'Real Estate') or syminfo.industry == 'Homebuilding'
             sectorIndex := 'GPW:WIG_NRCHOM'
@@ -67,8 +67,16 @@ export getSectorIndex() =>
         else if str.contains(syminfo.industry, 'Food') or str.contains(syminfo.industry, 'Beverages')
             sectorIndex := 'GPW:WIG_SPOZYW'
     else
-        if syminfo.sector == 'Non-Energy Minerals' and syminfo.industry == 'Precious Metals'
+        if str.contains("NYSE:CCJ,LSIN:KAP,NYSE:NXE,AMEX:UEC,AMEX:DNN,AMEX:UUUU,NASDAQ:EU,AMEX:URG,NASDAQ:UROY,LSE:AURA,LSE:THR", ticker.standard())
+            sectorIndex := 'AMEX:URNM'
+        else if str.contains("LSE:0S2J,NYSE:SBSW,AMEX:PLG,LSE:SLP,LSE:FME", ticker.standard())
+            sectorIndex := 'AMEX:PPLT'
+        else if str.contains("NYSE:PAAS,LSE:FRES,NYSE:CDE,NYSE:HL,NYSE:BVN,NYSE:AG,AMEX:ORLA,AMEX:MAG,NYSE:FSM,NYSE:EXK,LSE:HOC,AMEX:SVM,AMEX:VZLA,LSE:0A61,AMEX:USAS,AMEX:ASM", ticker.standard())
+            sectorIndex := 'AMEX:SIL'
+        else if syminfo.sector == 'Non-Energy Minerals' and syminfo.industry == 'Precious Metals'
             sectorIndex := 'NASDAQ:XAU'
+        else if str.contains("NYSE:IONQ,NASDAQ:RGTI,NYSE:QBTS,NASDAQ:QUBT", ticker.standard())
+            sectorIndex := 'NASDAQ:QTUM'
         else if syminfo.sector == 'Non-Energy Minerals'
             sectorIndex := 'AMEX:XLB'
         else if str.contains(syminfo.industry, 'Gas')
