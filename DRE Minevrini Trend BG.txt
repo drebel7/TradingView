@@ -13,12 +13,12 @@ iMinAdr = input.float(defval = 2.6, title = 'Min. ADR[%]', minval = 0, step = 0.
 iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
-iMinBenchmarkNotBearishSince = input.int(defval = 22, title = 'Min. days from benchmark bearish', minval = 0, maxval = 50, group = 'General filter for signal')
+iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
 
 //common filters calculations 
-sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
-generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
-gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
+int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
+bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
+bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
@@ -27,10 +27,11 @@ iIncludeRelativeStrenth = input.bool(defval = true, title = 'Relative strength',
 iIncludeEarnings = input.bool(defval = true, title = 'Earnings', group = 'Include', inline = 'earnings')
 iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. change rate', group = 'Include', minval = 0.0, maxval = 1.0, step = 0.1, inline = 'earnings')
 
-minevriniTrend = drelib.isMinevriniBullishTrend(iIncludeRelativeStrenth, iIncludeEarnings, iBetterEarningsRate)
+doIncludeEarnings = sigMod == 2 ? false : iIncludeEarnings
+minevriniTrend = drelib.isMinevriniBullishTrend(iIncludeRelativeStrenth, doIncludeEarnings, iBetterEarningsRate)
 minevriniTrendSig = minevriniTrend and not minevriniTrend[1]
 
-minevriniBearishTrend = drelib.isMinevriniBearishTrend(iIncludeRelativeStrenth, iIncludeEarnings, iBetterEarningsRate)
+minevriniBearishTrend = drelib.isMinevriniBearishTrend(iIncludeRelativeStrenth, doIncludeEarnings, iBetterEarningsRate)
 minevriniBearishTrendSig = minevriniBearishTrend and not minevriniBearishTrend[1]
 
 
