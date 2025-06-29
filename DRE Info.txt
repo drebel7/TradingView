@@ -17,8 +17,7 @@ show_lod_price = input.bool(defval = true, title = 'Show LoD price')
 show_lod_dist = input.bool(defval = true, title = 'Show LoD distance')
 show_dtt_volume = input.bool(defval = true, title = 'Day to time volume %')
 show_dtt_time = input.bool(defval = false, title = 'Day to time time %')
-show_short_ma_percentile = input.bool(defval = false, title = 'Short MA dist. percentile')
-show_mid_ma_percentile = input.bool(defval = false, title = 'Short-Mid. MA dist. percentile')
+show_ma_percentiles = input.bool(defval = true, title = 'MAs dist. percentiles')
 show_sharpe_ratio = input.bool(defval = false, title = 'Sharpe ratio')
 show_earnings_up = input.bool(defval = true, title = 'Earnings going up')
 show_industry_sector = input.bool(defval = true, title = 'Industry and Sector')
@@ -27,6 +26,7 @@ len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip 
 riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
 bg_col = input.color(defval = #00000000, title = 'Background Color')
 adrp_col = input.color(defval = color.black, title = 'Text Color')
+red_col = input.color(defval = color.red, title = 'Text Color (for sig)')
 show_empty_row = input.bool(defval = true, title = 'Add an empty row above the displayed values', tooltip = 'Serves the purpose of not having the pane icons overlap with the ' + 'text in the table if multiple panes are shown and the chart pane is hovered')
 
 hiloAvg = ta.sma(high - low, len)
@@ -55,8 +55,11 @@ tradingDaysIn2YearsAndSome = 2 * tradingDaysInAYear + 20
 earningsAvailable = epsDays1Y + epsDays2Y > 0
 epsStr = str.tostring(epsBetter1Y) + '/' + str.tostring(epsDays1Y) + ' ' + str.tostring(epsBetter2Y) + '/' + str.tostring(epsDays2Y)
 
-ma2DistPercentile = ta.percentrank(drelib.ma_distance(10, 21), 200)
-ma3DistPercentile = ta.percentrank(drelib.ma_distance(10, 21, 50), 200)
+ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
+ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
+ma3DistPercentile = ta.percentrank(close - ta.sma(close, 50), 500)
+masDistPercentileRed = ma1DistPercentile > 90 and ma2DistPercentile > 90 and ma3DistPercentile > 90
+masDistPercStr = str.tostring(ma1DistPercentile) + '/' + str.tostring(ma2DistPercentile) + '/' + str.tostring(ma3DistPercentile)
 
 sector = syminfo.sector
 ind = syminfo.industry
@@ -98,24 +101,21 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_dtt_time
         table.cell(t, 0, 9, 'Dtt time [%]', text_color = adrp_col, text_size = txtSize)
         table.cell(t, 1, 9, str.tostring(math.round(dttTimePct)), text_color = adrp_col, text_size = txtSize)
-    if show_short_ma_percentile
-        table.cell(t, 0, 10, 'Short MAs prctl.', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 10, str.tostring(math.round(ma2DistPercentile)), text_color = adrp_col, text_size = txtSize)
-    if show_mid_ma_percentile
-        table.cell(t, 0, 11, 'Short-Mid MAs prctl.', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 11, str.tostring(math.round(ma3DistPercentile)), text_color = adrp_col, text_size = txtSize)
+    if show_ma_percentiles
+        table.cell(t, 0, 10, 'Close vs MAs prctl.', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 10, masDistPercStr, text_color = masDistPercentileRed ? red_col : adrp_col, text_size = txtSize)
     if show_sharpe_ratio
-        table.cell(t, 0, 12, 'Sharpe ratio', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 12, str.tostring(math.round(sharpeRatio, 1)), text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 0, 11, 'Sharpe ratio', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 11, str.tostring(math.round(sharpeRatio, 1)), text_color = adrp_col, text_size = txtSize)
     if show_earnings_up
-        table.cell(t, 0, 13, 'EPS up 1y 2y', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 13, epsStr, text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 0, 12, 'EPS up 1y 2y', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 12, epsStr, text_color = adrp_col, text_size = txtSize)
     if show_industry_sector
-        table.cell(t, 0, 14, 'sector', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 14, sector, text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 0, 13, 'sector', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 13, sector, text_color = adrp_col, text_size = txtSize)
     if show_industry_sector
-        table.cell(t, 0, 15, 'industry', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 15, ind, text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 0, 14, 'industry', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 14, ind, text_color = adrp_col, text_size = txtSize)
     if show_industry_sector
-        table.cell(t, 0, 16, 'bench. index', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 16, sectorIndex + modStr, text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 0, 15, 'bench. index', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 15, sectorIndex + modStr, text_color = adrp_col, text_size = txtSize)
