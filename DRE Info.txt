@@ -58,8 +58,9 @@ epsStr = str.tostring(epsBetter1Y) + '/' + str.tostring(epsDays1Y) + ' ' + str.t
 ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
 ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
 ma3DistPercentile = ta.percentrank(close - ta.sma(close, 50), 500)
+ma4DistPercentile = ta.percentrank(close - ta.sma(close, 200), 500)
 masDistPercentileRed = ma1DistPercentile > 90 and ma2DistPercentile > 90 and ma3DistPercentile > 90
-masDistPercStr = str.tostring(ma1DistPercentile) + '/' + str.tostring(ma2DistPercentile) + '/' + str.tostring(ma3DistPercentile)
+masDistPercStr = str.tostring(math.round(ma1DistPercentile)) + '/' + str.tostring(math.round(ma2DistPercentile)) + '/' + str.tostring(math.round(ma3DistPercentile)) + '/' + str.tostring(math.round(ma4DistPercentile))
 
 sector = syminfo.sector
 ind = syminfo.industry
