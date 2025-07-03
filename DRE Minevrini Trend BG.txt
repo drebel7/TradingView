@@ -60,7 +60,7 @@ iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative vol
 
 strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true)
 
-minevriniTrendCond = ta.barssince(minevriniTrend) < 126
+minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
 minevriniTrendContractionBreakout = minevriniTrendCond and contractionCond and strongBreakoutCond
 
