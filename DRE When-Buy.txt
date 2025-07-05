@@ -1,0 +1,41 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator(title = 'DRE When-Buy', overlay = true)
+
+import drebel/DRELib/21 as drelib
+
+iMinAdr = input.int(defval = 10, title = 'Min. ADR [%]', minval = 0, maxval = 100)
+iVolumeCond = input.bool(defval = true, title = 'Volume cond')
+iMinConsecutiveLowerCandles = input.int(defval = 5, title = 'Min. consecutive lower candles', minval = 2, maxval = 20)
+iMinAtrMultipleRise = input.int(defval = 5, title = 'Min. atr multiple rise before fall', minval = 2, maxval = 15)
+
+arp = 100 * (ta.sma(high / low, 30) - 1)
+[dAdr, dAtr, dAvgTurnover] = request.security(symbol = syminfo.tickerid, timeframe = 'D', expression = [arp, ta.atr(30), ta.sma(close * volume, 30) / 1000000])
+
+//candle parameters
+highShadow = high != low ? (high - math.max(open, close)) / (high-low) : 0
+candleBody = high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
+lowShadow = high != low ? (math.min(open, close) - low) / (high-low) : 0
+candleColor = close > open ? 1 : close < open ? -1 : 0
+
+isMarubozuGreen = candleBody > 0.75 and candleColor == 1
+isMarubozuRed = candleBody > 0.75 and candleColor == -1
+
+volEma = ta.ema(volume, 20)
+volumeAboveMaRate = math.sum(volume > volEma ? 1 : 0, 10) / 10
+
+lowerCandle = high < high[1] and low < low[1]
+consecutiveLowerCandes = ta.barssince(not lowerCandle)
+consecutiveLowerCandesCond = consecutiveLowerCandes >= iMinConsecutiveLowerCandles
+
+volumeCond = iVolumeCond and volumeAboveMaRate[1] <= 0.2 or not iVolumeCond
+
+parabolicRiseCond = close > iMinAtrMultipleRise * dAtr + close[50]
+parabolicRiseHodBreak = parabolicRiseCond and consecutiveLowerCandesCond and volumeCond and close > high[1]
+
+alertcondition(parabolicRiseHodBreak, title = 'parabolic rise-fall hod - break', message = 'HOD break')
+if parabolicRiseHodBreak
+    label.new(bar_index, close, tooltip = 'parabolic rise-fall hod - break', color = color.new(color.green, 70), style = label.style_diamond, size = size.tiny)
+//plotshape(parabolicRiseHodBreak, title = 'parabolic rise-fall hod - break', location = location.absolute, color = color.new(color.green, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
