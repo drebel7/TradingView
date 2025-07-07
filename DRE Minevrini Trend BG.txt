@@ -42,17 +42,6 @@ alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', m
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
 
-iRmvMainLookback = input.int(defval = 16, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
-iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iRmvShortLookback2 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
-
-//Relative Measured Volatility
-rmv = drelib.rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLookback3)
-contraction1 = rmv < 25
-contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
-
 iBreakoutLookback = input.int(defval = 15, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
 iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
@@ -62,7 +51,7 @@ strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
-minevriniTrendContractionBreakout = minevriniTrendCond and contractionCond and strongBreakoutCond
+minevriniTrendContractionBreakout = minevriniTrendCond and strongBreakoutCond
 
-alertcondition(gFilter and minevriniTrendContractionBreakout, title = 'bullish MTCB', message = 'MTCB')
-plotshape(minevriniTrendContractionBreakout, title = 'mtcb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtcb', textcolor = color.new(color.green, 0))
+alertcondition(gFilter and minevriniTrendContractionBreakout, title = 'bullish MTSB', message = 'MTSB')
+plotshape(minevriniTrendContractionBreakout, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
