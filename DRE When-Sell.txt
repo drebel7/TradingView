@@ -11,7 +11,7 @@ iSmaLen2 = input.int(defval = 20, title = 'SMA length 2', minval = 1, group = 'M
 iSmaLen3 = input.int(defval = 50, title = 'SMA length 3', minval = 1, group = 'Moving averages')
 
 iShowParabolicRiseStop = input.bool(defval = true, title = 'Show break of LOD', group = 'Parabolic rise')
-iParabolicRisePercentile = input.int(defval = 99, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise')
+iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise')
 iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, group = 'Parabolic rise')
 iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', group = 'Parabolic rise')
 iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top')
