@@ -4,7 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/21 as drelib
+import drebel/DRELib/22 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
