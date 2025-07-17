@@ -402,22 +402,22 @@ export isAboveRecentHighVwap(int _lookback) =>
     aboveVwap
 
 export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int sigMod) =>
-    lastHighest0 = ta.highest(_lookback1 / 2)
     lastHighest1 = ta.highest(_lookback1)
     lastHighest2 = ta.highest(2 * _lookback1)
-    lastHighest3 = ta.highest(3 * _lookback1)
-    lastHighest4 = ta.highest(4 * _lookback1)
-    breakout0 = close > lastHighest0[1]
+    lastHighest3 = ta.highest(4 * _lookback1)
+    lastHighest4 = ta.highest(7 * _lookback1)
+    lastHighest5 = ta.highest(11 * _lookback1)
     breakout1 = close > lastHighest1[1]
     breakout2 = close > lastHighest2[1]
     breakout3 = close > lastHighest3[1]
     breakout4 = close > lastHighest4[1]
-    breakout0New = not breakout0[1] and not breakout0[2] and not breakout0[3]
+    breakout5 = close > lastHighest5[1]
     breakout1New = not breakout1[1] and not breakout1[2] and not breakout1[3]
     breakout2New = not breakout2[1] and not breakout2[2] and not breakout2[3]
     breakout3New = not breakout3[1] and not breakout3[2] and not breakout3[3]
     breakout4New = not breakout4[1] and not breakout4[2] and not breakout4[3]
-    breakoutCond = breakout0New or breakout1New or _lookbackMultiples and (breakout2New or breakout3New or breakout4New)
+    breakout5New = not breakout5[1] and not breakout5[2] and not breakout5[3]
+    breakoutCond = breakout1New or _lookbackMultiples and (breakout2New or breakout3New or breakout4New or breakout5New)
     volumeSigMod = 1 - sigMod * 0.1
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
@@ -427,7 +427,7 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct) * volumeSigMod
     initialFlat = 0.01
     volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * _initialMinVolDttPct * volumeMa * volumeSigMod) or volume > (_dayEndMinVolDttPct * volumeSigMod / 100) * volumeMa
-    strongBreakout = breakoutCond and volumeGood
+    strongBreakout = breakout1 and breakoutCond and volumeGood
     strongBreakout
 
 export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int sigMod, bool useVwap) =>

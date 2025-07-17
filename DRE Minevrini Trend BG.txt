@@ -4,11 +4,11 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/22 as drelib
+import drebel/DRELib/23 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
-iMinTurnover = input.float(defval = 0.2, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
+iMinTurnover = input.float(defval = 0.25, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
 iMinAdr = input.float(defval = 2.6, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
 iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
@@ -42,7 +42,7 @@ alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', m
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
 
-iBreakoutLookback = input.int(defval = 15, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
+iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
 iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
