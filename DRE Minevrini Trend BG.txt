@@ -45,11 +45,12 @@ alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend re
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
 iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
-iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iDayEndMinVolumePct = input.int(defval = 128, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iBullishUseSigMod2 = input.bool(defval = true, title = 'Use sig mod 2 (nBroken extremes)', group = 'Breakout params')
 
 [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 3.25)
 
-strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod + sigMod2, true)
+strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod + (iBullishUseSigMod2 ? sigMod2 : 0), true)
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
