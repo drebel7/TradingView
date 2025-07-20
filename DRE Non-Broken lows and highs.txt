@@ -26,9 +26,14 @@ nonBrokenExtremesPct(int _lookback) =>
     float lowsHighsRatio = lowsCount / math.max(highsCount, 0.01)
     [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio]
 
-[nBLowsPct, nBHighsPct, nBBoth, ratio] = nonBrokenExtremesPct(lookback)
+nonBrokenExtremesPctSigMod(int _lookback, float _highLvl, float _ratioHighLvl) =>
+    [nBLowsPct, nBHighsPct, nBBoth, ratio] = nonBrokenExtremesPct(_lookback)
+    sigMod = nBBoth > _highLvl ? (ratio > _ratioHighLvl ? 1 : ratio < 1 / _ratioHighLvl ? -1 : 0) : 0
+    [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod]
+
+[nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod] = nonBrokenExtremesPctSigMod(lookback, highLvl, ratioThreshold)
 
 plot(nBLowsPct, "Non-broken lows", color=color.green, linewidth=2)
 plot(nBHighsPct, "Non-broken highs", color=color.red, linewidth=2)
 plot(nBBoth, "Non-broken both", color=color.black, linewidth=1)
-bgcolor(ratio < 1 / ratioThreshold and nBBoth > highLvl ? color.new(color.red, 90) : ratio > ratioThreshold and nBBoth > highLvl ? color.new(color.green, 90) : na)
+bgcolor(sigMod < 0 ? color.new(color.red, 90) : sigMod > 0 ? color.new(color.green, 90) : na)
