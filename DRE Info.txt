@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/20 as drelib
+import drebel/DRELib/24 as drelib
 
 show_ticker = input.bool(defval = false, title = 'Show ticker')
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
@@ -21,6 +21,7 @@ show_ma_percentiles = input.bool(defval = true, title = 'MAs dist. percentiles')
 show_sharpe_ratio = input.bool(defval = false, title = 'Sharpe ratio')
 show_earnings_up = input.bool(defval = true, title = 'Earnings going up')
 show_industry_sector = input.bool(defval = true, title = 'Industry and Sector')
+show_non_broken_extremes = input.bool(defval = true, title = 'nBroken extremes')
 
 len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
 riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
@@ -69,7 +70,10 @@ string sectorIndex = drelib.getSectorIndex()
 mod = drelib.getWideIndexAndSectorSignalMod(22)
 modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '(-)' : '(--)'
 
-table t = table.new(position.top_right, 2, 17, bgcolor = bg_col)
+[nBLowsPct, nBHighsPct, nBBoth, ratio, mod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 3.25)
+mod2Str = mod2 == 1 ? '(+)' : mod2 == 0 ? '(0)' : '(-)'
+
+table t = table.new(position.top_right, 2, 18, bgcolor = bg_col)
 txtSize = size.small
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_empty_row
@@ -120,3 +124,6 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_industry_sector
         table.cell(t, 0, 15, 'bench. index', text_color = adrp_col, text_size = txtSize)
         table.cell(t, 1, 15, sectorIndex + modStr, text_color = adrp_col, text_size = txtSize)
+    if show_non_broken_extremes
+        table.cell(t, 0, 16, 'nBroken extremes', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 16, str.tostring(math.round(nBLowsPct)) + mod2Str, text_color = adrp_col, text_size = txtSize)

@@ -4,34 +4,13 @@
 //@version=6
 indicator("Non-Broken lows and highs", overlay=false)
 
+import drebel/DRELib/24 as drelib
+
 lookback = input.int(defval = 100, title = "Lookback", minval = 10, maxval = 500)
 highLvl = input.int(defval = 24, title = "High Level", minval = 0, maxval = 100)
 ratioThreshold = input.float(defval = 3.0, title = "Ratio", minval = 1.0, maxval = 10.0, step = 0.25)
 
-nonBrokenExtremesPct(int _lookback) =>
-    int lowsCount = 0
-    int highsCount = 0
-    float lowSoFar = low
-    float highSoFar = high
-    for int i = 1 to _lookback
-        if (low[i] < lowSoFar)
-            lowsCount += 1
-            lowSoFar := low[i]
-        if (high[i] > highSoFar)
-            highsCount += 1
-            highSoFar := high[i]
-    float nonBrokenLowsPct = 100.0 * lowsCount / _lookback
-    float nonBrokenHighsPct = 100.0 * highsCount / _lookback
-    float nonBrokenExtremesPct = nonBrokenLowsPct + nonBrokenHighsPct
-    float lowsHighsRatio = lowsCount / math.max(highsCount, 0.01)
-    [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio]
-
-nonBrokenExtremesPctSigMod(int _lookback, float _highLvl, float _ratioHighLvl) =>
-    [nBLowsPct, nBHighsPct, nBBoth, ratio] = nonBrokenExtremesPct(_lookback)
-    sigMod = nBBoth > _highLvl ? (ratio > _ratioHighLvl ? 1 : ratio < 1 / _ratioHighLvl ? -1 : 0) : 0
-    [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod]
-
-[nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod] = nonBrokenExtremesPctSigMod(lookback, highLvl, ratioThreshold)
+[nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod] = drelib.nonBrokenExtremesPctSigMod(lookback, highLvl, ratioThreshold)
 
 plot(nBLowsPct, "Non-broken lows", color=color.green, linewidth=2)
 plot(nBHighsPct, "Non-broken highs", color=color.red, linewidth=2)

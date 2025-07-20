@@ -323,6 +323,29 @@ export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
     sigMod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
     sigMod
 
+export nonBrokenExtremesPct(int _lookback) =>
+    int lowsCount = 0
+    int highsCount = 0
+    float lowSoFar = low
+    float highSoFar = high
+    for int i = 1 to _lookback
+        if (low[i] < lowSoFar)
+            lowsCount += 1
+            lowSoFar := low[i]
+        if (high[i] > highSoFar)
+            highsCount += 1
+            highSoFar := high[i]
+    float nonBrokenLowsPct = 100.0 * lowsCount / _lookback
+    float nonBrokenHighsPct = 100.0 * highsCount / _lookback
+    float nonBrokenExtremesPct = nonBrokenLowsPct + nonBrokenHighsPct
+    float lowsHighsRatio = lowsCount / math.max(highsCount, 0.01)
+    [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio]
+
+export nonBrokenExtremesPctSigMod(int _lookback, float _highLvl, float _ratioHighLvl) =>
+    [nBLowsPct, nBHighsPct, nBBoth, ratio] = nonBrokenExtremesPct(_lookback)
+    sigMod = nBBoth > _highLvl ? (ratio > _ratioHighLvl ? 1 : ratio < 1 / _ratioHighLvl ? -1 : 0) : 0
+    [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod]
+
 //Relative Measured Volatility
 export rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
     short1 = ta.atr(_shortLookback1)
