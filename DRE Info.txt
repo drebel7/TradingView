@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/24 as drelib
+import drebel/DRELib/25 as drelib
 
 show_ticker = input.bool(defval = false, title = 'Show ticker')
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
@@ -70,7 +70,7 @@ string sectorIndex = drelib.getSectorIndex()
 mod = drelib.getWideIndexAndSectorSignalMod(22)
 modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '(-)' : '(--)'
 
-[nBLowsPct, nBHighsPct, nBBoth, ratio, mod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 3.25)
+[nBLowsPct, nBHighsPct, nBBoth, ratio, mod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
 mod2Str = mod2 == 1 ? '(+)' : mod2 == 0 ? '(0)' : '(-)'
 
 table t = table.new(position.top_right, 2, 18, bgcolor = bg_col)

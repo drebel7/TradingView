@@ -346,6 +346,11 @@ export nonBrokenExtremesPctSigMod(int _lookback, float _highLvl, float _ratioHig
     sigMod = nBBoth > _highLvl ? (ratio > _ratioHighLvl ? 1 : ratio < 1 / _ratioHighLvl ? -1 : 0) : 0
     [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod]
 
+export nonBrokenExtremesPctSigMod(int _lookback, float _highLvl, float _lowLvl, float _ratioHighLvl) =>
+    [nBLowsPct, nBHighsPct, nBBoth, ratio] = nonBrokenExtremesPct(_lookback)
+    sigMod = nBBoth > _highLvl ? (ratio > _ratioHighLvl ? 1 : ratio < 1 / _ratioHighLvl ? -1 : 0) : nBBoth < _lowLvl ? -1 : 0
+    [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod]
+
 //Relative Measured Volatility
 export rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3) =>
     short1 = ta.atr(_shortLookback1)
