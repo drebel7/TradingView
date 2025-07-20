@@ -16,4 +16,4 @@ ratioThreshold = input.float(defval = 3.0, title = "Ratio", minval = 1.0, maxval
 plot(nBLowsPct, "Non-broken lows", color=color.green, linewidth=2)
 plot(nBHighsPct, "Non-broken highs", color=color.red, linewidth=2)
 plot(nBBoth, "Non-broken both", color=color.black, linewidth=1)
-bgcolor(sigMod < 0 ? color.new(color.red, 90) : sigMod > 0 ? color.new(color.green, 90) : na)
+bgcolor(nBBoth < lowLvl ? color.new(color.black, 90) : sigMod > 0 ? color.new(color.green, 90) : sigMod < 0 ? color.new(color.red, 90) : na)
