@@ -4,7 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/25 as drelib
+import drebel/DRELib/26 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -47,10 +47,14 @@ iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lo
 iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 128, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iBullishUseSigMod2 = input.bool(defval = true, title = 'Use sig mod 2 (nBroken extremes)', group = 'Breakout params')
+iSigModVolumePositiveBonus = input.float(defval = 0.1, title = "SigMod Volume Positive Bonus", group = 'Breakout params')
+iSigModVolumeNegativeBonus = input.float(defval = 0.15, title = "SigMod Volume Negative Bonus", group = 'Breakout params')
 
 [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
 
-strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod + (iBullishUseSigMod2 ? sigMod2 : 0), true)
+totalSigMod = sigMod + (iBullishUseSigMod2 ? sigMod2 : 0)
+float sigModVolMultiple = drelib.calculateSigModVolumeMultiple(totalSigMod, iSigModVolumePositiveBonus, iSigModVolumeNegativeBonus)
+strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigModVolMultiple, true)
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
