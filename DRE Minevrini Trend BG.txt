@@ -47,8 +47,8 @@ iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lo
 iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 128, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iBullishUseSigMod2 = input.bool(defval = true, title = 'Use sig mod 2 (nBroken extremes)', group = 'Breakout params')
-iSigModVolumePositiveBonus = input.float(defval = 0.1, title = "SigMod Volume Positive Bonus", group = 'Breakout params')
-iSigModVolumeNegativeBonus = input.float(defval = 0.15, title = "SigMod Volume Negative Bonus", group = 'Breakout params')
+iSigModVolumePositiveBonus = input.float(defval = 0.1, title = "SigMod Volume Positive Bonus", minval = 0.0, maxval = 1.0, step = 0.01, group = 'Breakout params')
+iSigModVolumeNegativeBonus = input.float(defval = 0.15, title = "SigMod Volume Negative Bonus", minval = 0.0, maxval = 1.0, step = 0.01, group = 'Breakout params')
 
 [nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
 
