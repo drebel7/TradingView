@@ -23,7 +23,7 @@ show_earnings_up = input.bool(defval = true, title = 'Earnings going up')
 show_industry_sector = input.bool(defval = true, title = 'Industry and Sector')
 show_non_broken_extremes = input.bool(defval = true, title = 'nBroken extremes')
 
-len = input.int(defval = 50, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
+len = input.int(defval = 30, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
 riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
 bg_col = input.color(defval = #00000000, title = 'Background Color')
 adrp_col = input.color(defval = color.black, title = 'Text Color')
