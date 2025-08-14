@@ -4,7 +4,7 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/26 as drelib
+import drebel/DRELib/27 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -58,7 +58,7 @@ strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
-minevriniTrendContractionBreakout = minevriniTrendCond and strongBreakoutCond
+minevriniTrendStrongBreakout = minevriniTrendCond and strongBreakoutCond
 
-alertcondition(gFilter and minevriniTrendContractionBreakout, title = 'bullish MTSB', message = 'MTSB')
-plotshape(minevriniTrendContractionBreakout, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
+alertcondition(gFilter and minevriniTrendStrongBreakout, title = 'bullish MTSB', message = 'MTSB')
+plotshape(minevriniTrendStrongBreakout, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
