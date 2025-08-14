@@ -435,12 +435,14 @@ export calculateSigModVolumeMultiple(int _totalSigMod, float _positiveSigModVolu
 
 export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int _sigMod) =>
     lastHighest1 = ta.highest(_lookback1)
+    lastHighest1p = ta.highest(_lookback1 + 2)
     lastHighest2 = ta.highest(2 * _lookback1)
+    lastHighest2p = ta.highest(2 * _lookback1 + 2)
     lastHighest3 = ta.highest(4 * _lookback1)
     lastHighest4 = ta.highest(7 * _lookback1)
     lastHighest5 = ta.highest(11 * _lookback1)
-    breakout1 = close > lastHighest1[1]
-    breakout2 = close > lastHighest2[1]
+    breakout1 = close > lastHighest1[1] and close > lastHighest1p[1]
+    breakout2 = close > lastHighest2[1] and close > lastHighest2p[1]
     breakout3 = close > lastHighest3[1]
     breakout4 = close > lastHighest4[1]
     breakout5 = close > lastHighest5[1]
@@ -471,12 +473,14 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
 
 export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, float _sigModVolumeMultiple) =>
     lastHighest1 = ta.highest(_lookback1)
+    lastHighest1p = ta.highest(_lookback1 + 2)
     lastHighest2 = ta.highest(2 * _lookback1)
+    lastHighest2p = ta.highest(2 * _lookback1 + 2)
     lastHighest3 = ta.highest(4 * _lookback1)
     lastHighest4 = ta.highest(7 * _lookback1)
     lastHighest5 = ta.highest(11 * _lookback1)
-    breakout1 = close > lastHighest1[1]
-    breakout2 = close > lastHighest2[1]
+    breakout1 = close > lastHighest1[1] and close > lastHighest1p[1]
+    breakout2 = close > lastHighest2[1] and close > lastHighest2p[1]
     breakout3 = close > lastHighest3[1]
     breakout4 = close > lastHighest4[1]
     breakout5 = close > lastHighest5[1]
