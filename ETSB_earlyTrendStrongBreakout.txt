@@ -1,0 +1,43 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator("early trend strong breakout", overlay = true, timeframe = '1D')
+
+import drebel/DRELib/27 as drelib
+
+
+//common filters inputs
+iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
+iMinTurnover = input.float(defval = 0.25, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
+iMinAdr = input.float(defval = 5, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
+iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
+iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
+iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
+iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
+
+//common filters calculations 
+int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
+bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
+bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
+
+
+benchIdx = drelib.getDefaultBenchmarkClose()
+rs = close / benchIdx
+rsMa = ta.sma(rs, 100)
+rsCond = rs > rsMa
+
+obv = ta.cum(math.sign(ta.change(close)) * volume)
+obvMa = ta.sma(obv, 100)
+obvStdDev = ta.stdev(obv, 100) * 0.35
+obvCond = ta.barssince(obv > obvMa + obvStdDev) < ta.barssince(obv < obvMa - obvStdDev)
+
+[nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
+nbeCond = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= 12
+
+strongBreakout = drelib.strongBreakout(14, false, 600, 115, sigMod)
+
+etsb = rsCond and obvCond and nbeCond and strongBreakout
+
+alertcondition(gFilter and etsb, title = 'bullish ETSB', message = 'ETSB')
+plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = color.new(color.green, 0))
