@@ -41,5 +41,12 @@ strongBreakout = drelib.strongBreakout(14, 600, 115, sigMod, true)
 
 etsb = rsCond and obvCond and nbeCond and strongBreakout
 
+//additionali signal if there is an OpeningRangeBrakeout the next day after main signal
+dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+//very simple and light 5 minute (for 390 minute session) OpeningRangeBreakout check
+fiveMinsTillHalfSession = dttTime > 0.0128 and dttTime < 0.5
+etsb_p1D = etsb[1] and open > close[1] and close == high and fiveMinsTillHalfSession
+
 alertcondition(gFilter and etsb, title = 'bullish ETSB', message = 'ETSB')
+alertcondition(gFilter and (etsb or etsb_p1D), title = 'bullish ETSB+', message = 'ETSB+')
 plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = color.new(color.lime, 0))
