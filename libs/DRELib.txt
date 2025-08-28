@@ -464,6 +464,30 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
     strongBreakout = breakout1 and breakoutCond and volumeGood
     strongBreakout
 
+export strongBreakout(int _lookback1, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int _sigMod) =>
+    lastHighest1 = ta.highest(_lookback1)
+    lastHighest1p = ta.highest(_lookback1 + 2)
+    breakout1 = close > lastHighest1[1] and close > lastHighest1p[1]
+    breakoutCond = not breakout1[1] and not breakout1[2] and not breakout1[3]
+    volumeSigMod = 1 - _sigMod * 0.1
+    volumeMa = ta.sma(volume, 30)
+    dttVol = volume / volumeMa
+    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    dttVolTimePct = 100 * dttVol / dttTime
+    //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
+    timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct) * volumeSigMod
+    initialFlat = 0.01
+    volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > _dayEndMinVolDttPct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * _initialMinVolDttPct * volumeMa * volumeSigMod) or volume > (_dayEndMinVolDttPct * volumeSigMod / 100) * volumeMa
+    strongBreakout = breakout1 and breakoutCond and volumeGood
+    strongBreakout
+
+export strongBreakout(int _lookback1, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int _sigMod, bool _useVwap) =>
+    sBreakout = strongBreakout(_lookback1, _initialMinVolDttPct, _dayEndMinVolDttPct, _sigMod)
+    isAboveHighVwap = isAboveRecentHighVwap(100)
+    aboveHighVwapCond = _useVwap and isAboveHighVwap or not _useVwap
+    strongBreakout = sBreakout and aboveHighVwapCond
+    strongBreakout
+
 export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVolDttPct, int _dayEndMinVolDttPct, int _sigMod, bool _useVwap) =>
     sBreakout = strongBreakout(_lookback1, _lookbackMultiples, _initialMinVolDttPct, _dayEndMinVolDttPct, _sigMod)
     isAboveHighVwap = isAboveRecentHighVwap(100)
