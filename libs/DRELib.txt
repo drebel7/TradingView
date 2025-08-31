@@ -8,6 +8,8 @@ library('DRELib')
 
 export getDefaultStockTradingDaysInAYear() => 252
 
+export getSessionLengthMinutes() => (time_close - time) / 60000
+
 export getDefaultBenchmarkOpen(string _period) =>
     syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, open) : request.security('SP:SPX', _period, open)
 
@@ -567,6 +569,13 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
     aboveHighVwapCond = _useVwap and isAboveHighVwap or not _useVwap
     strongBreakout = sBreakout and aboveHighVwapCond
     strongBreakout
+
+//Qullmagie - opening range breakout
+export openingRangeBreakout(int minutes, bool openHigherThanPrevClose, bool onlyFirstHalfOfSession) =>
+    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    fiveMinsTillHalfSession = dttTime > 0.99 * (minutes / getSessionLengthMinutes()) and ((onlyFirstHalfOfSession and dttTime < 0.5) or not onlyFirstHalfOfSession)
+    orb = close == high and fiveMinsTillHalfSession and ((openHigherThanPrevClose and open > close[1]) or not openHigherThanPrevClose)
+    orb
 
 // Signals
 export sig_parabolic_top(series float _volMa, int _downDaysAfterTop, int _prevPeriodGainLen, int _atrMulti, series float _atr) =>
