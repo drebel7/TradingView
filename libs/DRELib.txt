@@ -281,6 +281,10 @@ export defaultBenchmarkMasBearishAligned(int _tradingDaysInAYear) =>
     highPrice = getDefaultBenchmarkHigh()
     priceMasBearishAligned(closePrice, lowPrice, highPrice, _tradingDaysInAYear)
 
+export defaultBenchmarkMasBearishAligned() =>
+    closePrice = getDefaultBenchmarkClose()
+    priceMasBearishAligned(closePrice, closePrice, closePrice, getDefaultStockTradingDaysInAYear())
+
 // substitute for "RS Score > 70"
 export simpleRelativeStrengthStrong(int _tradingDaysInAYear) =>
     benchmark = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
@@ -436,7 +440,7 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     turnoverCond = minTurnoverOk(_minTurnoverM, _len)
     adrCond = minAdrOk(_minAdr, _len)
     priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
-    isBenchmarkBearish = defaultBenchmarkMasBearishAligned(getDefaultStockTradingDaysInAYear())
+    isBenchmarkBearish = defaultBenchmarkMasBearishAligned()
     isBenchmarkNotRecentlyBearishCond = nz(ta.barssince(isBenchmarkBearish), 9999) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
     allCond = turnoverCond and adrCond and priceCond and isBenchmarkNotRecentlyBearishCond
     allCond
@@ -445,7 +449,7 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     turnoverCond = minTurnoverOk(_minTurnoverM, _len)
     adrCond = minAdrOk(_minAdr, _len)
     priceCond = close > _minPrice and close < _maxPrice and syminfo.type == 'stock'
-    isBenchmarkBearish = defaultBenchmarkMasBearishAligned(getDefaultStockTradingDaysInAYear())
+    isBenchmarkBearish = defaultBenchmarkMasBearishAligned()
     isBenchmarkNotRecentlyBearishCond = nz(ta.barssince(isBenchmarkBearish), 9999) > _minBenchmarkNotBearishSince and _checkBenchmarkNotBearishTrend or not _checkBenchmarkNotBearishTrend
     hiloAvg = ta.sma(high - low, _len)
     loDDistPct = 100 * (close - low) / hiloAvg
