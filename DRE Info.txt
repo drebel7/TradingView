@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/25 as drelib
+import drebel/DRELib/31 as drelib
 
 show_ticker = input.bool(defval = false, title = 'Show ticker')
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
@@ -104,7 +104,7 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
         table.cell(t, 0, 8, 'Dtt vol. [%] (proj.)', text_color = adrp_col, text_size = txtSize)
         table.cell(t, 1, 8, str.tostring(math.round(dttVolPct)) + ' (' + str.tostring(math.round(dttVolTimePct)) + ')', text_color = adrp_col, text_size = txtSize)
     if show_dtt_time
-        table.cell(t, 0, 9, 'Dtt time [%]', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 0, 9, 'Dtt time [%] (' + str.tostring(drelib.getSessionLengthMinutes()) + 'm)', text_color = adrp_col, text_size = txtSize)
         table.cell(t, 1, 9, str.tostring(math.round(dttTimePct)), text_color = adrp_col, text_size = txtSize)
     if show_ma_percentiles
         table.cell(t, 0, 10, 'Close vs MAs prctl.', text_color = adrp_col, text_size = txtSize)
