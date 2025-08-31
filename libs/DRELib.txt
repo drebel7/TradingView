@@ -183,6 +183,40 @@ export crossunder2(series float _source1, series float _source2) =>
     _source1[1] >= _source2[1] and _source1 < _source2
 
 // Minevrini trend
+export priceMasTrendAligned(series float closePrice, series float lowPrice, series float highPrice, int _tradingDaysInAYear) =>
+    ma200 = ta.sma(closePrice, 200)
+    ma150 = ta.sma(closePrice, 150)
+    ma50 = ta.sma(closePrice, 50)
+    yLow = ta.lowest(lowPrice, _tradingDaysInAYear)
+    yHigh = ta.highest(highPrice, _tradingDaysInAYear)
+    ma200GoingUp_per35days = math.sum(ma200 > ma200[1] ? 1 : 0, 35)
+    ma200GoingUpCond = ma200GoingUp_per35days > 30
+    masAlignedBullishCond = ma50 > ma150 and ma50 > ma200 and ma150 > ma200 and ma200GoingUpCond
+    priceAlignedBullishCond = closePrice > 1.25 * yLow and closePrice > yHigh / 1.25
+    priceMasAlignedBullishCond = closePrice > ma50 / 1.08 and closePrice > ma150 and closePrice > ma200
+    bulishTrend = masAlignedBullishCond and priceAlignedBullishCond and priceMasAlignedBullishCond
+    ma200GoingDnCond = ma200GoingUp_per35days < 5
+    masAlignedBearishCond = ma50 < ma150 and ma50 < ma200 and ma150 < ma200 and ma200GoingDnCond
+    priceAlignedBearishCond = closePrice < 1.25 * yLow and closePrice < yHigh / 1.25
+    priceMasAlignedBearishCond = closePrice < ma50 * 1.08 and closePrice < ma150 and closePrice < ma200
+    bearishTrend = masAlignedBearishCond and priceAlignedBearishCond and priceMasAlignedBearishCond
+    [bulishTrend, bearishTrend]
+
+export priceMasTrendAligned(series float closePrice, series float lowPrice, series float highPrice) =>
+    priceMasTrendAligned(closePrice, lowPrice, highPrice, getDefaultStockTradingDaysInAYear())
+
+export priceMasTrendAligned(series float closePrice) =>
+    priceMasTrendAligned(closePrice, closePrice, closePrice, getDefaultStockTradingDaysInAYear())
+
+export priceMasTrendAligned() =>
+    priceMasTrendAligned(close, low, high, getDefaultStockTradingDaysInAYear())
+
+export priceMasTrendAligned(int _tradingDaysInAYear) =>
+    priceMasTrendAligned(close, low, high, _tradingDaysInAYear)
+
+export priceMasTrendAligned(series float closePrice, int _tradingDaysInAYear) =>
+    priceMasTrendAligned(closePrice, closePrice, closePrice, _tradingDaysInAYear)
+
 export priceMasBullishAligned(series float closePrice, series float lowPrice, series float highPrice, int _tradingDaysInAYear) =>
     ma200 = ta.sma(closePrice, 200)
     ma150 = ta.sma(closePrice, 150)
@@ -310,15 +344,13 @@ export isMinevriniBearishTrend(bool _includeRelativeStrength, bool _includeEarni
 
 export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
     wideIndexClose = getDefaultBenchmarkClose()
-    wideIndexBullish = priceMasBullishAligned(wideIndexClose)
+    [wideIndexBullish, wideIndexBearish] = priceMasTrendAligned(wideIndexClose)
     isWideIndexRecentlyBullishCond = nz(ta.barssince(wideIndexBullish), 9999) < daysSinceTrend
-    wideIndexBearish = priceMasBearishAligned(wideIndexClose)
     isWideIndexRecentlyBearishCond = nz(ta.barssince(wideIndexBearish), 9999) < daysSinceTrend
     sectorIndex = getSectorIndex()
-    sectorIndexClose = sectorIndex != '' ? request.security(sectorIndex, "D", close) : na        
-    sectorIndexBullish = sectorIndex != '' ? priceMasBullishAligned(sectorIndexClose) : false
+    sectorIndexClose = sectorIndex != '' ? request.security(sectorIndex, "D", close) : na
+    [sectorIndexBullish, sectorIndexBearish] = priceMasTrendAligned(sectorIndexClose)
     isSectorRecentlyBullishCond = nz(ta.barssince(sectorIndexBullish), 9999) < daysSinceTrend
-    sectorIndexBearish = sectorIndex != '' ? priceMasBearishAligned(sectorIndexClose) : false
     isSectorRecentlyBearishCond = nz(ta.barssince(sectorIndexBearish), 9999) < daysSinceTrend
     sigMod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
     sigMod
