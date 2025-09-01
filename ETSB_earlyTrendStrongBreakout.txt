@@ -9,7 +9,7 @@ import drebel/DRELib/31 as drelib
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
 iMinTurnover = input.float(defval = 0.25, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
-iMinAdr = input.float(defval = 4.5, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
+iMinAdr = input.float(defval = 4.0, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
 iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
@@ -31,15 +31,26 @@ obvMa = ta.sma(obv, 100)
 obvStdDev = ta.stdev(obv, 100) * 0.35
 obvCond = ta.barssince(obv > obvMa + obvStdDev) < ta.barssince(obv < obvMa - obvStdDev)
 
-iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40)
+iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, group = 'Other')
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
 nbeCond = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows
 
-sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
-strongBreakout = drelib.strongBreakout(14, 600, 115, sigMod, true)
+iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
+iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
+iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
-etsb = rsCond and obvCond and nbeCond and strongBreakout
+sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
+strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true)
+
+iVeryExtendedFromMaLvl = input.int(defval = 95, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, group = 'MA extend')
+ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
+ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
+isEnoughData = bar_index > 500
+isNotVeryExtended = isEnoughData and ma1DistPercentile < iVeryExtendedFromMaLvl and ma2DistPercentile < iVeryExtendedFromMaLvl or not isEnoughData
+
+etsb = rsCond and obvCond and nbeCond and strongBreakout and isNotVeryExtended
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
