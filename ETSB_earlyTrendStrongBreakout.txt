@@ -26,6 +26,7 @@ iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition
 iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
 iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
 iNotExtendedCond = input.bool(defval = true, title = 'Not Extended condition', group = 'condition switches')
+iHammerCond = input.bool(defval = true, title = 'Hammer condition', group = 'condition switches')
 
 benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
@@ -56,12 +57,31 @@ ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
 isEnoughData = bar_index > 500
 isNotVeryExtended = (isEnoughData and ma1DistPercentile < iVeryExtendedFromMaLvl and ma2DistPercentile < iVeryExtendedFromMaLvl or not isEnoughData)  and iNotExtendedCond or not iNotExtendedCond
 
-etsb = rsCond and obvCond and nbeCond and strongBreakout and isNotVeryExtended
+et = rsCond and obvCond and nbeCond
+etsb = et and strongBreakout and isNotVeryExtended
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
 etsb_p1D = etsb[1] and orb
 
+
+//tolerance 0.1 pct
+tol = 0.002
+tol_p = 1 + tol
+tol_m = 1 - tol
+//candle parameters
+highShadow = high != low ? (high - math.max(open, close)) / (high-low) : 0
+candleBody = high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
+lowShadow = high != low ? (math.min(open, close) - low) / (high-low) : 0
+candleColor = close > open ? 1 : close < open ? -1 : 0
+candleSizeMa = ta.sma(high - low, 50)
+//candles bullish
+hammerCandle = lowShadow > 0.6 and highShadow < 0.15 and high-low > candleSizeMa and high <= tol_p * math.min(high[1], high[2], high[3]) //hammer
+hammerCond = ta.lowest(5) == low and hammerCandle and iHammerCond or not iHammerCond
+
+eth = et and hammerCond
+
 alertcondition(gFilter and etsb, title = 'bullish ETSB', message = 'ETSB')
 alertcondition(gFilter and (etsb or etsb_p1D), title = 'bullish ETSB+', message = 'ETSB+')
 plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = color.new(color.lime, 0))
+plotshape(eth, title = 'eth', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'eth', textcolor = color.new(color.lime, 0))
