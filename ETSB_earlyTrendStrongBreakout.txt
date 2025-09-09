@@ -77,7 +77,10 @@ candleColor = close > open ? 1 : close < open ? -1 : 0
 candleSizeMa = ta.sma(high - low, 50)
 //candles bullish
 hammerCandle = lowShadow > 0.6 and highShadow < 0.15 and high-low > candleSizeMa and high <= tol_p * math.min(high[1], high[2], high[3]) //hammer
-hammerCond = ta.lowest(5) == low and hammerCandle and iHammerCond or not iHammerCond
+lowest5 = ta.lowest(5) == low
+volumeMa5 = ta.sma(volume, 5)
+volumeMa5Desc = volumeMa5 < volumeMa5[1]
+hammerCond = lowest5 and volumeMa5Desc and hammerCandle and iHammerCond or not iHammerCond
 
 eth = et and hammerCond
 eth_p1D = eth[1] and orb
