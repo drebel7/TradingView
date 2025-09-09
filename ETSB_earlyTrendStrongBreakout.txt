@@ -20,21 +20,27 @@ int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
 bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
 bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 
+//etsb - condition switches (for diagnosis)
+iRsCond = input.bool(defval = true, title = 'RS condition', group = 'condition switches')
+iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition switches')
+iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
+iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
+iNotExtendedCond = input.bool(defval = true, title = 'Not Extended condition', group = 'condition switches')
 
 benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
 rsMa = ta.sma(rs, 100)
-rsCond = rs > rsMa
+rsCond = rs > rsMa and iRsCond or not iRsCond
 
 obv = ta.cum(math.sign(ta.change(close)) * volume)
 obvMa = ta.sma(obv, 100)
 obvStdDev = ta.stdev(obv, 100) * 0.35
-obvCond = ta.barssince(obv > obvMa + obvStdDev) < ta.barssince(obv < obvMa - obvStdDev)
+obvCond = ta.barssince(obv > obvMa + obvStdDev) < ta.barssince(obv < obvMa - obvStdDev) and iObvCond or not iObvCond
 
 iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, group = 'Other')
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
-nbeCond = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows
+nbeCond = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows and iNbeCond or not iNbeCond
 
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
@@ -42,13 +48,13 @@ iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative vo
 iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
 sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
-strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true)
+strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true) and iSBCond or not iSBCond
 
-iVeryExtendedFromMaLvl = input.int(defval = 95, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, group = 'MA extend')
+iVeryExtendedFromMaLvl = input.int(defval = 99, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, group = 'MA extend')
 ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
 ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
 isEnoughData = bar_index > 500
-isNotVeryExtended = isEnoughData and ma1DistPercentile < iVeryExtendedFromMaLvl and ma2DistPercentile < iVeryExtendedFromMaLvl or not isEnoughData
+isNotVeryExtended = (isEnoughData and ma1DistPercentile < iVeryExtendedFromMaLvl and ma2DistPercentile < iVeryExtendedFromMaLvl or not isEnoughData)  and iNotExtendedCond or not iNotExtendedCond
 
 etsb = rsCond and obvCond and nbeCond and strongBreakout and isNotVeryExtended
 
