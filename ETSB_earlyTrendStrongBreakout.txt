@@ -80,8 +80,12 @@ hammerCandle = lowShadow > 0.6 and highShadow < 0.15 and high-low > candleSizeMa
 hammerCond = ta.lowest(5) == low and hammerCandle and iHammerCond or not iHammerCond
 
 eth = et and hammerCond
+eth_p1D = eth[1] and orb
 
 alertcondition(gFilter and etsb, title = 'bullish ETSB', message = 'ETSB')
 alertcondition(gFilter and (etsb or etsb_p1D), title = 'bullish ETSB+', message = 'ETSB+')
+alertcondition(gFilter and eth, title = 'bullish ETH', message = 'ETH')
+alertcondition(gFilter and (eth or eth_p1D), title = 'bullish ETH+', message = 'ETH+')
+alertcondition(gFilter and (etsb or etsb_p1D or eth or eth_p1D), title = 'bullish ET++', message = 'ET++')
 plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = color.new(color.lime, 0))
 plotshape(eth, title = 'eth', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'eth', textcolor = color.new(color.lime, 0))
