@@ -50,7 +50,7 @@ iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative vol
 sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
 strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true) and iSBCond or not iSBCond
 
-iVeryExtendedFromMaLvl = input.int(defval = 99, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, group = 'MA extend')
+iVeryExtendedFromMaLvl = input.float(defval = 99.0, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, step = 0.2, group = 'MA extend')
 ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
 ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
 isEnoughData = bar_index > 500
