@@ -81,8 +81,9 @@ lowest5 = ta.lowest(5) == low
 volumeMa5 = ta.sma(volume, 5)
 volumeMa5Desc = volumeMa5 < volumeMa5[1]
 hammerCond = lowest5 and volumeMa5Desc and hammerCandle and iHammerCond or not iHammerCond
+dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
 
-eth = et and hammerCond
+eth = et and hammerCond and dttTime > 0.9
 eth_p1D = eth[1] and orb
 
 alertcondition(gFilter and etsb, title = 'bullish ETSB', message = 'ETSB')
