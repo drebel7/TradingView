@@ -4,7 +4,7 @@
 //@version=6
 indicator(title = 'DRE When-Sell', overlay = true)
 
-import drebel/DRELib/21 as drelib
+import drebel/DRELib/31 as drelib
 
 iSmaLen1 = input.int(defval = 10, title = 'SMA length 1', minval = 1, group = 'Moving averages')
 iSmaLen2 = input.int(defval = 20, title = 'SMA length 2', minval = 1, group = 'Moving averages')
@@ -60,7 +60,7 @@ if iShowParabolicRiseStop and parabolicRiseLodBreakCond
 
 alertcondition(topSig, title = 'parabolic top', message = 'top')
 if iShowParabolicTop and topSig
-    label.new(bar_index, close, tooltip = 'top', color = color.new(color.red, 70), style = label.style_triangledown, size = size.tiny)
+    label.new(bar_index, open, tooltip = 'top', color = color.new(color.red, 70), style = label.style_triangledown, size = size.tiny)
 //plotshape(iShowParabolicTop and topSig ? close : na, title = 'parabolic top', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
 
 belowSma1 = close < sma1
@@ -85,6 +85,6 @@ if iShowCloseBelowSma3 and newBelowSma3
 //plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
 
 dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
-onSessionCloseConditions = dttTimePct == 100 and (topSig or newBelowSma1 or newBelowSma2 or newBelowSma3)
-allCond = parabolicRiseLodBreakCond or onSessionCloseConditions
+onSessionCloseConditions = dttTimePct == 100 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
+allCond = parabolicRiseLodBreakCond or topSig or onSessionCloseConditions
 alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
