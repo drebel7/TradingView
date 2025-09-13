@@ -12,6 +12,8 @@ lowest3 = ta.lowest(low, 3)
 lowest8 = ta.lowest(low, 8)
 atr50 = ta.atr(50)
 
+show_table = input.bool(defval = true, title = 'SHow table')
+
 iBullishKicker = input.bool(defval = true, title = 'bullish', group = 'kicker (K)', inline = 'kicker1')
 iBearishKicker = input.bool(defval = true, title = 'bearish', group = 'kicker (K)', inline = 'kicker1')
 iKicker1stCandleSize = input.float(defval = 0.5, title = 'Min size of bearish candle compared to previous candles', minval = 0.0, maxval = 2.0, step = 0.1, group = 'kicker (K)')
@@ -22,6 +24,56 @@ isBullishKicker = open[1] > close[1] and open > open[1] and close > open and vol
 isBaerishKicker = open[1] < close[1] and open < open[1] and close < open and volume > 0.95 * volume[1]
 bullishKickerSig = isBullishKicker and bodySize[1] > iKicker2ndCandleMinBodySize and (high - low) / atr50 > iKicker1stCandleSize and low[1] == lowest8
 bearishKickerSig = isBaerishKicker and bodySize[1] > iKicker2ndCandleMinBodySize and (high - low) / atr50 > iKicker1stCandleSize and high[1] == highest8
+
+f_sig_succ_rate(int total, int succCount) =>
+     total == 0 ? 0 : 100 * succCount / total
+
+candleNum = 3
+
+f_sig_bull_succ(bool sig, float tp) =>
+    // sig[1] and high >= tp
+    ta.barssince(sig) > 0 and ta.barssince(sig) <= candleNum and ta.barssince(sig) > ta.barssince(high >= tp)
+
+f_sig_bull_fail(bool sig, float sl) =>
+    // sig[1] and low < sl
+    ta.barssince(sig) > 0 and ta.barssince(sig) <= candleNum and ta.barssince(sig) > ta.barssince(low < sl)
+
+f_sig_bear_succ(bool sig, float tp) =>
+    // sig[1] and low <= tp
+    ta.barssince(sig) > 0 and ta.barssince(sig) <= candleNum and ta.barssince(sig) > ta.barssince(low <= tp)
+
+f_sig_bear_fail(bool sig, float sl) =>
+    // sig[1] and high > sl
+    ta.barssince(sig) > 0 and ta.barssince(sig) <= candleNum and ta.barssince(sig) > ta.barssince(high > sl)
+
+f_sig_bull_succ(int sigBarsSince, float sl, float tp) =>
+    sigBarsSince > 0 and sigBarsSince <= candleNum and sigBarsSince > ta.barssince(high >= tp) and not (sigBarsSince > ta.barssince(low < sl))
+
+f_sig_bull_fail(int sigBarsSince, float sl, float tp) =>
+    sigBarsSince > 0 and sigBarsSince <= candleNum and sigBarsSince > ta.barssince(low < sl) and not (sigBarsSince > ta.barssince(high >= tp))
+
+f_sig_bear_succ(int sigBarsSince, float sl, float tp) =>
+    sigBarsSince > 0 and sigBarsSince <= candleNum and sigBarsSince > ta.barssince(low <= tp) and not (sigBarsSince > ta.barssince(high > sl))
+
+f_sig_bear_fail(int sigBarsSince, float sl, float tp) =>
+    sigBarsSince > 0 and sigBarsSince <= candleNum and sigBarsSince > ta.barssince(high > sl) and not (sigBarsSince > ta.barssince(low <= tp))
+
+bull_tp = open + atr50
+bear_tp = open - atr50
+
+// plot(series = ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), title = "lowest", color = color.new(color.lime, 0))
+bullishKickerSigIsOpen = false
+bullishKickerSigCount = int(ta.cum(bullishKickerSig ? 1 : 0))
+bullishKickerSigIsOpen := bullishKickerSigIsOpen[1] or bullishKickerSig[1]
+bullishKickerSigF = f_sig_bull_fail(ta.barssince(bullishKickerSig), ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), bull_tp)
+bullishKickerSigFail = int(ta.cum(bullishKickerSigF ? 1 : 0))
+bullishKickerSigIsOpen := bullishKickerSigIsOpen and not bullishKickerSigF
+bullishKickerSigS = f_sig_bull_succ(ta.barssince(bullishKickerSig), ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), bull_tp)
+bullishKickerSigSucc = int(ta.cum(bullishKickerSigS ? 1 : 0))
+bullishKickerSigIsOpen := bullishKickerSigIsOpen and not bullishKickerSigS
+bearishKickerSigCount = int(ta.cum(bearishKickerSig ? 1 : 0))
+bearishKickerSigFail = int(ta.cum(f_sig_bear_fail(ta.barssince(bearishKickerSig), ta.valuewhen(bearishKickerSig, ta.highest(2), 0), bear_tp) ? 1 : 0))
+bearishKickerSigSucc = int(ta.cum(f_sig_bear_succ(ta.barssince(bearishKickerSig), ta.valuewhen(bearishKickerSig, ta.highest(2), 0), bear_tp) ? 1 : 0))
 
 alertcondition(bullishKickerSig, title = 'DRE Bullish Kicker sig', message = 'bullish kicker')
 alertcondition(bearishKickerSig, title = 'DRE Bearish Kicker sig', message = 'bearish kicker')
@@ -35,6 +87,13 @@ iBearEngulfing = input.bool(defval = true, title = 'bearish', group = 'engulfing
 avgVolume = ta.sma(volume, 10)
 bullishEngulfingSig = open[1] > close[1] and open < close and open < close[1] and close > open[1] and low == lowest8 and volume > avgVolume
 bearishEngulfingSig = open[1] < close[1] and open > close and open > close[1] and close < open[1] and high == highest8 and volume > avgVolume
+
+bullishEngulfingSigCount = int(ta.cum(bullishEngulfingSig ? 1 : 0))
+bullishEngulfingSigSucc = int(ta.cum(f_sig_bull_succ(ta.barssince(bullishEngulfingSig), ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), bull_tp) ? 1 : 0))
+bullishEngulfingSigFail = int(ta.cum(f_sig_bull_fail(ta.barssince(bullishEngulfingSig), ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), bull_tp) ? 1 : 0))
+bearishEngulfingSigCount = int(ta.cum(bearishEngulfingSig ? 1 : 0))
+bearishEngulfingSigFail = int(ta.cum(f_sig_bear_fail(ta.barssince(bearishEngulfingSig), ta.valuewhen(bearishEngulfingSig, ta.highest(2), 0), bear_tp) ? 1 : 0))
+bearishEngulfingSigSucc = int(ta.cum(f_sig_bear_succ(ta.barssince(bearishEngulfingSig), ta.valuewhen(bearishEngulfingSig, ta.highest(2), 0), bear_tp) ? 1 : 0))
 
 alertcondition(bullishEngulfingSig, title = 'DRE Bullish Engulfing sig', message = 'bullish engulfing')
 alertcondition(bearishEngulfingSig, title = 'DRE Bearish Engulfing sig', message = 'bearish engulfing')
@@ -50,6 +109,13 @@ avgLowWick = ta.sma(math.min(open, close) - low, 3)
 bullish3WicksSig = ta.highest(low, 3) < math.min(open, close, open[1], close[1], open[2], close[2]) and lowest3 == lowest8 and avgLowWick > 2.5 * avgHighWick and avgLowWick > 0.25 * atr50
 bearish3WicksSig = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and highest3 == highest8 and avgHighWick > 2.5 * avgLowWick and avgHighWick > 0.25 * atr50
 
+bullish3WicksSigCount = int(ta.cum(bullish3WicksSig ? 1 : 0))
+bullish3WicksSigSucc = int(ta.cum(f_sig_bull_succ(ta.barssince(bullish3WicksSig), ta.valuewhen(bullishKickerSig, ta.lowest(3), 0), bull_tp) ? 1 : 0))
+bullish3WicksSigFail = int(ta.cum(f_sig_bull_fail(ta.barssince(bullish3WicksSig), ta.valuewhen(bullishKickerSig, ta.lowest(3), 0), bull_tp) ? 1 : 0))
+bearish3WicksSigCount = int(ta.cum(bearish3WicksSig ? 1 : 0))
+bearish3WicksSigFail = int(ta.cum(f_sig_bear_fail(ta.barssince(bearish3WicksSig), ta.valuewhen(bearish3WicksSig, ta.highest(3), 0), bear_tp) ? 1 : 0))
+bearish3WicksSigSucc = int(ta.cum(f_sig_bear_succ(ta.barssince(bearish3WicksSig), ta.valuewhen(bearish3WicksSig, ta.highest(3), 0), bear_tp) ? 1 : 0))
+
 alertcondition(bullish3WicksSig, title = 'DRE Bullish 3 wicks sig', message = 'bullish wicks')
 alertcondition(bearish3WicksSig, title = 'DRE Bearish 3 wicks sig', message = 'bearish wicks')
 plotshape(bullish3WicksSig and iBullsh3Wicks, title = 'bullish wicks', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'W', textcolor = color.new(color.green, 0))
@@ -63,6 +129,13 @@ upperWickSize = math.abs((high - math.max(open, close)) / (high - low))
 lowerWickSize = math.abs((low - math.min(open, close)) / (high - low))
 bullishHammerSig = bodySize < 0.2 and lowerWickSize > 0.7 and low == lowest8 and (high - low) / atr50 > 1
 bearishHammerSig = bodySize < 0.2 and upperWickSize > 0.7 and high == highest8 and (high - low) / atr50 > 1
+
+bullishHammerSigCount = int(ta.cum(bullishHammerSig ? 1 : 0))
+bullishHammerSigSucc = int(ta.cum(f_sig_bull_succ(ta.barssince(bullishHammerSig), ta.valuewhen(bullishKickerSig, ta.lowest(1), 0), bull_tp) ? 1 : 0))
+bullishHammerSigFail = int(ta.cum(f_sig_bull_fail(ta.barssince(bullishHammerSig), ta.valuewhen(bullishKickerSig, ta.lowest(1), 0), bull_tp) ? 1 : 0))
+bearishHammerSigCount = int(ta.cum(bearishHammerSig ? 1 : 0))
+bearishHammerSigFail = int(ta.cum(f_sig_bear_fail(ta.barssince(bearishHammerSig), ta.valuewhen(bearishHammerSig, ta.highest(1), 0), bear_tp) ? 1 : 0))
+bearishHammerSigSucc = int(ta.cum(f_sig_bear_succ(ta.barssince(bearishHammerSig), ta.valuewhen(bearishHammerSig, ta.highest(1), 0), bear_tp) ? 1 : 0))
 
 alertcondition(bullishHammerSig, title = 'DRE Bullish hammer sig', message = 'bullish hammer')
 alertcondition(bearishHammerSig, title = 'DRE Bearish hammer sig', message = 'bearish hammer')
@@ -80,6 +153,13 @@ coverageBearish = (math.max(open[1], close) - math.min(close[1], open)) / (math.
 bullishTwizzerSig = open[1] > close[1] and open < close and bodySize > 0.85 and bodySize[1] > 0.85 and lowest2 == lowest8 and coverageBullish >= coverRatio
 bearishTwizzerSig = open[1] < close[1] and open > close and bodySize > 0.85 and bodySize[1] > 0.85 and highest2 == highest8 and coverageBearish >= coverRatio
 
+bullishTwizzerSigCount = int(ta.cum(bullishTwizzerSig ? 1 : 0))
+bullishTwizzerSigSucc = int(ta.cum(f_sig_bull_succ(ta.barssince(bullishTwizzerSig), ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), bull_tp) ? 1 : 0))
+bullishTwizzerSigFail = int(ta.cum(f_sig_bull_fail(ta.barssince(bullishTwizzerSig), ta.valuewhen(bullishKickerSig, ta.lowest(2), 0), bull_tp) ? 1 : 0))
+bearishTwizzerSigCount = int(ta.cum(bearishTwizzerSig ? 1 : 0))
+bearishTwizzerSigFail = int(ta.cum(f_sig_bear_fail(ta.barssince(bearishTwizzerSig), ta.valuewhen(bearishTwizzerSig, ta.highest(2), 0), bear_tp) ? 1 : 0))
+bearishTwizzerSigSucc = int(ta.cum(f_sig_bear_succ(ta.barssince(bearishTwizzerSig), ta.valuewhen(bearishTwizzerSig, ta.highest(2), 0), bear_tp) ? 1 : 0))
+
 alertcondition(bullishTwizzerSig, title = 'DRE Bullish twizzer sig', message = 'bullish twizzer')
 alertcondition(bearishTwizzerSig, title = 'DRE Bearish twizzer sig', message = 'bearish twizzer')
 plotshape(bullishTwizzerSig and iBullishTwizzer, title = 'bullish twizzer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'T', textcolor = color.new(color.green, 0))
@@ -90,3 +170,72 @@ alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bu
 alertcondition(bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bearishHammerSig, title = 'Bearish candle pattern sig', message = 'bearish candle pattern')
 
 alertcondition(bullishKickerSig or bullishEngulfingSig or bullish3WicksSig or bullishHammerSig or bearishKickerSig or bearishEngulfingSig or bearish3WicksSig or bearishHammerSig, title = 'ANY candle pattern sig', message = 'ANY candle pattern')
+
+
+var tbl = table.new(position = position.top_right, columns = 5, rows = 11)
+if barstate.islast and show_table
+    table.cell(table_id = tbl, column = 0, row = 0, text = "Sig")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "count")
+    table.cell(table_id = tbl, column = 2, row = 0, text = "Succ")
+    table.cell(table_id = tbl, column = 3, row = 0, text = "Fail")
+    table.cell(table_id = tbl, column = 4, row = 0, text = "Succ %")
+
+    table.cell(table_id = tbl, column = 0, row = 1, text = "K", bgcolor=color.green)
+    table.cell(table_id = tbl, column = 1, row = 1, text = str.tostring(bullishKickerSigCount))
+    table.cell(table_id = tbl, column = 2, row = 1, text = str.tostring(bullishKickerSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 1, text = str.tostring(bullishKickerSigFail))
+    table.cell(table_id = tbl, column = 4, row = 1, text = str.tostring(f_sig_succ_rate(bullishKickerSigCount, bullishKickerSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 2, text = "K", bgcolor=color.red)
+    table.cell(table_id = tbl, column = 1, row = 2, text = str.tostring(bearishKickerSigCount))
+    table.cell(table_id = tbl, column = 2, row = 2, text = str.tostring(bearishKickerSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 2, text = str.tostring(bearishKickerSigFail))
+    table.cell(table_id = tbl, column = 4, row = 2, text = str.tostring(f_sig_succ_rate(bearishKickerSigCount, bearishKickerSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 3, text = "E", bgcolor=color.green)
+    table.cell(table_id = tbl, column = 1, row = 3, text = str.tostring(bullishEngulfingSigCount))
+    table.cell(table_id = tbl, column = 2, row = 3, text = str.tostring(bullishEngulfingSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 3, text = str.tostring(bullishEngulfingSigFail))
+    table.cell(table_id = tbl, column = 4, row = 3, text = str.tostring(f_sig_succ_rate(bullishEngulfingSigCount, bullishEngulfingSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 4, text = "E", bgcolor=color.red)
+    table.cell(table_id = tbl, column = 1, row = 4, text = str.tostring(bearishEngulfingSigCount))
+    table.cell(table_id = tbl, column = 2, row = 4, text = str.tostring(bearishEngulfingSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 4, text = str.tostring(bearishEngulfingSigFail))
+    table.cell(table_id = tbl, column = 4, row = 4, text = str.tostring(f_sig_succ_rate(bearishEngulfingSigCount, bearishEngulfingSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 5, text = "W", bgcolor=color.green)
+    table.cell(table_id = tbl, column = 1, row = 5, text = str.tostring(bullish3WicksSigCount))
+    table.cell(table_id = tbl, column = 2, row = 5, text = str.tostring(bullish3WicksSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 5, text = str.tostring(bullish3WicksSigFail))
+    table.cell(table_id = tbl, column = 4, row = 5, text = str.tostring(f_sig_succ_rate(bullish3WicksSigCount, bullish3WicksSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 6, text = "W", bgcolor=color.red)
+    table.cell(table_id = tbl, column = 1, row = 6, text = str.tostring(bearish3WicksSigCount))
+    table.cell(table_id = tbl, column = 2, row = 6, text = str.tostring(bearish3WicksSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 6, text = str.tostring(bearish3WicksSigFail))
+    table.cell(table_id = tbl, column = 4, row = 6, text = str.tostring(f_sig_succ_rate(bearish3WicksSigCount, bearish3WicksSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 7, text = "H", bgcolor=color.green)
+    table.cell(table_id = tbl, column = 1, row = 7, text = str.tostring(bullishHammerSigCount))
+    table.cell(table_id = tbl, column = 2, row = 7, text = str.tostring(bullishHammerSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 7, text = str.tostring(bullishHammerSigFail))
+    table.cell(table_id = tbl, column = 4, row = 7, text = str.tostring(f_sig_succ_rate(bullishHammerSigCount, bullishHammerSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 8, text = "M", bgcolor=color.red)
+    table.cell(table_id = tbl, column = 1, row = 8, text = str.tostring(bearishHammerSigCount))
+    table.cell(table_id = tbl, column = 2, row = 8, text = str.tostring(bearishHammerSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 8, text = str.tostring(bearishHammerSigFail))
+    table.cell(table_id = tbl, column = 4, row = 8, text = str.tostring(f_sig_succ_rate(bearishHammerSigCount, bearishHammerSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 9, text = "T", bgcolor=color.green)
+    table.cell(table_id = tbl, column = 1, row = 9, text = str.tostring(bullishTwizzerSigCount))
+    table.cell(table_id = tbl, column = 2, row = 9, text = str.tostring(bullishTwizzerSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 9, text = str.tostring(bullishTwizzerSigFail))
+    table.cell(table_id = tbl, column = 4, row = 9, text = str.tostring(f_sig_succ_rate(bullishTwizzerSigCount, bullishTwizzerSigSucc), '#.#'))
+
+    table.cell(table_id = tbl, column = 0, row = 10, text = "T", bgcolor=color.red)
+    table.cell(table_id = tbl, column = 1, row = 10, text = str.tostring(bearishTwizzerSigCount))
+    table.cell(table_id = tbl, column = 2, row = 10, text = str.tostring(bearishTwizzerSigSucc))
+    table.cell(table_id = tbl, column = 3, row = 10, text = str.tostring(bearishTwizzerSigFail))
+    table.cell(table_id = tbl, column = 4, row = 10, text = str.tostring(f_sig_succ_rate(bearishTwizzerSigCount, bearishTwizzerSigSucc), '#.#'))
