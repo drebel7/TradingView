@@ -26,7 +26,7 @@ iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition
 iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
 iIchimokuCloudCond = input.bool(defval = true, title = 'Ichimoku cloud condition', group = 'condition switches')
 iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
-iNotExtendedCond = input.bool(defval = true, title = 'Not Extended condition', group = 'condition switches')
+iNotExtendedCond = input.bool(defval = false, title = 'Not Extended condition', group = 'condition switches')
 iHammerCond = input.bool(defval = true, title = 'Hammer condition', group = 'condition switches')
 
 benchIdx = drelib.getDefaultBenchmarkClose()
@@ -37,7 +37,11 @@ rsCond = rs > rsMa and iRsCond or not iRsCond
 obv = ta.cum(math.sign(ta.change(close)) * volume)
 obvMa = ta.sma(obv, 100)
 obvStdDev = ta.stdev(obv, 100) * 0.35
-obvCond = ta.barssince(obv > obvMa + obvStdDev) < ta.barssince(obv < obvMa - obvStdDev) and iObvCond or not iObvCond
+obvL = obv > obvMa + obvStdDev
+obvS = obv < obvMa - obvStdDev
+initiallyCouldBeNa = ta.barssince(obvL) < ta.barssince(obvS)
+obvCondRaw = obvL ? true : obvS ? false : initiallyCouldBeNa
+obvCond = obvCondRaw and iObvCond or not iObvCond
 
 iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, group = 'Other')
 
