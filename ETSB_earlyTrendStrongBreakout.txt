@@ -8,8 +8,8 @@ import drebel/DRELib/32 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
-iMinTurnover = input.float(defval = 0.25, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
-iMinAdr = input.float(defval = 4.0, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
+iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
+iMinAdr = input.float(defval = 3.4, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
 iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
