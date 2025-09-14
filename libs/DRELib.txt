@@ -417,6 +417,20 @@ export isAboveIchimokuCloud() =>
     initiallyCouldBeNa = ta.barssince(ichimokuSigL) < ta.barssince(ichimokuSigS)
     aboveIchimokuCloud = ichimokuSigL ? true : ichimokuSigS ? false : initiallyCouldBeNa
 
+//obv
+export isAboveSrcSmaStddev(series float _src, int _smaLen, float _stddevMultiple) => 
+    srcMa = ta.sma(_src, _smaLen)
+    srcStdDev = ta.stdev(_src, _smaLen) * _stddevMultiple
+    goL = _src > srcMa + srcStdDev
+    goS = _src < srcMa - srcStdDev
+    initiallyCouldBeNa = ta.barssince(goL) < ta.barssince(goS)
+    aboveObvSmaStddev = goL ? true : goS ? false : initiallyCouldBeNa
+    aboveObvSmaStddev
+
+export isAboveObvSmaStddev(int _smaLen, float _stddevMultiple) => 
+    aboveObvSmaStddev = isAboveSrcSmaStddev(ta.obv, _smaLen, _stddevMultiple)
+    aboveObvSmaStddev
+
 // general filter
 export minTurnoverOk(float _minTurnoverM, int _len) =>
     hasEnoughBars = bar_index >= _len
