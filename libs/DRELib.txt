@@ -400,6 +400,23 @@ export rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _sho
     rmvValue = (shortAvg - lowestShortAvg) / math.max(highestShortAvg - lowestShortAvg, 0.001) * 100
     rmvValue
 
+//ichimoku
+export donchian(int len) => math.avg(ta.lowest(len), ta.highest(len))
+
+export ichimoku(int _conversionPeriods, int _basePeriods, int _laggingSpan2Periods, int _displacement) =>
+    conversionLine = donchian(_conversionPeriods)
+    baseLine = donchian(_basePeriods)
+    leadLine1 = math.avg(conversionLine, baseLine)[_displacement]
+    leadLine2 = donchian(_laggingSpan2Periods)[_displacement]
+    [conversionLine, baseLine, leadLine1, leadLine2]
+
+export isAboveIchimokuCloud() =>
+    [conversionLine, baseLine, leadLine1, leadLine2] = ichimoku(9, 26, 52, 26)
+    ichimokuSigL = close > math.max(leadLine1, leadLine2)
+    ichimokuSigS = close < math.min(leadLine1, leadLine2)
+    initiallyCouldBeNa = ta.barssince(ichimokuSigL) < ta.barssince(ichimokuSigS)
+    aboveIchimokuCloud = ichimokuSigL ? true : ichimokuSigS ? false : initiallyCouldBeNa
+
 // general filter
 export minTurnoverOk(float _minTurnoverM, int _len) =>
     hasEnoughBars = bar_index >= _len
