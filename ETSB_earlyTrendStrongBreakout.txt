@@ -22,25 +22,29 @@ bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 
 //etsb - condition switches (for diagnosis)
 iRsCond = input.bool(defval = true, title = 'RS condition', group = 'condition switches')
+iIchimokuCloudCond = input.bool(defval = true, title = 'Ichimoku cloud condition', group = 'condition switches')
 iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition switches')
 iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
-iIchimokuCloudCond = input.bool(defval = true, title = 'Ichimoku cloud condition', group = 'condition switches')
 iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
-iNotExtendedCond = input.bool(defval = false, title = 'Not Extended condition', group = 'condition switches')
 iHammerCond = input.bool(defval = true, title = 'Hammer condition', group = 'condition switches')
 
 benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
 rsMa = ta.sma(rs, 100)
-rsCond = rs > rsMa and iRsCond or not iRsCond
+rsCondRaw = rs > rsMa
+rsCond = rsCondRaw and iRsCond or not iRsCond
+rsCond_10 = rsCondRaw ? 1 : 0
 
 obvCondRaw = drelib.isAboveObvSmaStddev(100, 0.35)
 obvCond = obvCondRaw and iObvCond or not iObvCond
+obvCond_10 = obvCondRaw ? 1 : 0
 
 iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, group = 'Other')
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
-nbeCond = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows and iNbeCond or not iNbeCond
+nbeCondRaw = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows
+nbeCond = nbeCondRaw and iNbeCond or not iNbeCond
+nbeCond_10 = nbeCondRaw ? 1 : 0
 
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
@@ -50,16 +54,14 @@ iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative vol
 sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
 strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true) and iSBCond or not iSBCond
 
-aboveIchimokuCloudCond = drelib.isAboveIchimokuCloud() and iIchimokuCloudCond or not iIchimokuCloudCond
-
-iVeryExtendedFromMaLvl = input.float(defval = 99.0, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, step = 0.2, group = 'MA extend')
-ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
-ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
-isEnoughData = bar_index > 500
-isNotVeryExtended = (isEnoughData and ma1DistPercentile < iVeryExtendedFromMaLvl and ma2DistPercentile < iVeryExtendedFromMaLvl or not isEnoughData)  and iNotExtendedCond or not iNotExtendedCond
+aboveIchimokuCloudCondRaw = drelib.isAboveIchimokuCloud()
+aboveIchimokuCloudCond = aboveIchimokuCloudCondRaw and iIchimokuCloudCond or not iIchimokuCloudCond
+aboveIchimokuCloudCond_10 = aboveIchimokuCloudCondRaw ? 1 : 0
 
 et = rsCond and obvCond and aboveIchimokuCloudCond and nbeCond
-etsb = et and strongBreakout and isNotVeryExtended
+totalCond = 4
+etCondSum = rsCond_10 + obvCond_10 + aboveIchimokuCloudCond_10 + nbeCond_10
+etsb = et and strongBreakout
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
@@ -92,5 +94,6 @@ alertcondition(gFilter and (etsb or etsb_p1D), title = 'bullish ETSB+', message 
 alertcondition(gFilter and eth, title = 'bullish ETH', message = 'ETH')
 alertcondition(gFilter and (eth or eth_p1D), title = 'bullish ETH+', message = 'ETH+')
 alertcondition(gFilter and (etsb or etsb_p1D or eth or eth_p1D), title = 'bullish ET++', message = 'ET++')
-plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = color.new(color.lime, 0))
+etsbColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.black, 0)
+plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = etsbColor)
 plotshape(eth, title = 'eth', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'eth', textcolor = color.new(color.lime, 0))
