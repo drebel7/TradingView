@@ -58,9 +58,9 @@ aboveIchimokuCloudCondRaw = drelib.isAboveIchimokuCloud()
 aboveIchimokuCloudCond = aboveIchimokuCloudCondRaw and iIchimokuCloudCond or not iIchimokuCloudCond
 aboveIchimokuCloudCond_10 = aboveIchimokuCloudCondRaw ? 1 : 0
 
-et = rsCond and obvCond and aboveIchimokuCloudCond and nbeCond
 totalCond = 4
 etCondSum = rsCond_10 + obvCond_10 + aboveIchimokuCloudCond_10 + nbeCond_10
+et = etCondSum >= totalCond - 1
 etsb = et and strongBreakout
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
@@ -94,6 +94,6 @@ alertcondition(gFilter and (etsb or etsb_p1D), title = 'bullish ETSB+', message 
 alertcondition(gFilter and eth, title = 'bullish ETH', message = 'ETH')
 alertcondition(gFilter and (eth or eth_p1D), title = 'bullish ETH+', message = 'ETH+')
 alertcondition(gFilter and (etsb or etsb_p1D or eth or eth_p1D), title = 'bullish ET++', message = 'ET++')
-etsbColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.black, 0)
+etsbColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
 plotshape(etsb, title = 'etsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'etsb', textcolor = etsbColor)
 plotshape(eth, title = 'eth', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'eth', textcolor = color.new(color.lime, 0))
