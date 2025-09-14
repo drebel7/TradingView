@@ -4,7 +4,7 @@
 //@version=6
 indicator("early trend strong breakout", overlay = true, timeframe = '1D')
 
-import drebel/DRELib/31 as drelib
+import drebel/DRELib/32 as drelib
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -24,6 +24,7 @@ bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 iRsCond = input.bool(defval = true, title = 'RS condition', group = 'condition switches')
 iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition switches')
 iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
+iIchimokuCloudCond = input.bool(defval = true, title = 'Ichimoku cloud condition', group = 'condition switches')
 iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
 iNotExtendedCond = input.bool(defval = true, title = 'Not Extended condition', group = 'condition switches')
 iHammerCond = input.bool(defval = true, title = 'Hammer condition', group = 'condition switches')
@@ -51,13 +52,15 @@ iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative vol
 sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
 strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true) and iSBCond or not iSBCond
 
+aboveIchimokuCloudCond = drelib.isAboveIchimokuCloud() and iIchimokuCloudCond or not iIchimokuCloudCond
+
 iVeryExtendedFromMaLvl = input.float(defval = 99.0, title = 'Very extended from short MAs percentile', minval = 0, maxval = 100, step = 0.2, group = 'MA extend')
 ma1DistPercentile = ta.percentrank(close - ta.sma(close, 10), 500)
 ma2DistPercentile = ta.percentrank(close - ta.sma(close, 20), 500)
 isEnoughData = bar_index > 500
 isNotVeryExtended = (isEnoughData and ma1DistPercentile < iVeryExtendedFromMaLvl and ma2DistPercentile < iVeryExtendedFromMaLvl or not isEnoughData)  and iNotExtendedCond or not iNotExtendedCond
 
-et = rsCond and obvCond and nbeCond
+et = rsCond and obvCond and aboveIchimokuCloudCond and nbeCond
 etsb = et and strongBreakout and isNotVeryExtended
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
