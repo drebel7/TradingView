@@ -7,16 +7,16 @@
 library('DREPerf')
 
 // @function: Gets default period for checking if signal was a success or not.
-// @returns: 20
-export getDefaultSigCheckTime() => 20
+// @returns: 15
+export getDefaultSigCheckTime() => 15
 
-// @function: This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for a given _lookback period.
-// @param _sig: A bool series indicationg signal was triggered on given candle or not.
-// @param _sigCandleStopLoss: A float series storing a stop loss level for a signal candle. "Success" will be determined based on this level and pricess happening between signal candle and signal candle + _checkTime number of candles.
-// @param _checkTime: A number of candles after the signal to check is a signal was a success or not.
-// @param _lookback: Time period for signal performance check eg. a last year (about 250 days).
-// @returns: signal success rate, signal succesc count, singal count.
-export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss, int _checkTime, int _lookback) =>
+// @function This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for a given _lookback period.
+// @param _sig A bool series indicationg signal was triggered on given candle or not.
+// @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle. "Success" will be determined based on this level and pricess happening between signal candle and signal candle + _checkTime number of candles.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @param _lookback Time period for signal performance check eg. a last year (about 250 days).
+// @returns signal success rate, signal succesc count, singal count.
+export successRateInPeriodStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, int _lookback) =>
 	sigSucc = ta.lowest(_checkTime - 1) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
 	sigSucc_10 = sigSucc ? 1 : 0
 	sigSuccCount = math.sum(sigSucc_10, _lookback)
@@ -25,15 +25,23 @@ export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss, in
 	sigSuccRatePct = 100.0 * sigSuccCount / sigAllCount
 	[sigSuccRatePct, sigSuccCount, sigAllCount]
 
-export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss) =>
-	successRateInPeriod(_sig, _sigCandleStopLoss, getDefaultSigCheckTime(), 250)
+export successRateInPeriodStats(series bool _sig, series float _sigCandleStopLoss) =>
+	successRateInPeriodStats(_sig, _sigCandleStopLoss, getDefaultSigCheckTime(), 250)
 
-// @function: This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for all time.
-// @param _sig: A bool series indicationg signal was triggered on given candle or not.
-// @param _sigCandleStopLoss: A float series storing a stop loss level for a signal candle. "Success" will be determined based on this level and pricess happening between signal candle and signal candle + _checkTime number of candles.
-// @param _checkTime: A number of candles after the signal to check is a signal was a success or not.
-// @returns: signal success rate, signal succesc count, singal count.
-export successRateAllTime(series bool _sig, series float _sigCandleStopLoss, int _checkTime) =>
+export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss, int _lookback) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateInPeriodStats(_sig, _sigCandleStopLoss, getDefaultSigCheckTime(), _lookback)
+	sigSuccRatePct
+
+export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateInPeriodStats(_sig, _sigCandleStopLoss, getDefaultSigCheckTime(), 250)
+	sigSuccRatePct
+
+// @function This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for all time.
+// @param _sig A bool series indicationg signal was triggered on given candle or not.
+// @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle. "Success" will be determined based on this level and pricess happening between signal candle and signal candle + _checkTime number of candles.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @returns signal success rate, signal succesc count, singal count.
+export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime) =>
 	sigSucc = ta.lowest(_checkTime - 1) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
 	sigSucc_10 = sigSucc ? 1 : 0
 	sigSuccCount = ta.cum(sigSucc_10)
@@ -42,5 +50,13 @@ export successRateAllTime(series bool _sig, series float _sigCandleStopLoss, int
 	sigSuccRatePct = 100.0 * sigSuccCount / sigAllCount
 	[sigSuccRatePct, sigSuccCount, sigAllCount]
 
+export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss) =>
+	successRateAllTimeStats(_sig, _sigCandleStopLoss, getDefaultSigCheckTime())
+
+export successRateAllTime(series bool _sig, series float _sigCandleStopLoss, int _checkTime) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _checkTime)
+	sigSuccRatePct
+
 export successRateAllTime(series bool _sig, series float _sigCandleStopLoss) =>
-	successRateAllTime(_sig, _sigCandleStopLoss, getDefaultSigCheckTime())
+	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateAllTimeStats(_sig, _sigCandleStopLoss, getDefaultSigCheckTime())
+	sigSuccRatePct
