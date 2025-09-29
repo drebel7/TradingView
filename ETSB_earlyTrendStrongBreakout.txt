@@ -16,6 +16,9 @@ iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min 
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
 iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
 
+//sig success rate filter
+iMinSigSuccessRate = input.int(defval = 35, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
+
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
 bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
@@ -61,14 +64,14 @@ aboveIchimokuCloudCond_10 = aboveIchimokuCloudCondRaw ? 1 : 0
 
 totalCond = 4
 etCondSum = rsCond_10 + obvCond_10 + aboveIchimokuCloudCond_10 + nbeCond_10
-et = etCondSum >= totalCond - 1
 et3 = etCondSum == totalCond - 1
 et4 = etCondSum == totalCond
-etsb = et and strongBreakout
+et3sb = et3 and strongBreakout
+et4sb = et4 and strongBreakout
+etsb = et3sb or et4sb
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
-etsb_p1D = etsb[1] and orb
 
 
 //tolerance 0.1 pct
@@ -89,20 +92,30 @@ volumeMa5Desc = volumeMa5 < volumeMa5[1]
 hammerCond = lowest5 and volumeMa5Desc and hammerCandle and iHammerCond or not iHammerCond
 dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
 
-eth = et and hammerCond and dttTime > 0.9
-eth_p1D = eth[1] and orb
+et3h = et3 and hammerCond and dttTime > 0.9
+et4h = et4 and hammerCond and dttTime > 0.9
+eth = et3h or et4h
 
 //check performance
 etSigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
-plot(series = dreperf.successRateAllTime(etsb and et3, etsb ? low : na), title = 'etsb3', color = color.new(color.blue, 0), linestyle = plot.linestyle_solid)
-plot(series = dreperf.successRateAllTime(etsb and et4, etsb ? low : na), title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
-plot(series = dreperf.successRateAllTime(eth and et3, eth ? low : na), title = 'eth3', color = color.new(color.blue, 0), linestyle = plot.linestyle_dashed)
-plot(series = dreperf.successRateAllTime(eth and et4, eth ? low : na), title = 'eth4', color = color.new(color.lime, 0), linestyle = plot.linestyle_dashed)
+etsb3SuccRate = dreperf.successRateAllTime(et3sb, et3sb ? low : na)
+plot(series = etsb3SuccRate, title = 'etsb3', color = color.new(color.blue, 0), linestyle = plot.linestyle_solid)
+etsb4SuccRate = dreperf.successRateAllTime(et4sb, et4sb ? low : na)
+plot(series = etsb4SuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
+et3hSuccRate = dreperf.successRateAllTime(et3h, et3h ? low : na)
+plot(series = et3hSuccRate, title = 'et3h', color = color.new(color.blue, 0), linestyle = plot.linestyle_dashed)
+et4hSuccRate = dreperf.successRateAllTime(et4h, et4h ? low : na)
+plot(series = et4hSuccRate, title = 'et4h', color = color.new(color.lime, 0), linestyle = plot.linestyle_dashed)
 
-alertcondition(gFilter and etsb, title = 'bullish ETSB', message = 'ETSB')
-alertcondition(gFilter and (etsb or etsb_p1D), title = 'bullish ETSB+', message = 'ETSB+')
-alertcondition(gFilter and eth, title = 'bullish ETH', message = 'ETH')
-alertcondition(gFilter and (eth or eth_p1D), title = 'bullish ETH+', message = 'ETH+')
-alertcondition(gFilter and (etsb or etsb_p1D or eth or eth_p1D), title = 'bullish ET++', message = 'ET++')
+etsb3SuccRateOk = etsb3SuccRate > iMinSigSuccessRate
+etsb4SuccRateOk = etsb4SuccRate > iMinSigSuccessRate
+et3hSuccRateOk = et3hSuccRate > iMinSigSuccessRate
+et4hSuccRateOk = et4hSuccRate > iMinSigSuccessRate
+
+etsbSig = (et3sb and etsb3SuccRateOk) or (et4sb and etsb4SuccRateOk)
+etsbSig_p1D = etsbSig[1] and orb
+ethSig = (et3h and et3hSuccRateOk) or (et4h and et4hSuccRateOk)
+ethSig_p1D = ethSig[1] and orb
+alertcondition(gFilter and (etsbSig or etsbSig_p1D or ethSig or ethSig_p1D), title = 'bullish ET++', message = 'ET++')
 plotshape(etsb, title = 'etsb', location = location.belowbar, color = etSigColor, style = shape.triangleup, text = 'etsb', textcolor = etSigColor)
 plotshape(eth, title = 'eth', location = location.belowbar, color = etSigColor, style = shape.triangleup, text = 'eth', textcolor = etSigColor)
