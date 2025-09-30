@@ -6,6 +6,7 @@ indicator("early trend strong breakout", overlay = true, timeframe = '1D')
 
 import drebel/DRELib/33 as drelib
 import drebel/DREPerf/3 as dreperf
+import drebel/DRECandles/1 as candles
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -74,18 +75,7 @@ etsb = et3sb or et4sb
 orb = drelib.openingRangeBreakout(5, true, true)
 
 
-//tolerance 0.1 pct
-tol = 0.002
-tol_p = 1 + tol
-tol_m = 1 - tol
-//candle parameters
-highShadow = high != low ? (high - math.max(open, close)) / (high-low) : 0
-candleBody = high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
-lowShadow = high != low ? (math.min(open, close) - low) / (high-low) : 0
-candleColor = close > open ? 1 : close < open ? -1 : 0
-candleSizeMa = ta.sma(high - low, 50)
-//candles bullish
-hammerCandle = lowShadow > 0.6 and highShadow < 0.15 and high-low > candleSizeMa and high <= tol_p * math.min(high[1], high[2], high[3]) //hammer
+[hammerCandle, objecieHossy, formacjaPrzenikania, haramiWzrostowe, gwiazdaPoranna, trzyGwiazdyWzrostowe, trzechBialychZolnierzy, bullish3Wicks, bullishKicker] = candles.candlesBullish()
 lowest5 = ta.lowest(5) == low
 volumeMa5 = ta.sma(volume, 5)
 volumeMa5Desc = volumeMa5 < volumeMa5[1]

@@ -1,0 +1,75 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+
+// @description candle formation detection library
+library("DRECandles")
+
+const int MA_LEN = 50
+
+const float TOLERANCE = 0.002
+const float TOL_P = 1 + TOLERANCE
+const float TOL_M = 1 - TOLERANCE
+
+export highShadow() =>
+	high != low ? (high - math.max(open, close)) / (high-low) : 0
+
+export candleBody() =>
+	high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
+
+export lowShadow() =>
+	high != low ? (math.min(open, close) - low) / (high-low) : 0
+
+export candleColor() =>
+	close > open ? 1 : close < open ? -1 : 0
+
+export candleMeasures() =>
+	highShadow = high != low ? (high - math.max(open, close)) / (high-low) : 0
+	candleBody = high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
+	lowShadow = high != low ? (math.min(open, close) - low) / (high-low) : 0
+	candleColor = close > open ? 1 : close < open ? -1 : 0
+	[highShadow, candleBody, lowShadow, candleColor]
+
+export candleSizeMa() =>
+	ta.sma(high - low, MA_LEN)
+
+//candles bearish
+export candlesBearish() =>
+	[highShadow, candleBody, lowShadow, candleColor] = candleMeasures()
+	candleSizeMa = candleSizeMa()
+	spadajacaGwiazda = highShadow > 0.6 and lowShadow < 0.15 and high-low > candleSizeMa and low >= TOL_M * math.max(low[1], low[2], low[3])
+	objecieBessy = candleColor == -1 and candleColor[1] == 1 and candleBody > 0.6 and close <= open[1] and open >= close[1] and low >= low[2] and high-low > candleSizeMa and low[1] >= TOL_M * math.max(low[2], low[3], low[4]) //bearish_engulfing
+	zaslonaCiemnejChmury = candleColor == -1 and candleColor[1] == 1 and close >= open[1] and close <= close[1] - 0.5 * candleBody[1] and open >= high[1] and low >= low[2] and high-low > candleSizeMa and low[1] >= TOL_M * math.max(low[2], low[3], low[4]) //dark_cloud_cover
+	haramiSpadkowe = candleColor <= 0 and candleColor[1] == 1 and close >= open[1] and open <= close[1] and low >= low[2] and high-low > candleSizeMa and low[1] >= TOL_M * math.max(low[2], low[3], low[4])
+	gwiazdaWieczorna = candleColor == -1 and candleColor[2] == 1 and candleBody[1] < math.min(candleBody, candleBody[2]) and open <= math.min(open[1], close[1]) and close[2] <= math.min(open[1], close[1]) and math.min(low, low[2]) >= low[3] and high-low > candleSizeMa and low[2] >= TOL_M * math.max(low[3], low[4], low[5]) //evening_star
+	trzyGwiazdySpadkowe = candleBody <= 0.05 and candleBody[1] <= 0.05 and candleBody[2] <= 0.05 and open <= open[1] and open[1] >= open[2] and low[2] >= TOL_M * math.max(low[3], low[4], low[5])
+	trzyCzarneKruki = candleColor == -1 and candleColor[1] == -1 and candleColor[2] == -1 and candleBody > 0.6 and candleBody[1] > 0.6 and candleBody[2] > 0.6 and open >= close[1] and open <= open[1] and open[1] >= close[2] and open[1] <= open[2] and open <= open[1] and open[1] <= open[2] and low[2] >= TOL_M * math.max(low[3], low[4], low[5]) //three_black_crows
+	atr50 = ta.atr(50)
+	highest3 = ta.highest(3)
+	highest8 = ta.highest(8)
+	avgHighWick = ta.sma(high - math.max(open, close), 3)
+	avgLowWick = ta.sma(math.min(open, close) - low, 3)
+	bearish3Wicks = ta.lowest(high, 3) > math.max(open, close, open[1], close[1], open[2], close[2]) and highest3 == highest8 and avgHighWick > 2.5 * avgLowWick and avgHighWick > 0.25 * atr50
+	bearishKicker = candleBody[1] > 0.2 and (high - low) / atr50 > 0.5 and high[1] == highest8
+	[spadajacaGwiazda, objecieBessy, zaslonaCiemnejChmury, haramiSpadkowe, gwiazdaWieczorna, trzyGwiazdySpadkowe, trzyCzarneKruki, bearish3Wicks, bearishKicker]
+
+//candles bullish
+export candlesBullish() =>
+	[highShadow, candleBody, lowShadow, candleColor] = candleMeasures()
+	candleSizeMa = candleSizeMa()
+	mlot = lowShadow > 0.6 and highShadow < 0.15 and high-low > candleSizeMa and high <= TOL_P * math.min(high[1], high[2], high[3]) //hammer
+	objecieHossy = candleColor == 1 and candleColor[1] == -1 and candleBody > 0.6 and close >= open[1] and open <= close[1] and high <= high[2] and high-low > candleSizeMa and high[1] <= TOL_P * math.min(high[2], high[3], high[4]) //bullish_engulfing
+	formacjaPrzenikania = candleColor == 1 and candleColor[1] == -1 and close >= close[1] + 0.5 * candleBody[1] and close <= open[1] and open <= low[1] and high <= high[2] and high-low > candleSizeMa and high[1] <= TOL_P * math.min(high[2], high[3], high[4]) //piercing_line
+	haramiWzrostowe = candleColor >= 0 and candleColor[1] == -1 and close <= open[1] and open >= close[1] and high <= high[2] and high-low > candleSizeMa and high[1] <= TOL_P * math.min(high[2], high[3], high[4])
+	gwiazdaPoranna = candleColor == 1 and candleColor[2] == -1 and candleBody[1] < math.min(candleBody, candleBody[2]) and open >= math.min(open[1], close[1]) and close[2] >= math.min(open[1], close[1]) and math.max(high, high[2]) <= high[3] and high-low > candleSizeMa and high[2] <= TOL_P * math.min(high[3], high[4], high[5]) //morning_star
+	trzyGwiazdyWzrostowe = candleBody <= 0.05 and candleBody[1] <= 0.05 and candleBody[2] <= 0.05 and open >= open[1] and open[1] <= open[2] and high[2] <= TOL_P * math.min(high[3], high[4], high[5])
+	trzechBialychZolnierzy = candleColor == 1 and candleColor[1] == 1 and candleColor[2] == 1 and candleBody > 0.6 and candleBody[1] > 0.6 and candleBody[2] > 0.6 and open >= open[1] and open <= close[1] and open[1] <= open[2] and open[1] <= close[2] and close >= close[1] and close[1] >= close[2] and high[2] <= TOL_P * math.min(high[3], high[4], high[5]) //three_white_soldiers
+	atr50 = ta.atr(50)
+	lowest3 = ta.lowest(3)
+	lowest8 = ta.lowest(8)
+	avgHighWick = ta.sma(high - math.max(open, close), 3)
+	avgLowWick = ta.sma(math.min(open, close) - low, 3)
+	bullish3Wicks = ta.highest(low, 3) < math.min(open, close, open[1], close[1], open[2], close[2]) and lowest3 == lowest8 and avgLowWick > 2.5 * avgHighWick and avgLowWick > 0.25 * atr50
+	bullishKicker = candleBody[1] > 0.2 and (high - low) / atr50 > 0.5 and low[1] == lowest8
+	[mlot, objecieHossy, formacjaPrzenikania, haramiWzrostowe, gwiazdaPoranna, trzyGwiazdyWzrostowe, trzechBialychZolnierzy, bullish3Wicks, bullishKicker]
