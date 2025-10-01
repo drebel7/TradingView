@@ -2,7 +2,7 @@
 // © drebel
 
 //@version=6
-indicator("early trend strong breakout", overlay = true, timeframe = '1D')
+indicator("early trend strong breakout", overlay = true)
 
 import drebel/DRELib/33 as drelib
 import drebel/DREPerf/3 as dreperf
@@ -87,15 +87,35 @@ et4h = et4 and hammerCond and dttTime > 0.9
 eth = et3h or et4h
 
 //check performance
-etSigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
-etsb3SuccRate = dreperf.successRateAllTime(et3sb, et3sb ? low : na)
+iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+etsb3SuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et3sb, et3sb ? low : na) : na
+etsb4SuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et4sb, et4sb ? low : na) : na
+et3hSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et3h, et3h ? low : na) : na
+et4hSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et4h, et4h ? low : na) : na
 plot(series = etsb3SuccRate, title = 'etsb3', color = color.new(color.blue, 0), linestyle = plot.linestyle_solid)
-etsb4SuccRate = dreperf.successRateAllTime(et4sb, et4sb ? low : na)
 plot(series = etsb4SuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
-et3hSuccRate = dreperf.successRateAllTime(et3h, et3h ? low : na)
 plot(series = et3hSuccRate, title = 'et3h', color = color.new(color.blue, 0), linestyle = plot.linestyle_dashed)
-et4hSuccRate = dreperf.successRateAllTime(et4h, et4h ? low : na)
 plot(series = et4hSuccRate, title = 'et4h', color = color.new(color.lime, 0), linestyle = plot.linestyle_dashed)
+
+etsb3SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) : na
+etsb4SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) : na
+et3hSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3h, et3h ? low : na) : na
+et4hSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4h, et4h ? low : na) : na
+var tbl = table.new(position = position.top_right, columns = 5, rows = 11)
+if barstate.islast and iShowSigPerfTable
+    table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+
+    table.cell(table_id = tbl, column = 0, row = 1, text = "etsb3")
+    table.cell(table_id = tbl, column = 1, row = 1, text = etsb3SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "etsb4")
+    table.cell(table_id = tbl, column = 1, row = 2, text = etsb4SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "et3h")
+    table.cell(table_id = tbl, column = 1, row = 3, text = et3hSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "et4h")
+    table.cell(table_id = tbl, column = 1, row = 4, text = et4hSuccRateStr)
+
 
 etsb3SuccRateOk = etsb3SuccRate > iMinSigSuccessRate
 etsb4SuccRateOk = etsb4SuccRate > iMinSigSuccessRate
@@ -106,6 +126,7 @@ etsbSig = (et3sb and etsb3SuccRateOk) or (et4sb and etsb4SuccRateOk)
 etsbSig_p1D = etsbSig[1] and orb
 ethSig = (et3h and et3hSuccRateOk) or (et4h and et4hSuccRateOk)
 ethSig_p1D = ethSig[1] and orb
+etSigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
 alertcondition(gFilter and (etsbSig or etsbSig_p1D or ethSig or ethSig_p1D), title = 'bullish ET++', message = 'ET++')
 plotshape(etsb, title = 'etsb', location = location.belowbar, color = etSigColor, style = shape.triangleup, text = 'etsb', textcolor = etSigColor)
 plotshape(eth, title = 'eth', location = location.belowbar, color = etSigColor, style = shape.triangleup, text = 'eth', textcolor = etSigColor)
