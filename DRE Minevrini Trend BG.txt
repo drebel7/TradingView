@@ -2,7 +2,7 @@
 // © drebel
 
 //@version=6
-indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
+indicator('DRE Minevrini Trend BG', overlay = true, max_bars_back = 800)
 
 import drebel/DRELib/33 as drelib
 import drebel/DREPerf/3 as dreperf
@@ -83,8 +83,8 @@ plotshape(minevriniTrendStrongBreakout, title = 'mtsb', location = location.belo
 //check performance
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(minevriniTrendStrongBreakout, minevriniTrendStrongBreakout ? low : na) : na
-s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(minevriniTrendContractionBreakout, minevriniTrendContractionBreakout ? low : na) : na
+s1SuccRate = dreperf.successRateAllTimeStr(minevriniTrendStrongBreakout, minevriniTrendStrongBreakout ? low : na)
+s2SuccRate = dreperf.successRateAllTimeStr(minevriniTrendContractionBreakout, minevriniTrendContractionBreakout ? low : na)
 
 var tbl = table.new(position = position.top_right, columns = 11, rows = 3)
 if barstate.islast and iShowSigPerfTable
