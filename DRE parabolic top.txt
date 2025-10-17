@@ -4,7 +4,8 @@
 //@version=6
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
-import drebel/DRELib/2 as drelib
+import drebel/DRELib/33 as drelib
+import drebel/DREPerf/3 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')
@@ -329,14 +330,14 @@ alertcondition(gFilter and bullishRmvEarningsSig, title = 'DRE Bullish earnings 
 alertcondition(gFilter and bearishRmvEarningsSig, title = 'DRE Bearish earnings rmv', message = 'rmv-e')
 alertcondition(gFilter and bullishRmvEarningsPbSig, title = 'DRE Bullish earnings rmv-pb', message = 'rmv-e-pb')
 alertcondition(gFilter and bearishRmvEarningsPbSig, title = 'DRE Bearish earnings rmv-pb', message = 'rmv-e-pb')
-plotshape(bullishRmvSig and iBullishRmv, title = 'bullish rmv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv', textcolor = color.new(color.green, 0))
-plotshape(bullishRmvPbSig and iBullishRmvPb, title = 'bullish rmv-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-pb', textcolor = color.new(color.green, 0))
-plotshape(bullishRmvEarningsSig and iBullishRmvEarnings, title = 'bullish rmv-e', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e', textcolor = color.new(color.green, 0))
-plotshape(bullishRmvEarningsPbSig and iBullishRmvEarningsPb, title = 'bullish rmv-e-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e-pb', textcolor = color.new(color.green, 0))
-plotshape(bearishRmvSig and iBearishRmv, title = 'bearish rmv', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv', textcolor = color.new(color.red, 0))
-plotshape(bearishRmvPbSig and iBearishRmvPb, title = 'bearish rmv-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-pb', textcolor = color.new(color.red, 0))
-plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e', textcolor = color.new(color.red, 0))
-plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
+//plotshape(bullishRmvSig and iBullishRmv, title = 'bullish rmv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv', textcolor = color.new(color.green, 0))
+//plotshape(bullishRmvPbSig and iBullishRmvPb, title = 'bullish rmv-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-pb', textcolor = color.new(color.green, 0))
+//plotshape(bullishRmvEarningsSig and iBullishRmvEarnings, title = 'bullish rmv-e', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e', textcolor = color.new(color.green, 0))
+//plotshape(bullishRmvEarningsPbSig and iBullishRmvEarningsPb, title = 'bullish rmv-e-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e-pb', textcolor = color.new(color.green, 0))
+//plotshape(bearishRmvSig and iBearishRmv, title = 'bearish rmv', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv', textcolor = color.new(color.red, 0))
+//plotshape(bearishRmvPbSig and iBearishRmvPb, title = 'bearish rmv-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-pb', textcolor = color.new(color.red, 0))
+//plotshape(bearishRmvEarningsSig and iBearishRmvEarnings, title = 'bearish rmv-e', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e', textcolor = color.new(color.red, 0))
+//plotshape(bearishRmvEarningsPbSig and iBearishRmvEarningsPb, title = 'bearish rmv-e-pb', location=location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'rmv-e-pb', textcolor = color.new(color.red, 0))
 
 
 //mtb sig (Minevrini + Trigger Bar / Shakeout Demand Tail / Gap Down Reversal)
@@ -415,3 +416,48 @@ alertcondition(candleBullishBoOnVolumeCond and gFilter and bullishSig[1], title 
 alertcondition(candleBearishBoOnVolumeCond and gFilter and bearishSig[1], title = 'DRE Bearish pattern BO sig', message = 'bearish pattern BO')
 
 alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
+
+
+
+
+
+
+//check performance
+// iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(juniorSig, juniorSig ? low : na) : na
+s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishStarterSig, bullishStarterSig ? low : na) : na
+s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
+s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(longerSig, longerSig ? low : na) : na
+s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishStepperSig, bullishStepperSig ? low : na) : na
+s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
+s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishObvSig, bullishObvSig ? low : na) : na
+s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmvSig, bullishRmvSig ? low : na) : na
+s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(mtbSig, mtbSig ? low : na) : na
+s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bearishHunterSig, bearishHunterSig ? low : na) : na
+
+var tbl = table.new(position = position.top_right, columns = 11, rows = 11)
+if barstate.islast and iShowSigPerfTable
+    table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+
+    table.cell(table_id = tbl, column = 0, row = 1, text = "junior")
+    table.cell(table_id = tbl, column = 1, row = 1, text = s1SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "bullishStarter")
+    table.cell(table_id = tbl, column = 1, row = 2, text = s2SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "bullishFireStarter")
+    table.cell(table_id = tbl, column = 1, row = 3, text = s3SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "longer")
+    table.cell(table_id = tbl, column = 1, row = 4, text = s4SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 5, text = "bullishStepper")
+    table.cell(table_id = tbl, column = 1, row = 5, text = s5SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 6, text = "bullishLongerStepper")
+    table.cell(table_id = tbl, column = 1, row = 6, text = s6SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 7, text = "bullishObv")
+    table.cell(table_id = tbl, column = 1, row = 7, text = s7SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 8, text = "bullishRmv")
+    table.cell(table_id = tbl, column = 1, row = 8, text = s8SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 9, text = "mtb")
+    table.cell(table_id = tbl, column = 1, row = 9, text = s9SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 10, text = "bullishHunter")
+    table.cell(table_id = tbl, column = 1, row = 10, text = s10SuccRate)
