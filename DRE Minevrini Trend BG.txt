@@ -42,10 +42,10 @@ bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
-iRmvMainLookback = input.int(defval = 16, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
-iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iRmvShortLookback2 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvMainLookback = input.int(defval = 21, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
+iRmvShortLookback1 = input.int(defval = 13, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvShortLookback2 = input.int(defval = 8, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvShortLookback3 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
 iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
 
 //Relative Measured Volatility
