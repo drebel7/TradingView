@@ -50,11 +50,14 @@ iMaxBarsSinceContraction = input.int(defval = 6, title = 'Max. bars since contra
 
 //Relative Measured Volatility
 rmvContraction = drelib.rmvContraction(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLookback3, 25)
-contractionCond = ta.barssince(rmvContraction) <= iMaxBarsSinceContraction
+contractionCond0 = ta.barssince(rmvContraction) <= iMaxBarsSinceContraction
+contractionCond1 = ta.barssince(rmvContraction) <= 3
 rmvContraction2 = drelib.rmvContraction(16, 8, 5, 3, 25)
 contractionCond2 = ta.barssince(rmvContraction2) <= iMaxBarsSinceContraction
-rmvContraction3 = drelib.rmvContraction(21, 8, 5, 3, 25)
-contractionCond3 = ta.barssince(rmvContraction3) <= iMaxBarsSinceContraction
+contractionCond3 = ta.barssince(rmvContraction2) <= 3
+rmvContraction4 = drelib.rmvContraction(21, 8, 5, 3, 25)
+contractionCond4 = ta.barssince(rmvContraction4) <= iMaxBarsSinceContraction
+contractionCond5 = ta.barssince(rmvContraction4) <= 3
 
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
@@ -69,9 +72,12 @@ strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
 mtsb = minevriniTrendCond and strongBreakoutCond
-mtcb = minevriniTrendCond and contractionCond and strongBreakoutCond
+mtcb = minevriniTrendCond and contractionCond0 and strongBreakoutCond
+mtcb1 = minevriniTrendCond and contractionCond1 and strongBreakoutCond
 mtcb2 = minevriniTrendCond and contractionCond2 and strongBreakoutCond
 mtcb3 = minevriniTrendCond and contractionCond3 and strongBreakoutCond
+mtcb4 = minevriniTrendCond and contractionCond4 and strongBreakoutCond
+mtcb5 = minevriniTrendCond and contractionCond5 and strongBreakoutCond
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
@@ -90,10 +96,13 @@ plotshape(mtsb, title = 'mtsb', location = location.belowbar, color = color.new(
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
 s1SuccRate = dreperf.successRateAllTimeStr(mtsb, mtsb ? low : na)
 s2SuccRate = dreperf.successRateAllTimeStr(mtcb, mtcb ? low : na)
-s3SuccRate = dreperf.successRateAllTimeStr(mtcb2, mtcb2 ? low : na)
-s4SuccRate = dreperf.successRateAllTimeStr(mtcb3, mtcb3 ? low : na)
+s3SuccRate = dreperf.successRateAllTimeStr(mtcb1, mtcb1 ? low : na)
+s4SuccRate = dreperf.successRateAllTimeStr(mtcb2, mtcb2 ? low : na)
+s5SuccRate = dreperf.successRateAllTimeStr(mtcb3, mtcb3 ? low : na)
+s6SuccRate = dreperf.successRateAllTimeStr(mtcb4, mtcb4 ? low : na)
+s7SuccRate = dreperf.successRateAllTimeStr(mtcb5, mtcb5 ? low : na)
 
-var tbl = table.new(position = position.top_right, columns = 11, rows = 5)
+var tbl = table.new(position = position.top_right, columns = 11, rows = 8)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
@@ -102,7 +111,13 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 1, text = s1SuccRate)
     table.cell(table_id = tbl, column = 0, row = 2, text = "mtcb")
     table.cell(table_id = tbl, column = 1, row = 2, text = s2SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "mtcb2")
+    table.cell(table_id = tbl, column = 0, row = 3, text = "mtcb1")
     table.cell(table_id = tbl, column = 1, row = 3, text = s3SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "mtcb3")
+    table.cell(table_id = tbl, column = 0, row = 4, text = "mtcb2")
     table.cell(table_id = tbl, column = 1, row = 4, text = s4SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 5, text = "mtcb3")
+    table.cell(table_id = tbl, column = 1, row = 5, text = s5SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 6, text = "mtcb4")
+    table.cell(table_id = tbl, column = 1, row = 6, text = s6SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 7, text = "mtcb5")
+    table.cell(table_id = tbl, column = 1, row = 7, text = s7SuccRate)
