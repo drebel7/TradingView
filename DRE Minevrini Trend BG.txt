@@ -4,7 +4,8 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, timeframe = '1D', max_bars_back = 800)
 
-import drebel/DRELib/31 as drelib
+import drebel/DRELib/33 as drelib
+import drebel/DREPerf/3 as dreperf
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -41,29 +42,56 @@ bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
+iRmvMainLookback = input.int(defval = 16, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
+iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvShortLookback2 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
+iMaxBarsSinceContraction = input.int(defval = 8, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+
+//Relative Measured Volatility
+rmv = drelib.rmv(iRmvMainLookback, iRmvShortLookback1, iRmvShortLookback2, iRmvShortLookback3)
+contraction1 = rmv < 25
+contractionCond = ta.barssince(contraction1) <= iMaxBarsSinceContraction
 
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
 iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
 iDayEndMinVolumePct = input.int(defval = 128, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
-iBullishUseSigMod2 = input.bool(defval = true, title = 'Use sig mod 2 (nBroken extremes)', group = 'Breakout params')
 iSigModVolumePositiveBonus = input.float(defval = 0.1, title = "SigMod Volume Positive Bonus", minval = 0.0, maxval = 0.5, step = 0.01, group = 'Breakout params')
 iSigModVolumeNegativeBonus = input.float(defval = 0.15, title = "SigMod Volume Negative Bonus", minval = 0.0, maxval = 0.5, step = 0.01, group = 'Breakout params')
 
-[nBLowsPct, nBHighsPct, nBBoth, ratio, sigMod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
-
-totalSigMod = sigMod + (iBullishUseSigMod2 ? sigMod2 : 0)
-float sigModVolMultiple = drelib.calculateSigModVolumeMultiple(totalSigMod, iSigModVolumePositiveBonus, iSigModVolumeNegativeBonus)
+float sigModVolMultiple = drelib.calculateSigModVolumeMultiple(sigMod, iSigModVolumePositiveBonus, iSigModVolumeNegativeBonus)
 strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigModVolMultiple, true)
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
 minevriniTrendStrongBreakout = minevriniTrendCond and strongBreakoutCond
+minevriniTrendContractionBreakout = minevriniTrendCond and contractionCond and strongBreakoutCond
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
 minevriniTrendStrongBreakout_p1D = minevriniTrendStrongBreakout[1] and orb
+minevriniTrendContractionBreakout_p1D = minevriniTrendContractionBreakout[1] and orb
 
 alertcondition(gFilter and minevriniTrendStrongBreakout, title = 'bullish MTSB', message = 'MTSB')
 alertcondition(gFilter and (minevriniTrendStrongBreakout or minevriniTrendStrongBreakout_p1D), title = 'bullish MTSB+', message = 'MTSB+')
+alertcondition(gFilter and minevriniTrendContractionBreakout, title = 'bullish MTCB', message = 'MTCB')
+alertcondition(gFilter and (minevriniTrendContractionBreakout or minevriniTrendContractionBreakout_p1D), title = 'bullish MTCB+', message = 'MTCB+')
 plotshape(minevriniTrendStrongBreakout, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
+
+
+//check performance
+// iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(minevriniTrendStrongBreakout, minevriniTrendStrongBreakout ? low : na) : na
+s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(minevriniTrendContractionBreakout, minevriniTrendContractionBreakout ? low : na) : na
+
+var tbl = table.new(position = position.top_right, columns = 11, rows = 3)
+if barstate.islast and iShowSigPerfTable
+    table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+
+    table.cell(table_id = tbl, column = 0, row = 1, text = "mtsb")
+    table.cell(table_id = tbl, column = 1, row = 1, text = s1SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "mtcb")
+    table.cell(table_id = tbl, column = 1, row = 2, text = s2SuccRate)
