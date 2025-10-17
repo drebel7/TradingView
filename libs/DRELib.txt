@@ -400,6 +400,11 @@ export rmv(int _mainLookback, int _shortLookback1, int _shortLookback2, int _sho
     rmvValue = (shortAvg - lowestShortAvg) / math.max(highestShortAvg - lowestShortAvg, 0.001) * 100
     rmvValue
 
+export rmvContraction(int _mainLookback, int _shortLookback1, int _shortLookback2, int _shortLookback3, int _contractionLvl) =>
+    rmvValue = rmv(_mainLookback, _shortLookback1, _shortLookback2, _shortLookback3)
+    contraction = rmvValue < _contractionLvl
+    contraction
+
 //ichimoku
 export donchian(int len) => math.avg(ta.lowest(len), ta.highest(len))
 
