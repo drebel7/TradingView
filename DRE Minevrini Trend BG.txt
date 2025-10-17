@@ -65,26 +65,26 @@ strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples
 
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
-minevriniTrendStrongBreakout = minevriniTrendCond and strongBreakoutCond
-minevriniTrendContractionBreakout = minevriniTrendCond and contractionCond and strongBreakoutCond
+mtsb = minevriniTrendCond and strongBreakoutCond
+mtcb = minevriniTrendCond and contractionCond and strongBreakoutCond
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
-minevriniTrendStrongBreakout_p1D = minevriniTrendStrongBreakout[1] and orb
-minevriniTrendContractionBreakout_p1D = minevriniTrendContractionBreakout[1] and orb
+mtsb_p1D = mtsb[1] and orb
+mtcb_p1D = mtcb[1] and orb
 
-alertcondition(gFilter and minevriniTrendStrongBreakout, title = 'bullish MTSB', message = 'MTSB')
-alertcondition(gFilter and (minevriniTrendStrongBreakout or minevriniTrendStrongBreakout_p1D), title = 'bullish MTSB+', message = 'MTSB+')
-alertcondition(gFilter and minevriniTrendContractionBreakout, title = 'bullish MTCB', message = 'MTCB')
-alertcondition(gFilter and (minevriniTrendContractionBreakout or minevriniTrendContractionBreakout_p1D), title = 'bullish MTCB+', message = 'MTCB+')
-plotshape(minevriniTrendStrongBreakout, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
+alertcondition(gFilter and mtsb, title = 'bullish MTSB', message = 'MTSB')
+alertcondition(gFilter and (mtsb or mtsb_p1D), title = 'bullish MTSB+', message = 'MTSB+')
+alertcondition(gFilter and mtcb, title = 'bullish MTCB', message = 'MTCB')
+alertcondition(gFilter and (mtcb or mtcb_p1D), title = 'bullish MTCB+', message = 'MTCB+')
+plotshape(mtsb, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
 
 
 //check performance
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-s1SuccRate = dreperf.successRateAllTimeStr(minevriniTrendStrongBreakout, minevriniTrendStrongBreakout ? low : na)
-s2SuccRate = dreperf.successRateAllTimeStr(minevriniTrendContractionBreakout, minevriniTrendContractionBreakout ? low : na)
+s1SuccRate = dreperf.successRateAllTimeStr(mtsb, mtsb ? low : na)
+s2SuccRate = dreperf.successRateAllTimeStr(mtcb, mtcb ? low : na)
 
 var tbl = table.new(position = position.top_right, columns = 11, rows = 3)
 if barstate.islast and iShowSigPerfTable
