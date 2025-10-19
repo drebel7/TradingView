@@ -4,12 +4,13 @@
 //@version=6
 indicator(title = 'DRE When-Sell', overlay = true)
 
-import drebel/DRELib/31 as drelib
+import drebel/DRELib/34 as drelib
 
 iSmaLen1 = input.int(defval = 10, title = 'SMA length 1', minval = 1, group = 'Moving averages')
 iSmaLen2 = input.int(defval = 20, title = 'SMA length 2', minval = 1, group = 'Moving averages')
 iSmaLen3 = input.int(defval = 50, title = 'SMA length 3', minval = 1, group = 'Moving averages')
 
+iShowParabolicTipTop = input.bool(defval = true, title = 'Show tip top', group = 'Parabolic rise')
 iShowParabolicRiseStop = input.bool(defval = true, title = 'Show break of LOD', group = 'Parabolic rise')
 iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise')
 iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, group = 'Parabolic rise')
@@ -22,6 +23,7 @@ iShowCloseBelowSma3 = input.bool(defval = false, title = 'Show close below sma3'
 sma1 = ta.sma(close, iSmaLen1)
 sma2 = ta.sma(close, iSmaLen2)
 sma3 = ta.sma(close, iSmaLen3)
+sma200 = ta.sma(close, 200)
 atr50 = ta.sma(high - low, 50)
 volHighest10 = ta.highest(volume, 10)
 volMa = ta.sma(volume, 30)
@@ -34,6 +36,25 @@ lowShadow = high != low ? (math.min(open, close) - low) / (high-low) : 0
 candleColor = close > open ? 1 : close < open ? -1 : 0
 
 isMarubozuGreen = candleBody > 0.75 and candleColor == 1
+
+//parabolic top by @Braczyy (https://x.com/Braczyy/status/1978067812527571223)
+move12week = high / ta.lowest(12 * 5)
+over200sma = close / sma200
+consecutiveDaysUp = ta.barssince(close <= close[1])
+rng = (high-low) / close
+consecutiveRangeUp = ta.barssince(rng <= rng[1])
+consecutiveVolumeUp = ta.barssince(volume <= volume[1])
+gain = (close - close[1]) / close[1]
+highestGain = ta.highest(gain, 12 * 5)
+unfilledGapUp = low > close[1]
+consecutiveUnfilledGapUp = ta.barssince(not unfilledGapUp)
+gapSize = open - close[1]
+highestGapSize = ta.highest(gapSize, 12 * 5)
+parabolicTipTip = move12week >= 7 and over200sma >= 5 and consecutiveDaysUp >= 7 and consecutiveRangeUp >= 3 and consecutiveVolumeUp >= 3 and consecutiveUnfilledGapUp[1] >= 5 and gapSize == highestGapSize
+//parabolicTipTip = move12week >= 10 and over200sma >= 5 and consecutiveDaysUp >= 7 and consecutiveRangeUp >= 3 and consecutiveVolumeUp >= 3 and gain == highestGain and consecutiveUnfilledGapUp >= 6 and gapSize == highestGapSize
+alertcondition(parabolicTipTip, title = 'parabolic tip top', message = 'parabolic tip tip')
+if iShowParabolicTipTop and parabolicTipTip
+    label.new(bar_index, open, tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
 
 //parabolic rise LOD break
 aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
