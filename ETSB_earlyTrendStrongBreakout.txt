@@ -92,7 +92,7 @@ gVShortMa1 = ta.ema(close, 10)
 gVolMa = ta.sma(volume, 30)
 
 rmvCond = lowRmv[1] and not lowRmv or highRmv and lowRmv[2] or rmv == 100 and lowRmv[3]
-bullishRmv = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa
+bullishRmv = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
 
 
 //check performance
