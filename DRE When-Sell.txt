@@ -52,9 +52,10 @@ consecutiveUnfilledGapUp = ta.barssince(not unfilledGapUp)
 gapSize = open - close[1]
 highestGapSize = ta.highest(gapSize, 12 * 5)
 //parabolicTipTip = move12week >= 10 and over200sma >= 5 and consecutiveDaysUp >= 7 and consecutiveRangeUp >= 3 and consecutiveVolumeUp >= 3 and gain == highestGain and consecutiveUnfilledGapUp >= 6 and gapSize == highestGapSize
-parabolicTipTipTrueConditions = (move12week >= 7 ? 1 : 0) + (over200sma >= 5 ? 1 : 0) + (consecutiveDaysUp >= 7 ? 1 : 0) + (consecutiveRangeUp >= 3 ? 1 : 0) + (consecutiveVolumeUp >= 3 ? 1 : 0 ) + (gain == highestGain ? 1 : 0) + (consecutiveUnfilledGapUp[1] >= 5 ? 1 : 0) + (gapSize == highestGapSize ? 1 : 0)
+parabolicTipTipMandatoryConditions = move12week >= 5 and over200sma >= 2.5
+parabolicTipTipOptionalConditionsMet = (move12week >= 10 ? 1 : 0) + (over200sma >= 5 ? 1 : 0) + (consecutiveDaysUp >= 7 ? 1 : 0) + (consecutiveRangeUp >= 3 ? 1 : 0) + (consecutiveVolumeUp >= 3 ? 1 : 0 ) + (gain == highestGain ? 1 : 0) + (consecutiveUnfilledGapUp[1] >= 5 ? 1 : 0) + (gapSize == highestGapSize ? 1 : 0)
 orbd = drelib.openingRangeBreakdown(60, true, true)
-parabolicTipTipCond = parabolicTipTipTrueConditions >= iParabolicTipTopConditions
+parabolicTipTipCond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= iParabolicTipTopConditions
 parabolicTipTip = (orbd or close < close[1]) and (parabolicTipTipCond or parabolicTipTipCond[1] or parabolicTipTipCond[2])
 
 //parabolic rise LOD break
