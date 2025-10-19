@@ -16,7 +16,7 @@ iShowParabolicRiseStop = input.bool(defval = true, title = 'Show break of LOD', 
 iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise')
 iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, group = 'Parabolic rise')
 iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', group = 'Parabolic rise')
-iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top')
+iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top', group = 'parabolic top')
 iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'SMAs')
 iShowCloseBelowSma2 = input.bool(defval = false, title = 'Show close below sma2', group = 'SMAs')
 iShowCloseBelowSma3 = input.bool(defval = false, title = 'Show close below sma3', group = 'SMAs')
