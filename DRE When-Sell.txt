@@ -4,21 +4,22 @@
 //@version=6
 indicator(title = 'DRE When-Sell', overlay = true)
 
-import drebel/DRELib/34 as drelib
+import drebel/DRELib/35 as drelib
 
 iSmaLen1 = input.int(defval = 10, title = 'SMA length 1', minval = 1, group = 'Moving averages')
 iSmaLen2 = input.int(defval = 20, title = 'SMA length 2', minval = 1, group = 'Moving averages')
 iSmaLen3 = input.int(defval = 50, title = 'SMA length 3', minval = 1, group = 'Moving averages')
 
-iShowParabolicTipTop = input.bool(defval = true, title = 'Show tip top', group = 'Parabolic rise')
+iShowParabolicTipTop = input.bool(defval = true, title = 'Show tip top', group = 'Parabolic tip-top')
+iParabolicTipTopConditions = input.int(defval = 5, title = 'Min. conditions', minval = 3, maxval = 8, group = 'Parabolic tip-top')
 iShowParabolicRiseStop = input.bool(defval = true, title = 'Show break of LOD', group = 'Parabolic rise')
 iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise')
 iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, group = 'Parabolic rise')
 iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', group = 'Parabolic rise')
 iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top')
-iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1')
-iShowCloseBelowSma2 = input.bool(defval = false, title = 'Show close below sma2')
-iShowCloseBelowSma3 = input.bool(defval = false, title = 'Show close below sma3')
+iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'SMAs')
+iShowCloseBelowSma2 = input.bool(defval = false, title = 'Show close below sma2', group = 'SMAs')
+iShowCloseBelowSma3 = input.bool(defval = false, title = 'Show close below sma3', group = 'SMAs')
 
 sma1 = ta.sma(close, iSmaLen1)
 sma2 = ta.sma(close, iSmaLen2)
@@ -50,11 +51,11 @@ unfilledGapUp = low > close[1]
 consecutiveUnfilledGapUp = ta.barssince(not unfilledGapUp)
 gapSize = open - close[1]
 highestGapSize = ta.highest(gapSize, 12 * 5)
-parabolicTipTip = move12week >= 7 and over200sma >= 5 and consecutiveDaysUp >= 7 and consecutiveRangeUp >= 3 and consecutiveVolumeUp >= 3 and consecutiveUnfilledGapUp[1] >= 5 and gapSize == highestGapSize
 //parabolicTipTip = move12week >= 10 and over200sma >= 5 and consecutiveDaysUp >= 7 and consecutiveRangeUp >= 3 and consecutiveVolumeUp >= 3 and gain == highestGain and consecutiveUnfilledGapUp >= 6 and gapSize == highestGapSize
-alertcondition(parabolicTipTip, title = 'parabolic tip top', message = 'parabolic tip tip')
-if iShowParabolicTipTop and parabolicTipTip
-    label.new(bar_index, open, tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
+parabolicTipTipTrueConditions = (move12week >= 7 ? 1 : 0) + (over200sma >= 5 ? 1 : 0) + (consecutiveDaysUp >= 7 ? 1 : 0) + (consecutiveRangeUp >= 3 ? 1 : 0) + (consecutiveVolumeUp >= 3 ? 1 : 0 ) + (gain == highestGain ? 1 : 0) + (consecutiveUnfilledGapUp[1] >= 5 ? 1 : 0) + (gapSize == highestGapSize ? 1 : 0)
+orbd = drelib.openingRangeBreakdown(60, true, true)
+parabolicTipTipCond = parabolicTipTipTrueConditions >= iParabolicTipTopConditions
+parabolicTipTip = (orbd or close < close[1]) and (parabolicTipTipCond or parabolicTipTipCond[1] or parabolicTipTipCond[2])
 
 //parabolic rise LOD break
 aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
@@ -74,6 +75,10 @@ top3Sig = drelib.sig_parabolic_top(volMa, 4, 100, 8, atr200)
 topSig = top1Sig or top2Sig or top3Sig
 
 
+alertcondition(parabolicTipTip, title = 'parabolic tip top', message = 'parabolic tip tip')
+if iShowParabolicTipTop and parabolicTipTip
+    label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
+
 alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
 if iShowParabolicRiseStop and parabolicRiseLodBreakCond
     label.new(bar_index, math.min(low[1], open), tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_diamond, size = size.tiny)
@@ -88,21 +93,21 @@ belowSma1 = close < sma1
 newBelowSma1 = belowSma1 and not belowSma1[1]
 alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
 if iShowCloseBelowSma1 and newBelowSma1
-    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
 //plotshape(iShowCloseBelowSma1 and newBelowSma1, title = 'close below sma1', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
 
 belowSma2 = close < sma2
 newBelowSma2 = belowSma2 and not belowSma2[1]
 alertcondition(newBelowSma2, title = 'close below sma2', message = 'close < sma2')
 if iShowCloseBelowSma2 and newBelowSma2
-    label.new(bar_index, close, tooltip = 'close < sma2', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma2', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
 //plotshape(iShowCloseBelowSma2 and newBelowSma2, title = 'close below sma2', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
 
 belowSma3 = close < sma3
 newBelowSma3 = belowSma3 and not belowSma3[1]
 alertcondition(newBelowSma3, title = 'close below sma3', message = 'close < sma3')
 if iShowCloseBelowSma3 and newBelowSma3
-    label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
 //plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
 
 dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
