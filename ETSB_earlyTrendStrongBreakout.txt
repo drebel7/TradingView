@@ -10,14 +10,14 @@ import drebel/DREPerf/3 as dreperf
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
 iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
-iMinAdr = input.float(defval = 3.4, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
+iMinAdr = input.float(defval = 3, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
 iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
 iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
 
 //sig success rate filter
-iMinSigSuccessRate = input.int(defval = 35, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
+iMinSigSuccessRate = input.int(defval = 40, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
 
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
@@ -76,17 +76,41 @@ orb = drelib.openingRangeBreakout(5, true, true)
 //pct time since session beggining 
 dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
 
+
+//rmv sig (like in "DRE parabolic top" v444)
+iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', group = 'rmv', display = display.none)
+iRmvShortLookback1 = input.int(13, minval = 1, title = 'Short-term ATR Lookback 1', group = 'rmv', display = display.none)
+iRmvShortLookback2 = input.int(8, minval = 1, title = 'Short-term ATR Lookback 2', group = 'rmv', display = display.none)
+iRmvshortLookback3 = input.int(5, minval = 1, title = 'Short-term ATR Lookback 3', group = 'rmv', display = display.none)
+iRmvLowLevel = input.int(25, title = 'Low Level Threshold', group = 'rmv', display = display.none)
+
+rmv = drelib.rmv(iRmvLookbackPeriod, iRmvShortLookback1, iRmvShortLookback2, iRmvshortLookback3)
+lowRmv = rmv <= iRmvLowLevel
+highRmv = rmv >= 100 - iRmvLowLevel / 2
+shortMa = ta.sma(close, 50)
+gVShortMa1 = ta.ema(close, 10)
+gVolMa = ta.sma(volume, 30)
+
+rmvCond = lowRmv[1] and not lowRmv or highRmv and lowRmv[2] or rmv == 100 and lowRmv[3]
+bullishRmv = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa
+
+
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
 etsb3SuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et3sb, et3sb ? low : na) : na
 etsb4SuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et4sb, et4sb ? low : na) : na
+etsbSigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
 plot(series = etsb3SuccRate, title = 'etsb3', color = color.new(color.blue, 0), linestyle = plot.linestyle_solid)
 plot(series = etsb4SuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
+rmvSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(bullishRmv, bullishRmv ? low : na) : na
+rmvSigColor = color.new(color.green, 0)
+plot(series = rmvSuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
 
 etsb3SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) : na
 etsb4SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) : na
-var tbl = table.new(position = position.top_right, columns = 5, rows = 11)
+rmvSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmv, bullishRmv ? low : na) : na
+var tbl = table.new(position = position.top_right, columns = 4, rows = 11)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
@@ -95,13 +119,20 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 1, text = etsb3SuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 2, text = "etsb4")
     table.cell(table_id = tbl, column = 1, row = 2, text = etsb4SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "rmv")
+    table.cell(table_id = tbl, column = 1, row = 3, text = rmvSuccRateStr)
 
 
 etsb3SuccRateOk = etsb3SuccRate > iMinSigSuccessRate
 etsb4SuccRateOk = etsb4SuccRate > iMinSigSuccessRate
+rmvSuccRateOk = rmvSuccRate > iMinSigSuccessRate
 
 etsbSig = (et3sb and etsb3SuccRateOk) or (et4sb and etsb4SuccRateOk)
 etsbSig_p1D = etsbSig[1] and orb
-sigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
+bullishRmvSig = bullishRmv and rmvSuccRateOk
+bullishRmvSig_p1D = bullishRmv[1] and orb
 alertcondition(gFilter and (etsbSig or etsbSig_p1D), title = 'bullish ET++', message = 'ET++')
-plotshape(etsb, title = 'etsb', location = location.belowbar, color = sigColor, style = shape.triangleup, text = 'etsb', textcolor = sigColor)
+alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
+alertcondition(gFilter and (etsbSig or etsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D), title = 'best LONG', message = 'best LONG')
+plotshape(etsb, title = 'etsb', location = location.belowbar, color = etsbSigColor, style = shape.triangleup, text = 'etsb', textcolor = etsbSigColor)
+plotshape(bullishRmv, title = 'rmv', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv', textcolor = rmvSigColor)
