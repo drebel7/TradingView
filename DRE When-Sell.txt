@@ -55,8 +55,8 @@ highestGapSize = ta.highest(gapSize, 12 * 5)
 parabolicTipTipMandatoryConditions = move12week >= 5 and over200sma >= 2.5
 parabolicTipTipOptionalConditionsMet = (move12week >= 10 ? 1 : 0) + (over200sma >= 5 ? 1 : 0) + (consecutiveDaysUp >= 7 ? 1 : 0) + (consecutiveRangeUp >= 3 ? 1 : 0) + (consecutiveVolumeUp >= 3 ? 1 : 0 ) + (gain == highestGain ? 1 : 0) + (consecutiveUnfilledGapUp[1] >= 5 ? 1 : 0) + (gapSize == highestGapSize ? 1 : 0)
 orbd = drelib.openingRangeBreakdown(60, true, true)
-parabolicTipTipCond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= iParabolicTipTopConditions
-parabolicTipTip = (orbd or close < close[1]) and (parabolicTipTipCond or parabolicTipTipCond[1] or parabolicTipTipCond[2])
+parabolicTipTopCond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= iParabolicTipTopConditions
+parabolicTipTop = (orbd or close < close[1]) and (parabolicTipTopCond or parabolicTipTopCond[1] or parabolicTipTopCond[2])
 
 //parabolic rise LOD break
 aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
@@ -76,8 +76,8 @@ top3Sig = drelib.sig_parabolic_top(volMa, 4, 100, 8, atr200)
 topSig = top1Sig or top2Sig or top3Sig
 
 
-alertcondition(parabolicTipTip, title = 'parabolic tip top', message = 'parabolic tip tip')
-if iShowParabolicTipTop and parabolicTipTip
+alertcondition(parabolicTipTop, title = 'parabolic tip top', message = 'parabolic tip tip')
+if iShowParabolicTipTop and parabolicTipTop
     label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
 
 alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
@@ -111,7 +111,7 @@ if iShowCloseBelowSma3 and newBelowSma3
     label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
 //plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
 
-dttTimePct = 100 * (math.min(timenow, time_close) - time) / (time_close - time)
-onSessionCloseConditions = dttTimePct == 100 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
-allCond = parabolicRiseLodBreakCond or topSig or onSessionCloseConditions
+dttTimePct = drelib.dttTimePct()
+onSessionCloseConditions = dttTimePct == 1 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
+allCond = parabolicTipTop or parabolicRiseLodBreakCond or topSig or onSessionCloseConditions
 alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
