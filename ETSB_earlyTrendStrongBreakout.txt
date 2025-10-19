@@ -17,7 +17,7 @@ iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]'
 iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
 
 //sig success rate filter
-iMinSigSuccessRate = input.int(defval = 40, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
+iMinSigSuccessRate = input.int(defval = 38, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
 
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
@@ -104,8 +104,8 @@ etsbSigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(col
 plot(series = etsb3SuccRate, title = 'etsb3', color = color.new(color.blue, 0), linestyle = plot.linestyle_solid)
 plot(series = etsb4SuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
 rmvSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(bullishRmv, bullishRmv ? low : na) : na
-rmvSigColor = color.new(color.green, 0)
-plot(series = rmvSuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
+rmvSigColor = color.new(color.maroon, 0)
+plot(series = rmvSuccRate, title = 'etsb4', color = rmvSigColor, linestyle = plot.linestyle_solid)
 
 etsb3SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) : na
 etsb4SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) : na
