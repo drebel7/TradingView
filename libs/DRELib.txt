@@ -141,6 +141,9 @@ export z_score(series float _src, simple int _length) =>
 export n_z_score(series float src, simple int n1, simple int n2) =>
     normalize(ta.ema(z_score(src, n1), n2), 0, 1)
 
+export dttTimePct() =>
+    (math.min(timenow, time_close) - time) / (time_close - time)
+
 // @function indicates when a candle crosses given source upwards
 // @param _src <series float> The input series 
 // @returns <series bool> true when source is crossed by a candle
@@ -529,7 +532,7 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
     volumeSigMod = 1 - _sigMod * 0.1
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
-    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    dttTime = dttTimePct()
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct) * volumeSigMod
@@ -546,7 +549,7 @@ export strongBreakout(int _lookback1, int _initialMinVolDttPct, int _dayEndMinVo
     volumeSigMod = 1 - _sigMod * 0.1
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
-    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    dttTime = dttTimePct()
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct) * volumeSigMod
@@ -590,7 +593,7 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
     breakoutCond = breakout1New or _lookbackMultiples and (breakout2New or breakout3New or breakout4New or breakout5New)
     volumeMa = ta.sma(volume, 30)
     dttVol = volume / volumeMa
-    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+    dttTime = dttTimePct()
     dttVolTimePct = 100 * dttVol / dttTime
     //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
     timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (_initialMinVolDttPct - _dayEndMinVolDttPct) * _sigModVolumeMultiple
@@ -608,9 +611,15 @@ export strongBreakout(int _lookback1, bool _lookbackMultiples, int _initialMinVo
 
 //Qullmagie - opening range breakout
 export openingRangeBreakout(int minutes, bool openHigherThanPrevClose, bool onlyFirstHalfOfSession) =>
-    dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
-    fiveMinsTillHalfSession = dttTime > 0.99 * (minutes / getSessionLengthMinutes()) and ((onlyFirstHalfOfSession and dttTime < 0.5) or not onlyFirstHalfOfSession)
-    orb = close == high and fiveMinsTillHalfSession and ((openHigherThanPrevClose and open > close[1]) or not openHigherThanPrevClose)
+    dttTime = dttTimePct()
+    timeBetweenFirstFiveMinsAndHalfSession = dttTime > 0.99 * (minutes / getSessionLengthMinutes()) and ((onlyFirstHalfOfSession and dttTime < 0.5) or not onlyFirstHalfOfSession)
+    orb = close == high and timeBetweenFirstFiveMinsAndHalfSession and ((openHigherThanPrevClose and open > close[1]) or not openHigherThanPrevClose)
+    orb
+
+export openingRangeBreakdown(int minutes, bool openLowerThanPrevClose, bool onlyFirstHalfOfSession) =>
+    dttTime = dttTimePct()
+    timeBetweenFirstFiveMinsAndHalfSession = dttTime > 0.99 * (minutes / getSessionLengthMinutes()) and ((onlyFirstHalfOfSession and dttTime < 0.5) or not onlyFirstHalfOfSession)
+    orb = close == low and timeBetweenFirstFiveMinsAndHalfSession and ((openLowerThanPrevClose and open < close[1]) or not openLowerThanPrevClose)
     orb
 
 // Signals
