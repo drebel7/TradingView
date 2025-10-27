@@ -17,7 +17,7 @@ iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]'
 iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
 
 //sig success rate filter
-iMinSigSuccessRate = input.int(defval = 38, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
+iMinSigSuccessRate = input.int(defval = 40, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
 
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
@@ -30,7 +30,6 @@ iIchimokuCloudCond = input.bool(defval = true, title = 'Ichimoku cloud condition
 iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition switches')
 iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
 iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
-iHammerCond = input.bool(defval = true, title = 'Hammer condition', group = 'condition switches')
 
 benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
@@ -71,11 +70,12 @@ et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
-orb = drelib.openingRangeBreakout(5, true, true)
+orb5 = drelib.openingRangeBreakout(5, true, true)
+orb60 = drelib.openingRangeBreakout(60, true, true)
+orb = orb5 or orb60
 
 //pct time since session beggining 
 dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
-
 
 //rmv sig (like in "DRE parabolic top" v444)
 iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', group = 'rmv', display = display.none)
@@ -94,45 +94,64 @@ gVolMa = ta.sma(volume, 30)
 rmvCond = lowRmv[1] and not lowRmv or highRmv and lowRmv[2] or rmv == 100 and lowRmv[3]
 bullishRmv = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
 
+etcsb = etsb and (rmvCond or lowRmv)
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-etsb3SuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et3sb, et3sb ? low : na) : na
-etsb4SuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et4sb, et4sb ? low : na) : na
-etsbSigColor = etCondSum == totalCond ? color.new(color.lime, 0) : color.new(color.blue, 0)
-plot(series = etsb3SuccRate, title = 'etsb3', color = color.new(color.blue, 0), linestyle = plot.linestyle_solid)
-plot(series = etsb4SuccRate, title = 'etsb4', color = color.new(color.lime, 0), linestyle = plot.linestyle_solid)
-rmvSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(bullishRmv, bullishRmv ? low : na) : na
-rmvSigColor = color.new(color.maroon, 0)
-plot(series = rmvSuccRate, title = 'etsb4', color = rmvSigColor, linestyle = plot.linestyle_solid)
 
-etsb3SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) : na
-etsb4SuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) : na
+et3sbSigColor = color.new(color.blue, 0)
+et4sbSigColor = color.new(color.lime, 0)
+rmvSigColor = color.new(color.maroon, 0)
+etcsbSigColor = color.new(color.fuchsia, 0)
+et3sbSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et3sb, et3sb ? low : na) : na
+plot(series = et3sbSuccRate, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
+et4sbSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et4sb, et4sb ? low : na) : na
+plot(series = et4sbSuccRate, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
+rmvSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(bullishRmv, bullishRmv ? low : na) : na
+plot(series = rmvSuccRate, title = 'rmv', color = rmvSigColor, linestyle = plot.linestyle_solid)
+etcsbSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(etcsb, etcsb ? low : na) : na
+plot(series = etcsbSuccRate, title = 'etcsb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+
+//sig stats table
+et3sbSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) : na
+et4sbSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) : na
 rmvSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmv, bullishRmv ? low : na) : na
-var tbl = table.new(position = position.top_right, columns = 4, rows = 11)
+etcsbSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(etcsb, etcsb ? low : na) : na
 if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 5, rows = 5)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
 
-    table.cell(table_id = tbl, column = 0, row = 1, text = "etsb3")
-    table.cell(table_id = tbl, column = 1, row = 1, text = etsb3SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 2, text = "etsb4")
-    table.cell(table_id = tbl, column = 1, row = 2, text = etsb4SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "rmv")
+    table.cell(table_id = tbl, column = 0, row = 1, text = "et3sb", text_color = et3sbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 1, text = et3sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "et4sb", text_color = et4sbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 2, text = et4sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "rmv", text_color = rmvSigColor)
     table.cell(table_id = tbl, column = 1, row = 3, text = rmvSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "etcsb", text_color = etcsbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 4, text = etcsbSuccRateStr)
 
-
-etsb3SuccRateOk = etsb3SuccRate > iMinSigSuccessRate
-etsb4SuccRateOk = etsb4SuccRate > iMinSigSuccessRate
+et3sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate
+et4sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate
 rmvSuccRateOk = rmvSuccRate > iMinSigSuccessRate
+etcsbSuccRateOk = etcsbSuccRate > iMinSigSuccessRate
 
-etsbSig = (et3sb and etsb3SuccRateOk) or (et4sb and etsb4SuccRateOk)
-etsbSig_p1D = etsbSig[1] and orb
+et3sbSig = et3sb and et3sbSuccRateOk
+et3sbSig_p1D = et3sbSig[1] and orb
+et4sbSig = et4sb and et4sbSuccRateOk
+et4sbSig_p1D = et4sbSig[1] and orb
 bullishRmvSig = bullishRmv and rmvSuccRateOk
 bullishRmvSig_p1D = bullishRmv[1] and orb
-alertcondition(gFilter and (etsbSig or etsbSig_p1D), title = 'bullish ET++', message = 'ET++')
+etcsbSig = etcsb and etcsbSuccRateOk
+etcsbSig_p1D = etcsb[1] and orb
+
+alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET4SB')
+alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
 alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
-alertcondition(gFilter and (etsbSig or etsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D), title = 'best LONG', message = 'best LONG')
-plotshape(etsb, title = 'etsb', location = location.belowbar, color = etsbSigColor, style = shape.triangleup, text = 'etsb', textcolor = etsbSigColor)
+alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB++', message = 'ETCSB++')
+alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D), title = 'best LONG', message = 'best LONG')
+plotshape(et3sb, title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
+plotshape(et4sb, title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
 plotshape(bullishRmv, title = 'rmv', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv', textcolor = rmvSigColor)
+plotshape(etcsb, title = 'etcsb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etcsb', textcolor = etcsbSigColor)
