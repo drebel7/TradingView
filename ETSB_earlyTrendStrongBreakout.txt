@@ -17,7 +17,7 @@ iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]'
 iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
 
 //sig success rate filter
-iMinSigSuccessRate = input.int(defval = 40, title = 'Min. sig success rate pct.', minval = 0, maxval = 100, step = 1, group = 'Sig filters')
+iMinSigSuccessRate = input.float(defval = 40.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Sig filters')
 
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
@@ -104,20 +104,25 @@ et3sbSigColor = color.new(color.blue, 0)
 et4sbSigColor = color.new(color.lime, 0)
 rmvSigColor = color.new(color.maroon, 0)
 etcsbSigColor = color.new(color.fuchsia, 0)
-et3sbSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et3sb, et3sb ? low : na) : na
+et3sbSuccRate = dreperf.successRateAllTime(et3sb, et3sb ? low : na)
 plot(series = et3sbSuccRate, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
-et4sbSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(et4sb, et4sb ? low : na) : na
+et4sbSuccRate = dreperf.successRateAllTime(et4sb, et4sb ? low : na)
 plot(series = et4sbSuccRate, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
-rmvSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(bullishRmv, bullishRmv ? low : na) : na
+rmvSuccRate = dreperf.successRateAllTime(bullishRmv, bullishRmv ? low : na)
 plot(series = rmvSuccRate, title = 'rmv', color = rmvSigColor, linestyle = plot.linestyle_solid)
-etcsbSuccRate = iShowSigPerfPlots ? dreperf.successRateAllTime(etcsb, etcsb ? low : na) : na
+etcsbSuccRate = dreperf.successRateAllTime(etcsb, etcsb ? low : na)
 plot(series = etcsbSuccRate, title = 'etcsb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
 
 //sig stats table
-et3sbSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) : na
-et4sbSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) : na
-rmvSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmv, bullishRmv ? low : na) : na
-etcsbSuccRateStr = iShowSigPerfTable ? dreperf.successRateAllTimeStr(etcsb, etcsb ? low : na) : na
+bool et3sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate
+bool et4sbSuccRateOk = et4sbSuccRate > iMinSigSuccessRate
+bool rmvSuccRateOk = rmvSuccRate > iMinSigSuccessRate
+bool etcsbSuccRateOk = etcsbSuccRate > iMinSigSuccessRate
+
+et3sbSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(et3sb, et3sb ? low : na) + (et3sbSuccRateOk ? "*" : "")) : na
+et4sbSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(et4sb, et4sb ? low : na) + (et4sbSuccRateOk ? "*" : "")) : na
+rmvSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(bullishRmv, bullishRmv ? low : na) + (rmvSuccRateOk ? "*" : "")) : na
+etcsbSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(etcsb, etcsb ? low : na) + (etcsbSuccRateOk ? "*" : "")) : na
 if barstate.islast and iShowSigPerfTable
     var tbl = table.new(position = position.top_right, columns = 5, rows = 5)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
@@ -131,11 +136,6 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 3, text = rmvSuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 4, text = "etcsb", text_color = etcsbSigColor)
     table.cell(table_id = tbl, column = 1, row = 4, text = etcsbSuccRateStr)
-
-et3sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate
-et4sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate
-rmvSuccRateOk = rmvSuccRate > iMinSigSuccessRate
-etcsbSuccRateOk = etcsbSuccRate > iMinSigSuccessRate
 
 et3sbSig = et3sb and et3sbSuccRateOk
 et3sbSig_p1D = et3sbSig[1] and orb
