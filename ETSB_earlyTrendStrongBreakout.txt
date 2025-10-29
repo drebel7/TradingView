@@ -5,7 +5,7 @@
 indicator("early trend strong breakout", overlay = true)
 
 import drebel/DRELib/34 as drelib
-import drebel/DREPerf/3 as dreperf
+import drebel/DREPerf/5 as dreperf
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
