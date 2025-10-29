@@ -62,9 +62,14 @@ parabolicTipTop = parabolicTipTopCond2 and not parabolicTipTopCond2[1]
 parabolicTipTop4Cond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= 4
 parabolicTipTop4Cond2 = (orbd or close < close[1]) and (parabolicTipTop4Cond or parabolicTipTop4Cond[1] or parabolicTipTop4Cond[2])
 parabolic4TipTop = parabolicTipTop4Cond2 and not parabolicTipTop4Cond2[1]
+
 parabolicTipTop5Cond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= 5
 parabolicTipTop5Cond2 = (orbd or close < close[1]) and (parabolicTipTop5Cond or parabolicTipTop5Cond[1] or parabolicTipTop5Cond[2])
 parabolic5TipTop = parabolicTipTop5Cond2 and not parabolicTipTop5Cond2[1]
+
+parabolicTipTop6Cond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= 6
+parabolicTipTop6Cond2 = (orbd or close < close[1]) and (parabolicTipTop6Cond or parabolicTipTop6Cond[1] or parabolicTipTop6Cond[2])
+parabolic6TipTop = parabolicTipTop6Cond2 and not parabolicTipTop6Cond2[1]
 
 //parabolic rise LOD break
 aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
@@ -138,8 +143,9 @@ topSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(topSig, topS
 parabolicRiseLodBreakSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false)) : na
 tiptop4SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic4TipTop, parabolic4TipTop ? high : na, false)) : na
 tiptop5SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic5TipTop, parabolic5TipTop ? high : na, false)) : na
+tiptop6SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic6TipTop, parabolic6TipTop ? high : na, false)) : na
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 5, rows = 5)
+    var tbl = table.new(position = position.top_right, columns = 5, rows = 6)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
 
@@ -151,3 +157,5 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 3, text = tiptop4SuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 4, text = "tip-top5", text_color = tiptopSigColor)
     table.cell(table_id = tbl, column = 1, row = 4, text = tiptop5SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 5, text = "tip-top6", text_color = tiptopSigColor)
+    table.cell(table_id = tbl, column = 1, row = 5, text = tiptop6SuccRateStr)
