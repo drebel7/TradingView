@@ -56,7 +56,15 @@ parabolicTipTipMandatoryConditions = move12week >= 5 and over200sma >= 2.5
 parabolicTipTipOptionalConditionsMet = (move12week >= 10 ? 1 : 0) + (over200sma >= 5 ? 1 : 0) + (consecutiveDaysUp >= 7 ? 1 : 0) + (consecutiveRangeUp >= 3 ? 1 : 0) + (consecutiveVolumeUp >= 3 ? 1 : 0 ) + (gain == highestGain ? 1 : 0) + (consecutiveUnfilledGapUp[1] >= 5 ? 1 : 0) + (gapSize == highestGapSize ? 1 : 0)
 orbd = drelib.openingRangeBreakdown(60, true, true)
 parabolicTipTopCond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= iParabolicTipTopConditions
-parabolicTipTop = (orbd or close < close[1]) and (parabolicTipTopCond or parabolicTipTopCond[1] or parabolicTipTopCond[2])
+parabolicTipTopCond2 = (orbd or close < close[1]) and (parabolicTipTopCond or parabolicTipTopCond[1] or parabolicTipTopCond[2])
+parabolicTipTop = parabolicTipTopCond2 and not parabolicTipTopCond2[1]
+
+parabolicTipTop4Cond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= 4
+parabolicTipTop4Cond2 = (orbd or close < close[1]) and (parabolicTipTop4Cond or parabolicTipTop4Cond[1] or parabolicTipTop4Cond[2])
+parabolic4TipTop = parabolicTipTop4Cond2 and not parabolicTipTop4Cond2[1]
+parabolicTipTop5Cond = parabolicTipTipMandatoryConditions and parabolicTipTipOptionalConditionsMet >= 5
+parabolicTipTop5Cond2 = (orbd or close < close[1]) and (parabolicTipTop5Cond or parabolicTipTop5Cond[1] or parabolicTipTop5Cond[2])
+parabolic5TipTop = parabolicTipTop5Cond2 and not parabolicTipTop5Cond2[1]
 
 //parabolic rise LOD break
 aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
@@ -128,15 +136,18 @@ tiptopSigColor = color.new(color.red, 0)
 //sig stats table
 topSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(topSig, topSig ? high : na, false)) : na
 parabolicRiseLodBreakSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false)) : na
-tiptopSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolicTipTop, parabolicTipTop ? high : na, false)) : na
+tiptop4SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic4TipTop, parabolic4TipTop ? high : na, false)) : na
+tiptop5SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic5TipTop, parabolic5TipTop ? high : na, false)) : na
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 5, rows = 4)
+    var tbl = table.new(position = position.top_right, columns = 5, rows = 5)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
 
     table.cell(table_id = tbl, column = 0, row = 1, text = "top", text_color = topSigColor)
     table.cell(table_id = tbl, column = 1, row = 1, text = topSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 2, text = "et4sb", text_color = parabolicRiseLodBreakSigColor)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "paraRiseLodBreak", text_color = parabolicRiseLodBreakSigColor)
     table.cell(table_id = tbl, column = 1, row = 2, text = parabolicRiseLodBreakSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "tip-top", text_color = tiptopSigColor)
-    table.cell(table_id = tbl, column = 1, row = 3, text = tiptopSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "tip-top4", text_color = tiptopSigColor)
+    table.cell(table_id = tbl, column = 1, row = 3, text = tiptop4SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "tip-top5", text_color = tiptopSigColor)
+    table.cell(table_id = tbl, column = 1, row = 4, text = tiptop5SuccRateStr)
