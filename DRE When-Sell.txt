@@ -5,7 +5,7 @@
 indicator(title = 'DRE When-Sell', overlay = true)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/3 as dreperf
+import drebel/DREPerf/5 as dreperf
 
 iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Moving averages', inline = 'sma1')
 iSmaLen1 = input.int(defval = 10, title = 'len', minval = 1, group = 'Moving averages', inline = 'sma1')
@@ -115,3 +115,28 @@ dttTimePct = drelib.dttTimePct()
 onSessionCloseConditions = dttTimePct == 1 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
 allCond = parabolicTipTop or parabolicRiseLodBreakCond or topSig or onSessionCloseConditions
 alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
+
+
+
+//check performance
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+
+topSigColor = color.new(color.fuchsia, 0)
+parabolicRiseLodBreakSigColor = color.new(color.maroon, 0)
+tiptopSigColor = color.new(color.red, 0)
+
+//sig stats table
+topSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(topSig, topSig ? high : na, false)) : na
+parabolicRiseLodBreakSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false)) : na
+tiptopSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolicTipTop, parabolicTipTop ? high : na, false)) : na
+if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 5, rows = 4)
+    table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+
+    table.cell(table_id = tbl, column = 0, row = 1, text = "top", text_color = topSigColor)
+    table.cell(table_id = tbl, column = 1, row = 1, text = topSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "et4sb", text_color = parabolicRiseLodBreakSigColor)
+    table.cell(table_id = tbl, column = 1, row = 2, text = parabolicRiseLodBreakSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "tip-top", text_color = tiptopSigColor)
+    table.cell(table_id = tbl, column = 1, row = 3, text = tiptopSuccRateStr)
