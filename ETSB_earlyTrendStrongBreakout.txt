@@ -181,4 +181,4 @@ plotshape(iShowEt3sbSig and et3sb, title = 'et3sb', location = location.belowbar
 plotshape(iShowEt4sbSig and et4sb, title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
 plotshape(iShowRmvSig and bullishRmv, title = 'rmv', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv', textcolor = rmvSigColor)
 plotshape(iShowEtcsbSig and etcsb, title = 'etcsb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etcsb', textcolor = etcsbSigColor)
-plotshape(iShowDsbSig and dsbSig, title = 'dsb', location = location.belowbar, color = dsbSigColor, style = shape.triangleup, text = 'etcsb', textcolor = dsbSigColor)
+plotshape(iShowDsbSig and dsbSig, title = 'dsb', location = location.belowbar, color = dsbSigColor, style = shape.triangleup, text = 'dsb', textcolor = dsbSigColor)
