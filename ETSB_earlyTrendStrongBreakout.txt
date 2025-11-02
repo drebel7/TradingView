@@ -142,11 +142,11 @@ bool rmvSuccRateOk = rmvSuccRate > iMinSigSuccessRate and rmvRetAvgPct > adrCond
 bool etcsbSuccRateOk = etcsbSuccRate > iMinSigSuccessRate and etcsbRetAvgPct > adrCond 
 bool dsbSuccRateOk = dsbSuccRate > iMinSigSuccessRate and dsbRetAvgPct > adrCond 
 
-et3sbSuccRateStr = iShowSigPerfTable ? (dreperf.formatSuccessRateStr(true, et3sbSuccRateOk, et3sbSuccRate, et3sbSuccCount, et3sbAllCount, et3sbRetAvgPct)) : na
-et4sbSuccRateStr = iShowSigPerfTable ? (dreperf.formatSuccessRateStr(true, et4sbSuccRateOk, et4sbSuccRate, et4sbSuccCount, et4sbAllCount, et4sbRetAvgPct)) : na
-rmvSuccRateStr = iShowSigPerfTable ? (dreperf.formatSuccessRateStr(true, rmvSuccRateOk, rmvSuccRate, rmvSuccCount, rmvAllCount, rmvRetAvgPct)) : na
-etcsbSuccRateStr = iShowSigPerfTable ? (dreperf.formatSuccessRateStr(true, etcsbSuccRateOk, etcsbSuccRate, etcsbSuccCount, etcsbAllCount, etcsbRetAvgPct)) : na
-dsbSuccRateStr = iShowSigPerfTable ? (dreperf.formatSuccessRateStr(true, dsbSuccRateOk, dsbSuccRate, dsbSuccCount, dsbAllCount, dsbRetAvgPct)) : na
+et3sbSuccRateStr = dreperf.formatSuccessRateStr(true, et3sbSuccRateOk, et3sbSuccRate, et3sbSuccCount, et3sbAllCount, et3sbRetAvgPct)
+et4sbSuccRateStr = dreperf.formatSuccessRateStr(true, et4sbSuccRateOk, et4sbSuccRate, et4sbSuccCount, et4sbAllCount, et4sbRetAvgPct)
+rmvSuccRateStr = dreperf.formatSuccessRateStr(true, rmvSuccRateOk, rmvSuccRate, rmvSuccCount, rmvAllCount, rmvRetAvgPct)
+etcsbSuccRateStr = dreperf.formatSuccessRateStr(true, etcsbSuccRateOk, etcsbSuccRate, etcsbSuccCount, etcsbAllCount, etcsbRetAvgPct)
+dsbSuccRateStr = dreperf.formatSuccessRateStr(true, dsbSuccRateOk, dsbSuccRate, dsbSuccCount, dsbAllCount, dsbRetAvgPct)
 if barstate.islast and iShowSigPerfTable
     var tbl = table.new(position = position.top_right, columns = 5, rows = 6)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
