@@ -21,7 +21,7 @@ iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', group = 'Signals
 iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', group = 'Signals')
 iShowRmvSig = input.bool(defval = true, title = 'Show rmv', group = 'Signals')
 iShowEtcsbSig = input.bool(defval = true, title = 'Show etcsb', group = 'Signals')
-iShowDsbSig = input.bool(defval = true, title = 'Show Obv-Div-sb', group = 'Signals')
+iShowObvDivSig = input.bool(defval = true, title = 'Show Obv-Div-sb', group = 'Signals')
 iMinSigSuccessRate = input.float(defval = 39.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.85, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
 
@@ -100,14 +100,14 @@ bullishRmv = rmvCond and close > close[2] and volume > gVolMa and close > gVShor
 
 etcsb = etsb and (rmvCond or lowRmv)
 
-iDivergence = input.int(50, title = 'Divergence len', minval = 0, maxval = 100, group = 'Obv-price divergence sb')
+iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, group = 'Obv-price divergence sb')
 obvMa = ta.sma(ta.obv, 100)
 priceMa = ta.sma(close, 100)
 risingObv = obvMa > obvMa[1]
 risingPrice = priceMa > priceMa[1]
-divergance = risingObv and not risingPrice
-divergence100 = math.sum(divergance ? 1 : 0, 100)
-dsbSig = divergence100 > iDivergence and strongBreakout
+divergence = risingObv and not risingPrice
+divergenceSum = math.sum(divergence ? 1 : 0, 100)
+obvDiv = divergenceSum > iDivergence and strongBreakout
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
@@ -117,7 +117,7 @@ et3sbSigColor = color.new(color.blue, 0)
 et4sbSigColor = color.new(color.lime, 0)
 rmvSigColor = color.new(color.maroon, 0)
 etcsbSigColor = color.new(color.fuchsia, 0)
-dsbSigColor = color.new(color.navy, 0)
+obvDivSigColor = color.new(color.navy, 0)
 
 [et3sbSuccRate, et3sbSuccCount, et3sbAllCount, et3sbRetAvgPct] = dreperf.successRateAllTimeStats(et3sb, et3sb ? low : na)
 plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
@@ -127,8 +127,8 @@ plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = e
 plot(series = iShowSigPerfPlots ? rmvSuccRate : na, title = 'rmv', color = rmvSigColor, linestyle = plot.linestyle_solid)
 [etcsbSuccRate, etcsbSuccCount, etcsbAllCount, etcsbRetAvgPct] = dreperf.successRateAllTimeStats(etcsb, etcsb ? low : na)
 plot(series = iShowSigPerfPlots ? etcsbSuccRate : na, title = 'etcsb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-[dsbSuccRate, dsbSuccCount, dsbAllCount, dsbRetAvgPct] = dreperf.successRateAllTimeStats(dsbSig, dsbSig ? low : na)
-plot(series = iShowSigPerfPlots ? dsbSuccRate : na, title = 'dsb', color = dsbSigColor, linestyle = plot.linestyle_solid)
+[dsbSuccRate, dsbSuccCount, dsbAllCount, dsbRetAvgPct] = dreperf.successRateAllTimeStats(obvDiv, obvDiv ? low : na)
+plot(series = iShowSigPerfPlots ? dsbSuccRate : na, title = 'dsb', color = obvDivSigColor, linestyle = plot.linestyle_solid)
 
 
 //sig stats table
@@ -158,7 +158,7 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 3, text = rmvSuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 4, text = "etcsb", text_color = etcsbSigColor)
     table.cell(table_id = tbl, column = 1, row = 4, text = etcsbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 5, text = "dsb", text_color = dsbSigColor)
+    table.cell(table_id = tbl, column = 0, row = 5, text = "obvDiv", text_color = obvDivSigColor)
     table.cell(table_id = tbl, column = 1, row = 5, text = dsbSuccRateStr)
 
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -169,17 +169,17 @@ bullishRmvSig = bullishRmv and rmvSuccRateOk
 bullishRmvSig_p1D = bullishRmv[1] and orb
 etcsbSig = etcsb and etcsbSuccRateOk
 etcsbSig_p1D = etcsb[1] and orb
-dsbSSig = dsbSig and dsbSuccRateOk
-dsbSSig_p1D = dsbSSig[1] and orb
+obvDivSig = obvDiv and dsbSuccRateOk
+obvDivSig_p1D = obvDivSig[1] and orb
 
-alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET4SB')
+alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
 alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
 alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
-alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB++', message = 'ETCSB++')
-alertcondition(gFilter and (dsbSSig or dsbSSig_p1D), title = 'bullish DSB++', message = 'DSB++')
-alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or dsbSSig or dsbSSig_p1D), title = 'best LONG', message = 'best LONG')
+alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', message = 'ETCSB')
+alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
+alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D), title = 'best LONG', message = 'best LONG')
 plotshape(iShowEt3sbSig and et3sb, title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
 plotshape(iShowEt4sbSig and et4sb, title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
 plotshape(iShowRmvSig and bullishRmv, title = 'rmv', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv', textcolor = rmvSigColor)
 plotshape(iShowEtcsbSig and etcsb, title = 'etcsb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etcsb', textcolor = etcsbSigColor)
-plotshape(iShowDsbSig and dsbSig, title = 'dsb', location = location.belowbar, color = dsbSigColor, style = shape.triangleup, text = 'dsb', textcolor = dsbSigColor)
+plotshape(iShowObvDivSig and obvDiv, title = 'obvDiv', location = location.belowbar, color = obvDivSigColor, style = shape.triangleup, text = 'obvDiv', textcolor = obvDivSigColor)
