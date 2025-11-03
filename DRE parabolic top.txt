@@ -4,8 +4,8 @@
 //@version=6
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
-import drebel/DRELib/33 as drelib
-import drebel/DREPerf/3 as dreperf
+import drebel/DRELib/35 as drelib
+import drebel/DREPerf/11 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')
@@ -26,7 +26,7 @@ mainMa = ta.sma(close, iMainMaLength)
 shortMa = ta.sma(close, iShortMaLength)
 longMa = ta.sma(close, iLongMaLength)
 gVShortMa1 = ta.ema(close, iVShortMaLength1)
-gVShortMa2 = ta.ema(close, iVShortMaLength1)
+gVShortMa2 = ta.ema(close, iVShortMaLength2)
 gVolMa = ta.sma(volume, 30)
 
 //filters (min. iShortMaLength candles)
@@ -58,7 +58,8 @@ plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location
 
 
 //junior sig
-iJunior = input.bool(defval = true, title = 'bullish', group = 'junior')
+iJunior = input.bool(defval = true, title = 'bullish junior', group = 'junior')
+iJunior2 = input.bool(defval = true, title = 'bullish junior2', group = 'junior')
 
 func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
@@ -75,6 +76,17 @@ juniorSig = func_sig_junior(iLongMaLength)
 
 alertcondition(juniorSig, title = 'DRE junior sig', message = 'junior')
 plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior', textcolor = color.new(color.green, 0))
+
+freshStock = bar_index < 500
+bars = bar_index > 0 ? bar_index : 1
+initialHigh = ta.highest(bars)
+initialHighBarsAgo = ta.highestbars(bars)
+highestSinceIpo = high == initialHigh and initialHighBarsAgo > bar_index / 2
+vwap = ta.vwap(ohlc4, freshStock and highestSinceIpo)
+junior2Sig = drelib.candle_crossover(vwap)
+
+alertcondition(junior2Sig, title = 'DRE junior2 sig', message = 'junior2')
+plotshape(junior2Sig and iJunior2, title = 'junior2', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior2', textcolor = color.new(color.green, 0))
 
 
 //coil and strech sig
@@ -383,7 +395,14 @@ mtbSig = ta.barssince(minevriniTrendCond) < 15 and (triggerBarCond or shakeoutDe
 alertcondition(gFilter and mtbSig, title = 'DRE Bullish mtb', message = 'mtb')
 plotshape(mtbSig, title = 'bullish mtb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtb', textcolor = color.new(color.green, 0))
 
-
+//price - volume corelation
+iPcvMinCorrelation = input.float(defval = 0.75, title = 'PCV - min. correlation', minval = -1.0, maxval = 1.0, step = 0.05, group = 'price-vol. corralation')
+priceMa = ta.ema(close, 50)
+volumeMa = ta.ema(volume, 50)
+pvCorrelation = ta.correlation(priceMa, volumeMa, 50)
+pvc = priceMa > priceMa[1] and pvCorrelation > iPcvMinCorrelation
+pvc2 = pvc and gVShortMa1 > gVShortMa2 and close > shortMa
+//end
 
 bullishRmvSigs = bullishRmvSig or bullishRmvPbSig or bullishRmvEarningsSig or bullishRmvEarningsPbSig
 bearishRmvSigs = bearishRmvSig or bearishRmvPbSig or bearishRmvEarningsSig or bearishRmvEarningsPbSig
@@ -425,18 +444,23 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 //check performance
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(juniorSig, juniorSig ? low : na) : na
-s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishStarterSig, bullishStarterSig ? low : na) : na
-s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
-s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(longerSig, longerSig ? low : na) : na
-s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishStepperSig, bullishStepperSig ? low : na) : na
-s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
-s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishObvSig, bullishObvSig ? low : na) : na
-s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmvSig, bullishRmvSig ? low : na) : na
-s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(mtbSig, mtbSig ? low : na) : na
-s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bearishHunterSig, bearishHunterSig ? low : na) : na
+s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, juniorSig, juniorSig ? low : na) : na
+s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStarterSig, bullishStarterSig ? low : na) : na
+s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
+s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, longerSig, longerSig ? low : na) : na
+s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStepperSig, bullishStepperSig ? low : na) : na
+s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
+s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishObvSig, bullishObvSig ? low : na) : na
+s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvSig, bullishRmvSig ? low : na) : na
+s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, mtbSig, mtbSig ? low : na) : na
+s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishHunterSig, bullishHunterSig ? low : na) : na
+s11SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, junior2Sig, junior2Sig ? low : na) : na
+s12SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc, pvc ? low : na) : na
+s13SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc2, pvc2 ? low : na) : na
+s14SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvPbSig, bullishRmvPbSig ? low : na) : na
 
-var tbl = table.new(position = position.top_right, columns = 11, rows = 11)
+
+var tbl = table.new(position = position.top_right, columns = 11, rows = 15)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
@@ -461,3 +485,11 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 9, text = s9SuccRate)
     table.cell(table_id = tbl, column = 0, row = 10, text = "bullishHunter")
     table.cell(table_id = tbl, column = 1, row = 10, text = s10SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 11, text = "junior2")
+    table.cell(table_id = tbl, column = 1, row = 11, text = s11SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 12, text = "pvc")
+    table.cell(table_id = tbl, column = 1, row = 12, text = s12SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 13, text = "pvc2")
+    table.cell(table_id = tbl, column = 1, row = 13, text = s13SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 14, text = "rmv-pb")
+    table.cell(table_id = tbl, column = 1, row = 14, text = s14SuccRate)
