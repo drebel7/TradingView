@@ -4,7 +4,7 @@
 //@version=6
 indicator("early trend strong breakout", overlay = true)
 
-import drebel/DRELib/34 as drelib
+import drebel/DRELib/35 as drelib
 import drebel/DREPerf/11 as dreperf
 
 //common filters inputs
@@ -76,12 +76,10 @@ et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
-orb5 = drelib.openingRangeBreakout(5, true, true)
-orb60 = drelib.openingRangeBreakout(60, true, true)
-orb = orb5 or orb60
+orb = drelib.openingRangeBreakout(5, true, true)
 
 //pct time since session beggining 
-dttTime = (math.min(timenow, time_close) - time) / (time_close - time)
+dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
 iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', group = 'rmv', display = display.none)
@@ -134,7 +132,7 @@ plot(series = iShowSigPerfPlots ? dsbSuccRate : na, title = 'dsb', color = dsbSi
 
 
 //sig stats table
-adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 bool et3sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate and et3sbRetAvgPct > adrCond 
 bool et4sbSuccRateOk = et4sbSuccRate > iMinSigSuccessRate and et4sbRetAvgPct > adrCond 
