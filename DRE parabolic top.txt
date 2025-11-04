@@ -78,7 +78,7 @@ alertcondition(juniorSig, title = 'DRE junior sig', message = 'junior')
 plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior', textcolor = color.new(color.green, 0))
 
 freshStock = bar_index < 500
-bars = bar_index > 0 ? bar_index : 1
+bars = math.min(bar_index > 0 ? bar_index : 1, 2200)
 initialHigh = ta.highest(bars)
 initialHighBarsAgo = ta.highestbars(bars)
 highestSinceIpo = high == initialHigh and initialHighBarsAgo > bar_index / 2
@@ -445,51 +445,54 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
 s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, juniorSig, juniorSig ? low : na) : na
-s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStarterSig, bullishStarterSig ? low : na) : na
-s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
-s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, longerSig, longerSig ? low : na) : na
-s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStepperSig, bullishStepperSig ? low : na) : na
-s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
-s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishObvSig, bullishObvSig ? low : na) : na
-s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvSig, bullishRmvSig ? low : na) : na
-s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, mtbSig, mtbSig ? low : na) : na
-s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishHunterSig, bullishHunterSig ? low : na) : na
-s11SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, junior2Sig, junior2Sig ? low : na) : na
+s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, junior2Sig, junior2Sig ? low : na) : na
+s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStarterSig, bullishStarterSig ? low : na) : na
+s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
+s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, longerSig, longerSig ? low : na) : na
+s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStepperSig, bullishStepperSig ? low : na) : na
+s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
+s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishObvSig, bullishObvSig ? low : na) : na
+s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvSig, bullishRmvSig ? low : na) : na
+s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvPbSig, bullishRmvPbSig ? low : na) : na
+s11SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, mtbSig, mtbSig ? low : na) : na
 s12SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc, pvc ? low : na) : na
 s13SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc2, pvc2 ? low : na) : na
-s14SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvPbSig, bullishRmvPbSig ? low : na) : na
+s14SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishHunterSig, bullishHunterSig ? low : na) : na
+s15SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(false, bearishHunterSig, bearishHunterSig ? high : na) : na
 
 
-var tbl = table.new(position = position.top_right, columns = 11, rows = 15)
+var tbl = table.new(position = position.top_right, columns = 11, rows = 16)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
 
     table.cell(table_id = tbl, column = 0, row = 1, text = "junior")
     table.cell(table_id = tbl, column = 1, row = 1, text = s1SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 2, text = "bullishStarter")
+    table.cell(table_id = tbl, column = 0, row = 2, text = "junior2")
     table.cell(table_id = tbl, column = 1, row = 2, text = s2SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "bullishFireStarter")
+    table.cell(table_id = tbl, column = 0, row = 3, text = "Starter")
     table.cell(table_id = tbl, column = 1, row = 3, text = s3SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "longer")
+    table.cell(table_id = tbl, column = 0, row = 4, text = "FireStarter")
     table.cell(table_id = tbl, column = 1, row = 4, text = s4SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 5, text = "bullishStepper")
+    table.cell(table_id = tbl, column = 0, row = 5, text = "longer")
     table.cell(table_id = tbl, column = 1, row = 5, text = s5SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 6, text = "bullishLongerStepper")
+    table.cell(table_id = tbl, column = 0, row = 6, text = "Stepper")
     table.cell(table_id = tbl, column = 1, row = 6, text = s6SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 7, text = "bullishObv")
+    table.cell(table_id = tbl, column = 0, row = 7, text = "LongerStepper")
     table.cell(table_id = tbl, column = 1, row = 7, text = s7SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 8, text = "bullishRmv")
+    table.cell(table_id = tbl, column = 0, row = 8, text = "bullishObv")
     table.cell(table_id = tbl, column = 1, row = 8, text = s8SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 9, text = "mtb")
+    table.cell(table_id = tbl, column = 0, row = 9, text = "bullishRmv")
     table.cell(table_id = tbl, column = 1, row = 9, text = s9SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 10, text = "bullishHunter")
+    table.cell(table_id = tbl, column = 0, row = 10, text = "rmv-pb")
     table.cell(table_id = tbl, column = 1, row = 10, text = s10SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 11, text = "junior2")
+    table.cell(table_id = tbl, column = 0, row = 11, text = "mtb")
     table.cell(table_id = tbl, column = 1, row = 11, text = s11SuccRate)
     table.cell(table_id = tbl, column = 0, row = 12, text = "pvc")
     table.cell(table_id = tbl, column = 1, row = 12, text = s12SuccRate)
     table.cell(table_id = tbl, column = 0, row = 13, text = "pvc2")
     table.cell(table_id = tbl, column = 1, row = 13, text = s13SuccRate)
-    table.cell(table_id = tbl, column = 0, row = 14, text = "rmv-pb")
+    table.cell(table_id = tbl, column = 0, row = 14, text = "bullishHunter")
     table.cell(table_id = tbl, column = 1, row = 14, text = s14SuccRate)
+    table.cell(table_id = tbl, column = 0, row = 15, text = "bearishHunter")
+    table.cell(table_id = tbl, column = 1, row = 15, text = s15SuccRate)
