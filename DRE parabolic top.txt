@@ -458,7 +458,7 @@ s11SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, mtbSig, mt
 s12SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc, pvc ? low : na) : na
 s13SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc2, pvc2 ? low : na) : na
 s14SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishHunterSig, bullishHunterSig ? low : na) : na
-s15SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(false, bearishHunterSig, bearishHunterSig ? high : na) : na
+s15SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bearishHunterSig, bearishHunterSig ? high : na, false) : na
 
 
 var tbl = table.new(position = position.top_right, columns = 11, rows = 16)
