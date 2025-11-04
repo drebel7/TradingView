@@ -69,7 +69,7 @@ export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss
 	ret = (close - close[_checkTime]) / close[_checkTime]
 	retSL = (_sigCandleStopLoss[_checkTime] - close[_checkTime]) / close[_checkTime]
 	retCum = ta.cum(_sig[_checkTime] and (longSigSucc or shortSigSucc) ? ret : _sig[_checkTime] ? retSL : 0)
-	retAvgPct = 100.0 * retCum / sigAllCount
+	retAvgPct = 100.0 * retCum / sigAllCount * (_long ? 1 : -1)
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct]
 
 export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime) =>

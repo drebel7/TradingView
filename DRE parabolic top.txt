@@ -5,7 +5,7 @@
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/11 as dreperf
+import drebel/DREPerf/13 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')

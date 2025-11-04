@@ -5,7 +5,7 @@
 indicator(title = 'DRE When-Sell', overlay = true)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/11 as dreperf
+import drebel/DREPerf/13 as dreperf
 
 iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Moving averages', inline = 'sma1')
 iSmaLen1 = input.int(defval = 10, title = 'len', minval = 1, group = 'Moving averages', inline = 'sma1')
