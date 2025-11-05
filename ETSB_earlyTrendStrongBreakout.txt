@@ -127,8 +127,8 @@ plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = e
 plot(series = iShowSigPerfPlots ? rmvSuccRate : na, title = 'rmv', color = rmvSigColor, linestyle = plot.linestyle_solid)
 [etcsbSuccRate, etcsbSuccCount, etcsbAllCount, etcsbRetAvgPct] = dreperf.successRateAllTimeStats(etcsb, etcsb ? low : na)
 plot(series = iShowSigPerfPlots ? etcsbSuccRate : na, title = 'etcsb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-[dsbSuccRate, dsbSuccCount, dsbAllCount, dsbRetAvgPct] = dreperf.successRateAllTimeStats(obvDiv, obvDiv ? low : na)
-plot(series = iShowSigPerfPlots ? dsbSuccRate : na, title = 'dsb', color = obvDivSigColor, linestyle = plot.linestyle_solid)
+[obvDivSuccRate, obvDivSuccCount, obvDivAllCount, obvDivRetAvgPct] = dreperf.successRateAllTimeStats(obvDiv, obvDiv ? low : na)
+plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
 
 
 //sig stats table
@@ -138,13 +138,13 @@ bool et3sbSuccRateOk = et3sbSuccRate > iMinSigSuccessRate and et3sbRetAvgPct > a
 bool et4sbSuccRateOk = et4sbSuccRate > iMinSigSuccessRate and et4sbRetAvgPct > adrCond 
 bool rmvSuccRateOk = rmvSuccRate > iMinSigSuccessRate and rmvRetAvgPct > adrCond 
 bool etcsbSuccRateOk = etcsbSuccRate > iMinSigSuccessRate and etcsbRetAvgPct > adrCond 
-bool dsbSuccRateOk = dsbSuccRate > iMinSigSuccessRate and dsbRetAvgPct > adrCond 
+bool obvDivSuccRateOk = obvDivSuccRate > iMinSigSuccessRate and obvDivRetAvgPct > adrCond 
 
 et3sbSuccRateStr = dreperf.formatSuccessRateStr(true, et3sbSuccRateOk, et3sbSuccRate, et3sbSuccCount, et3sbAllCount, et3sbRetAvgPct)
 et4sbSuccRateStr = dreperf.formatSuccessRateStr(true, et4sbSuccRateOk, et4sbSuccRate, et4sbSuccCount, et4sbAllCount, et4sbRetAvgPct)
 rmvSuccRateStr = dreperf.formatSuccessRateStr(true, rmvSuccRateOk, rmvSuccRate, rmvSuccCount, rmvAllCount, rmvRetAvgPct)
 etcsbSuccRateStr = dreperf.formatSuccessRateStr(true, etcsbSuccRateOk, etcsbSuccRate, etcsbSuccCount, etcsbAllCount, etcsbRetAvgPct)
-dsbSuccRateStr = dreperf.formatSuccessRateStr(true, dsbSuccRateOk, dsbSuccRate, dsbSuccCount, dsbAllCount, dsbRetAvgPct)
+obvDivSuccRateStr = dreperf.formatSuccessRateStr(true, obvDivSuccRateOk, obvDivSuccRate, obvDivSuccCount, obvDivAllCount, obvDivRetAvgPct)
 if barstate.islast and iShowSigPerfTable
     var tbl = table.new(position = position.top_right, columns = 5, rows = 6)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
@@ -159,17 +159,17 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 4, text = "etcsb", text_color = etcsbSigColor)
     table.cell(table_id = tbl, column = 1, row = 4, text = etcsbSuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 5, text = "obvDiv", text_color = obvDivSigColor)
-    table.cell(table_id = tbl, column = 1, row = 5, text = dsbSuccRateStr)
+    table.cell(table_id = tbl, column = 1, row = 5, text = obvDivSuccRateStr)
 
 et3sbSig = et3sb and et3sbSuccRateOk
 et3sbSig_p1D = et3sbSig[1] and orb
 et4sbSig = et4sb and et4sbSuccRateOk
 et4sbSig_p1D = et4sbSig[1] and orb
 bullishRmvSig = bullishRmv and rmvSuccRateOk
-bullishRmvSig_p1D = bullishRmv[1] and orb
+bullishRmvSig_p1D = bullishRmvSig[1] and orb
 etcsbSig = etcsb and etcsbSuccRateOk
-etcsbSig_p1D = etcsb[1] and orb
-obvDivSig = obvDiv and dsbSuccRateOk
+etcsbSig_p1D = etcsbSig[1] and orb
+obvDivSig = obvDiv and obvDivSuccRateOk
 obvDivSig_p1D = obvDivSig[1] and orb
 
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
