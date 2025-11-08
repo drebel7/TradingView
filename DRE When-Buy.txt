@@ -4,7 +4,8 @@
 //@version=6
 indicator(title = 'DRE When-Buy', overlay = true)
 
-import drebel/DRELib/21 as drelib
+import drebel/DRELib/35 as drelib
+import drebel/DREPerf/13 as dreperf
 
 iMinAdr = input.int(defval = 10, title = 'Min. ADR [%]', minval = 0, maxval = 100)
 iVolumeCond = input.bool(defval = true, title = 'Volume cond')
@@ -39,3 +40,28 @@ alertcondition(parabolicRiseHodBreak, title = 'parabolic rise-fall hod - break',
 if parabolicRiseHodBreak
     label.new(bar_index, close, tooltip = 'parabolic rise-fall hod - break', color = color.new(color.green, 70), style = label.style_diamond, size = size.tiny)
 //plotshape(parabolicRiseHodBreak, title = 'parabolic rise-fall hod - break', location = location.absolute, color = color.new(color.green, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
+
+
+//check performance
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+
+[prhbSuccRate, prhbSuccCount, prhbAllCount, prhbRetAvgPct] = dreperf.successRateAllTimeStats(parabolicRiseHodBreak, parabolicRiseHodBreak ? low : na)
+
+prhbSigColor = color.new(color.green, 0)
+iMinSigSuccessRate = 39
+iMinSigReturnAdrMultiple = 0.85
+
+//sig stats table
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+bool prhbSuccRateOk = prhbSuccRate > iMinSigSuccessRate and prhbRetAvgPct > adrCond 
+
+prhbSuccRateStr = dreperf.formatSuccessRateStr(true, prhbSuccRateOk, prhbSuccRate, prhbSuccCount, prhbAllCount, prhbRetAvgPct)
+
+if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 5, rows = 2)
+    table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+
+    table.cell(table_id = tbl, column = 0, row = 1, text = "prhb", text_color = prhbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 1, text = prhbSuccRateStr)
