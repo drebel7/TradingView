@@ -24,7 +24,7 @@ isMarubozuGreen = candleBody > 0.75 and candleColor == 1
 isMarubozuRed = candleBody > 0.75 and candleColor == -1
 
 volEma = ta.ema(volume, 20)
-volumeAboveMaRate = math.sum(volume > volEma ? 1 : 0, 10) / 10
+volumeAboveMaRate = math.sum(volume > volEma ? 1 : 0, 5) / 5
 
 lowerCandle = high < high[1] and low < low[1]
 consecutiveLowerCandes = ta.barssince(not lowerCandle)
