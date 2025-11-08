@@ -8,14 +8,25 @@ library('DREPerf')
 
 const int DEFAULT_SIG_CHECK_TIME = 15
 const int DEFAULT_STOCK_TRADING_DAYS_IN_A_YEAR = 252
-const string SUCC_RATE_FORMAT = "{0,number,#.#}% ({1}/{2})"
+const string SUCC_RATE_SHORT_FORMAT = "{0,number,#.#}% ({1}/{2})"
 const string SUCC_RATE_LONG_FORMAT = "{0,number,#.#}% ({1}/{2}) {3,number,#.#}%"
 
+export sigSuccRateOk(float sigSuccRatePct, float retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
+	sigSuccRatePct > _minSuccRatePct and retAvgPct > _minRetAvgPct
+
+export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
+	str.format(SUCC_RATE_LONG_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+
 export formatSuccessRateStr(bool _longFormat, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
-	_longFormat ? str.format(SUCC_RATE_LONG_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct) : str.format(SUCC_RATE_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount)
+	str.format(_longFormat ? SUCC_RATE_LONG_FORMAT : SUCC_RATE_SHORT_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
 
 export formatSuccessRateStr(bool _longFormat, bool _star, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
 	formatted = formatSuccessRateStr(_longFormat, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+	formatted + (_star ? '*' : '')
+
+export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
+	formatted = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+	_star = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
 	formatted + (_star ? '*' : '')
 
 // @function This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for a given _lookback period.
@@ -35,14 +46,14 @@ export successRateInPeriodStats(series bool _sig, series float _sigCandleStopLos
 
 export successRateInPeriodStr(series bool _sig, series float _sigCandleStopLoss, int _checkTime, int _lookback) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateInPeriodStats(_sig, _sigCandleStopLoss, _checkTime, _lookback)
-	str.format(SUCC_RATE_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount)
+	str.format(SUCC_RATE_SHORT_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount)
 
 export successRateInPeriodStats(series bool _sig, series float _sigCandleStopLoss) =>
 	successRateInPeriodStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, DEFAULT_STOCK_TRADING_DAYS_IN_A_YEAR)
 
 export successRateInPeriodStr(series bool _sig, series float _sigCandleStopLoss) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateInPeriodStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, DEFAULT_STOCK_TRADING_DAYS_IN_A_YEAR)
-	str.format(SUCC_RATE_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount)
+	str.format(SUCC_RATE_SHORT_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount)
 
 export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss, int _lookback) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount] = successRateInPeriodStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, _lookback)
@@ -81,6 +92,18 @@ export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss
 export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss) =>
 	successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, true)
 
+export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, _long)
+	bool succRateOk = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
+	string succRateStr = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, _minSuccRatePct, _minRetAvgPct)
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr]
+
+export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, float _minSuccRatePct, float _minRetAvgPct) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, true)
+	bool succRateOk = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
+	string succRateStr = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, _minSuccRatePct, _minRetAvgPct)
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr]
+
 export successRateAllTimeStr(bool _longFormat, series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _checkTime, _long)
 	formatSuccessRateStr(_longFormat, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
@@ -96,6 +119,22 @@ export successRateAllTimeStr(bool _longFormat, series bool _sig, series float _s
 export successRateAllTimeStr(bool _longFormat, series bool _sig, series float _sigCandleStopLoss) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss)
 	formatSuccessRateStr(_longFormat, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+
+export successRateAllTimeStr(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _checkTime, _long)
+	formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+
+export successRateAllTimeStr(series bool _sig, series float _sigCandleStopLoss, int _checkTime) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _checkTime, true)
+	formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+
+export successRateAllTimeStr(series bool _sig, series float _sigCandleStopLoss, bool _long) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _long)
+	formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+
+export successRateAllTimeStr(series bool _sig, series float _sigCandleStopLoss) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss)
+	formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
 
 export successRateAllTime(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _checkTime, _long)
