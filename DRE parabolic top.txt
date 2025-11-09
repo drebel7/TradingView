@@ -81,12 +81,13 @@ plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar,
 
 
 freshStock = bar_index < iLongMaLength
-bars = int(math.min(bar_index > 1 ? bar_index * 0.5 : 1, iLongMaLength))
+bars = int(math.min(bar_index > 1 ? bar_index * 0.8 : 1, iLongMaLength))
 initialHigh = ta.highest(bars)
 highestSinceIpo = high == initialHigh
 initialHighBarsAgo = ta.barssince(highestSinceIpo)
 initHighVwap = ta.vwap(ohlc4, freshStock and highestSinceIpo)
-junior2Sig = initialHighBarsAgo > bar_index * 0.25 ? drelib.candle_crossover(initHighVwap) : false
+bars2 = bar_index > 15 ? bar_index - 7 : bar_index * 0.2
+junior2Sig = initialHighBarsAgo > bars2 ? drelib.candle_crossover(initHighVwap) : false
 alertcondition(junior2Sig, title = 'DRE junior2 sig', message = 'junior2')
 plotshape(junior2Sig and iJunior2, title = 'junior2', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior2', textcolor = color.new(color.green, 0))
 
