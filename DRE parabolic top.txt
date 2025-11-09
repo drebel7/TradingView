@@ -5,7 +5,7 @@
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/13 as dreperf
+import drebel/DREPerf/15 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')
@@ -98,9 +98,9 @@ func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
     ma1 = ta.sma(close, _shortMaLen)
     ma2 = ta.sma(close, _mediumMaLen)
     ma3 = ta.sma(close, _longMaLen)
-    vwap = ta.vwap(ohlc4, bar_index == 0)
+    zeroBarVwap = ta.vwap(ohlc4, bar_index == 0)
     usedLongMaLen = bar_index < _longMaLen ? bar_index : _longMaLen
-    ma3used = bar_index < _longMaLen ? vwap : ma3
+    ma3used = bar_index < _longMaLen ? zeroBarVwap : ma3
     lenSum = _shortMaLen + _mediumMaLen + usedLongMaLen
     distance = math.sqrt((lenSum - _shortMaLen) * math.pow(ma1 - close, 2) + (lenSum - _mediumMaLen) * math.pow(ma2 - close, 2) + (lenSum - usedLongMaLen) * math.pow(ma3used - close, 2))
     distance
@@ -167,11 +167,12 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title = 'bullish fire s
 iLonger = input.bool(defval = true, title = 'bullish', group = 'longer', inline = 'longer1')
 iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, group = 'longer', display = display.none)
 
-func_sig_longer(_shortMa, _longMa, _offset, _atr) =>
-    ret = _shortMa > _shortMa[1] and _longMa > _longMa[1] and _shortMa > _longMa and drelib.crossover(_shortMa + _offset * _atr)
+func_sig_longer(series float _shortMa, series float _longMa, float _offset, float _atr) =>
+    longMaCond = na(_longMa[1]) ? true : (_longMa > _longMa[1] and _shortMa > _longMa)
+    ret = _shortMa > _shortMa[1] and longMaCond and drelib.crossover(_shortMa + _offset * _atr)
     ret
 
-longerSig = func_sig_longer(mainMa, longMa, iLongerOffset, mainAtr)
+longerSig = func_sig_longer(mainMa, longMa, 0, mainAtr)
 smallerLongerSig = func_sig_longer(shortMa, mainMa, 0, mainAtr)
 
 alertcondition(gFilter and longerSig, title = 'DRE longer sig', message = 'longer')
@@ -450,23 +451,23 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 //check performance
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, juniorSig, juniorSig ? low : na) : na
-s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, junior2Sig, junior2Sig ? low : na) : na
-s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStarterSig, bullishStarterSig ? low : na) : na
-s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
-s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, longerSig, longerSig ? low : na) : na
-s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, smallerLongerSig, smallerLongerSig ? low : na) : na
-s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishStepperSig, bullishStepperSig ? low : na) : na
-s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
-s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishSLongerStepperSig, bullishSLongerStepperSig ? low : na) : na
-s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishObvSig, bullishObvSig ? low : na) : na
-s11SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvSig, bullishRmvSig ? low : na) : na
-s12SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishRmvPbSig, bullishRmvPbSig ? low : na) : na
-s13SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, mtbSig, mtbSig ? low : na) : na
-s14SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc, pvc ? low : na) : na
-s15SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, pvc2, pvc2 ? low : na) : na
-s16SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bullishHunterSig, bullishHunterSig ? low : na) : na
-s17SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(true, bearishHunterSig, bearishHunterSig ? high : na, false) : na
+s1SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(juniorSig, juniorSig ? low : na) : na
+s2SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(junior2Sig, junior2Sig ? low : na) : na
+s3SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishStarterSig, bullishStarterSig ? low : na) : na
+s4SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishFireStarterSig, bullishFireStarterSig ? low : na) : na
+s5SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(longerSig, longerSig ? low : na) : na
+s6SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(smallerLongerSig, smallerLongerSig ? low : na) : na
+s7SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishStepperSig, bullishStepperSig ? low : na) : na
+s8SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishLongerStepperSig, bullishLongerStepperSig ? low : na) : na
+s9SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishSLongerStepperSig, bullishSLongerStepperSig ? low : na) : na
+s10SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishObvSig, bullishObvSig ? low : na) : na
+s11SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmvSig, bullishRmvSig ? low : na) : na
+s12SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishRmvPbSig, bullishRmvPbSig ? low : na) : na
+s13SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(mtbSig, mtbSig ? low : na) : na
+s14SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(pvc, pvc ? low : na) : na
+s15SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(pvc2, pvc2 ? low : na) : na
+s16SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bullishHunterSig, bullishHunterSig ? low : na) : na
+s17SuccRate = iShowSigPerfTable ? dreperf.successRateAllTimeStr(bearishHunterSig, bearishHunterSig ? high : na, false) : na
 
 
 var tbl = table.new(position = position.top_right, columns = 11, rows = 18)
