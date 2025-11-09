@@ -5,7 +5,7 @@
 indicator(title = 'DRE When-Sell', overlay = true)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/13 as dreperf
+import drebel/DREPerf/16 as dreperf
 
 iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Moving averages', inline = 'sma1')
 iSmaLen1 = input.int(defval = 10, title = 'len', minval = 1, group = 'Moving averages', inline = 'sma1')
@@ -139,16 +139,16 @@ parabolicRiseLodBreakSigColor = color.new(color.maroon, 0)
 tiptopSigColor = color.new(color.red, 0)
 
 //sig stats table
-topSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, topSig, topSig ? high : na, false)) : na
-parabolicRiseLodBreakSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false)) : na
-tiptop4SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, parabolic4TipTop, parabolic4TipTop ? high : na, false)) : na
-tiptop5SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, parabolic5TipTop, parabolic5TipTop ? high : na, false)) : na
-tiptop6SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, parabolic6TipTop, parabolic6TipTop ? high : na, false)) : na
-sma1SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, belowSma1, belowSma1 ? high : na, false)) : na
-sma2SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, belowSma2, belowSma2 ? high : na, false)) : na
-sma3SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, belowSma3, belowSma3 ? high : na, false)) : na
-allBullRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, true, true ? low : na)) : na
-allBearSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, true, true ? high : na, false)) : na
+topSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(topSig, topSig ? high : na, false)) : na
+parabolicRiseLodBreakSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false)) : na
+tiptop4SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic4TipTop, parabolic4TipTop ? high : na, false)) : na
+tiptop5SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic5TipTop, parabolic5TipTop ? high : na, false)) : na
+tiptop6SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(parabolic6TipTop, parabolic6TipTop ? high : na, false)) : na
+sma1SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(belowSma1, belowSma1 ? high : na, false)) : na
+sma2SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(belowSma2, belowSma2 ? high : na, false)) : na
+sma3SuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(belowSma3, belowSma3 ? high : na, false)) : na
+allBullRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, true ? low : na)) : na
+allBearSuccRateStr = iShowSigPerfTable ? (dreperf.successRateAllTimeStr(true, true ? high : na, false)) : na
 if barstate.islast and iShowSigPerfTable
     var tbl = table.new(position = position.top_right, columns = 5, rows = 11)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")

@@ -5,7 +5,7 @@
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/15 as dreperf
+import drebel/DREPerf/16 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')
@@ -400,7 +400,7 @@ gapDownReversalCond = gapDownReversalCandle and candleHeightPrctRank > 50 and vo
 mtbSig = ta.barssince(minevriniTrendCond) < 15 and (triggerBarCond or shakeoutDemandTailCond and gapDownReversalCond)
 
 alertcondition(gFilter and mtbSig, title = 'DRE Bullish mtb', message = 'mtb')
-plotshape(mtbSig, title = 'bullish mtb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtb', textcolor = color.new(color.green, 0))
+plotshape(mtbSig and iBullishMtb, title = 'bullish mtb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtb', textcolor = color.new(color.green, 0))
 
 //price - volume corelation
 iPcvMinCorrelation = input.float(defval = 0.75, title = 'PCV - min. correlation', minval = -1.0, maxval = 1.0, step = 0.05, group = 'price-vol. corralation')
@@ -442,8 +442,6 @@ alertcondition(candleBullishBoOnVolumeCond and gFilter and bullishSig[1], title 
 alertcondition(candleBearishBoOnVolumeCond and gFilter and bearishSig[1], title = 'DRE Bearish pattern BO sig', message = 'bearish pattern BO')
 
 alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
-
-
 
 
 

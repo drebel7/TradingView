@@ -36,7 +36,7 @@ export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCo
 // @param _lookback Time period for signal performance check eg. a last year (about 252 days).
 // @returns signal success rate, signal succesc count, singal count.
 export successRateInPeriodStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, int _lookback) =>
-	sigSucc = ta.lowest(_checkTime - 1) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
+	sigSucc = ta.lowest(_checkTime) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
 	sigSucc_10 = sigSucc ? 1 : 0
 	sigSuccCount = int(math.sum(sigSucc_10, _lookback))
 	sigAll_10 = _sig[_checkTime] ? 1 : 0
@@ -70,8 +70,8 @@ export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss) =>
 // @param _long true for long plays check, false for short plays check
 // @returns signal success rate, signal succesc count, singal count average pct return when succes.
 export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
-	longSigSucc = _long and ta.lowest(_checkTime - 1) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
-	shortSigSucc = not _long and ta.highest(_checkTime - 1) < _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
+	longSigSucc = _long and ta.lowest(_checkTime) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
+	shortSigSucc = not _long and ta.highest(_checkTime) < _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
 	sigSucc_10 = (_long ? longSigSucc : shortSigSucc) ? 1 : 0
 	sigSuccCount = int(ta.cum(sigSucc_10))
 	sigAll_10 = _sig[_checkTime] ? 1 : 0

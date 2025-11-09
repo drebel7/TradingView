@@ -4,8 +4,8 @@
 //@version=6
 indicator('DRE Minevrini Trend BG', overlay = true, max_bars_back = 800)
 
-import drebel/DRELib/34 as drelib
-import drebel/DREPerf/11 as dreperf
+import drebel/DRELib/35 as drelib
+import drebel/DREPerf/16 as dreperf
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -118,27 +118,17 @@ iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Si
 //sig stats table
 adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
 adrCond = 0.8 * adrPct
-bool s1SuccRateOk = s1SuccRate > 39 and s1RetAvgPct > adrCond 
-bool s2SuccRateOk = s2SuccRate > 39 and s2RetAvgPct > adrCond 
-bool s3SuccRateOk = s3SuccRate > 39 and s3RetAvgPct > adrCond 
-bool s4SuccRateOk = s4SuccRate > 39 and s4RetAvgPct > adrCond 
-bool s5SuccRateOk = s5SuccRate > 39 and s5RetAvgPct > adrCond 
-bool s6SuccRateOk = s6SuccRate > 39 and s6RetAvgPct > adrCond 
-bool s7SuccRateOk = s7SuccRate > 39 and s7RetAvgPct > adrCond 
-bool s8SuccRateOk = s8SuccRate > 39 and s8RetAvgPct > adrCond 
-bool s9SuccRateOk = s9SuccRate > 39 and s9RetAvgPct > adrCond 
-bool s10SuccRateOk = s10SuccRate > 39 and s10RetAvgPct > adrCond
 
-s1SuccRateStr = dreperf.formatSuccessRateStr(true, s1SuccRateOk, s1SuccRate, s1SuccCount, s1AllCount, s1RetAvgPct)
-s2SuccRateStr = dreperf.formatSuccessRateStr(true, s2SuccRateOk, s2SuccRate, s2SuccCount, s2AllCount, s2RetAvgPct)
-s3SuccRateStr = dreperf.formatSuccessRateStr(true, s3SuccRateOk, s3SuccRate, s3SuccCount, s3AllCount, s3RetAvgPct)
-s4SuccRateStr = dreperf.formatSuccessRateStr(true, s4SuccRateOk, s4SuccRate, s4SuccCount, s4AllCount, s4RetAvgPct)
-s5SuccRateStr = dreperf.formatSuccessRateStr(true, s5SuccRateOk, s5SuccRate, s5SuccCount, s5AllCount, s5RetAvgPct)
-s6SuccRateStr = dreperf.formatSuccessRateStr(true, s6SuccRateOk, s6SuccRate, s6SuccCount, s6AllCount, s6RetAvgPct)
-s7SuccRateStr = dreperf.formatSuccessRateStr(true, s7SuccRateOk, s7SuccRate, s7SuccCount, s7AllCount, s7RetAvgPct)
-s8SuccRateStr = dreperf.formatSuccessRateStr(true, s8SuccRateOk, s8SuccRate, s8SuccCount, s8AllCount, s8RetAvgPct)
-s9SuccRateStr = dreperf.formatSuccessRateStr(true, s9SuccRateOk, s9SuccRate, s9SuccCount, s9AllCount, s9RetAvgPct)
-s10SuccRateStr = dreperf.formatSuccessRateStr(true, s10SuccRateOk, s10SuccRate, s10SuccCount, s10AllCount, s10RetAvgPct)
+s1SuccRateStr = dreperf.formatSuccessRateStr(s1SuccRate, s1SuccCount, s1AllCount, s1RetAvgPct, 39, adrCond)
+s2SuccRateStr = dreperf.formatSuccessRateStr(s2SuccRate, s2SuccCount, s2AllCount, s2RetAvgPct, 39, adrCond)
+s3SuccRateStr = dreperf.formatSuccessRateStr(s3SuccRate, s3SuccCount, s3AllCount, s3RetAvgPct, 39, adrCond)
+s4SuccRateStr = dreperf.formatSuccessRateStr(s4SuccRate, s4SuccCount, s4AllCount, s4RetAvgPct, 39, adrCond)
+s5SuccRateStr = dreperf.formatSuccessRateStr(s5SuccRate, s5SuccCount, s5AllCount, s5RetAvgPct, 39, adrCond)
+s6SuccRateStr = dreperf.formatSuccessRateStr(s6SuccRate, s6SuccCount, s6AllCount, s6RetAvgPct, 39, adrCond)
+s7SuccRateStr = dreperf.formatSuccessRateStr(s7SuccRate, s7SuccCount, s7AllCount, s7RetAvgPct, 39, adrCond)
+s8SuccRateStr = dreperf.formatSuccessRateStr(s8SuccRate, s8SuccCount, s8AllCount, s8RetAvgPct, 39, adrCond)
+s9SuccRateStr = dreperf.formatSuccessRateStr(s9SuccRate, s9SuccCount, s9AllCount, s9RetAvgPct, 39, adrCond)
+s10SuccRateStr = dreperf.formatSuccessRateStr(s10SuccRate, s10SuccCount, s10AllCount, s10RetAvgPct, 39, adrCond)
 
 var tbl = table.new(position = position.top_right, columns = 11, rows = 11)
 if barstate.islast and iShowSigPerfTable
