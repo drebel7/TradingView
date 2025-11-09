@@ -5,7 +5,7 @@
 indicator('DRE Minevrini Trend BG', overlay = true, max_bars_back = 800)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/16 as dreperf
+import drebel/DREPerf/17 as dreperf
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -102,33 +102,22 @@ plotshape(mtsb, title = 'mtsb', location = location.belowbar, color = color.new(
 
 
 //check performance
-// iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
-iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-[s1SuccRate, s1SuccCount, s1AllCount, s1RetAvgPct] = dreperf.successRateAllTimeStats(mtsb, mtsb ? low : na)
-[s2SuccRate, s2SuccCount, s2AllCount, s2RetAvgPct] = dreperf.successRateAllTimeStats(mtcb, mtcb ? low : na)
-[s3SuccRate, s3SuccCount, s3AllCount, s3RetAvgPct] = dreperf.successRateAllTimeStats(mtcb1, mtcb1 ? low : na)
-[s4SuccRate, s4SuccCount, s4AllCount, s4RetAvgPct] = dreperf.successRateAllTimeStats(mtcb2, mtcb2 ? low : na)
-[s5SuccRate, s5SuccCount, s5AllCount, s5RetAvgPct] = dreperf.successRateAllTimeStats(mtcb3, mtcb3 ? low : na)
-[s6SuccRate, s6SuccCount, s6AllCount, s6RetAvgPct] = dreperf.successRateAllTimeStats(mtcb4, mtcb4 ? low : na)
-[s7SuccRate, s7SuccCount, s7AllCount, s7RetAvgPct] = dreperf.successRateAllTimeStats(mtcb5, mtcb5 ? low : na)
-[s8SuccRate, s8SuccCount, s8AllCount, s8RetAvgPct] = dreperf.successRateAllTimeStats(mtcb6, mtcb6 ? low : na)
-[s9SuccRate, s9SuccCount, s9AllCount, s9RetAvgPct] = dreperf.successRateAllTimeStats(mtcb7, mtcb7 ? low : na)
-[s10SuccRate, s10SuccCount, s10AllCount, s10RetAvgPct] = dreperf.successRateAllTimeStats(mtcb8, mtcb8 ? low : na)
-
 //sig stats table
 adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
 adrCond = 0.8 * adrPct
 
-s1SuccRateStr = dreperf.formatSuccessRateStr(s1SuccRate, s1SuccCount, s1AllCount, s1RetAvgPct, 39, adrCond)
-s2SuccRateStr = dreperf.formatSuccessRateStr(s2SuccRate, s2SuccCount, s2AllCount, s2RetAvgPct, 39, adrCond)
-s3SuccRateStr = dreperf.formatSuccessRateStr(s3SuccRate, s3SuccCount, s3AllCount, s3RetAvgPct, 39, adrCond)
-s4SuccRateStr = dreperf.formatSuccessRateStr(s4SuccRate, s4SuccCount, s4AllCount, s4RetAvgPct, 39, adrCond)
-s5SuccRateStr = dreperf.formatSuccessRateStr(s5SuccRate, s5SuccCount, s5AllCount, s5RetAvgPct, 39, adrCond)
-s6SuccRateStr = dreperf.formatSuccessRateStr(s6SuccRate, s6SuccCount, s6AllCount, s6RetAvgPct, 39, adrCond)
-s7SuccRateStr = dreperf.formatSuccessRateStr(s7SuccRate, s7SuccCount, s7AllCount, s7RetAvgPct, 39, adrCond)
-s8SuccRateStr = dreperf.formatSuccessRateStr(s8SuccRate, s8SuccCount, s8AllCount, s8RetAvgPct, 39, adrCond)
-s9SuccRateStr = dreperf.formatSuccessRateStr(s9SuccRate, s9SuccCount, s9AllCount, s9RetAvgPct, 39, adrCond)
-s10SuccRateStr = dreperf.formatSuccessRateStr(s10SuccRate, s10SuccCount, s10AllCount, s10RetAvgPct, 39, adrCond)
+// iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+[s1SuccRate, s1SuccRateOk,s1SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtsb, mtsb ? low : na, 39, adrCond)
+[s2SuccRate, s2SuccRateOk, s2SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb, mtcb ? low : na, 39, adrCond)
+[s3SuccRate, s3SuccRateOk, s3SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb1, mtcb1 ? low : na, 39, adrCond)
+[s4SuccRate, s4SuccRateOk, s4SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb2, mtcb2 ? low : na, 39, adrCond)
+[s5SuccRate, s5SuccRateOk, s5SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb3, mtcb3 ? low : na, 39, adrCond)
+[s6SuccRate, s6SuccRateOk, s6SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb4, mtcb4 ? low : na, 39, adrCond)
+[s7SuccRate, s7SuccRateOk, s7SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb5, mtcb5 ? low : na, 39, adrCond)
+[s8SuccRate, s8SuccRateOk, s8SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb6, mtcb6 ? low : na, 39, adrCond)
+[s9SuccRate, s9SuccRateOk, s9SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb7, mtcb7 ? low : na, 39, adrCond)
+[s10SuccRate, s10SuccRateOk, s10SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb8, mtcb8 ? low : na, 39, adrCond)
 
 var tbl = table.new(position = position.top_right, columns = 11, rows = 11)
 if barstate.islast and iShowSigPerfTable

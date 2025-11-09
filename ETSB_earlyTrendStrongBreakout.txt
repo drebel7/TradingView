@@ -5,7 +5,7 @@
 indicator("early trend strong breakout", overlay = true)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/16 as dreperf
+import drebel/DREPerf/17 as dreperf
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -123,15 +123,15 @@ obvDivSigColor = color.new(color.navy, 0)
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
-[et3sbSuccRate, et3sbSuccCount, et3sbAllCount, et3sbRetAvgPct, et3sbSuccRateOk, et3sbSuccRateStr] = dreperf.successRateAllTimeStatsFull(et3sb, et3sb ? low : na, iMinSigSuccessRate, adrCond)
+[et3sbSuccRate, et3sbSuccRateOk, et3sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(et3sb, et3sb ? low : na, iMinSigSuccessRate, adrCond)
 plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
-[et4sbSuccRate, et4sbSuccCount, et4sbAllCount, et4sbRetAvgPct, et4sbSuccRateOk, et4sbSuccRateStr] = dreperf.successRateAllTimeStatsFull(et4sb, et4sb ? low : na, iMinSigSuccessRate, adrCond)
+[et4sbSuccRate, et4sbSuccRateOk, et4sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(et4sb, et4sb ? low : na, iMinSigSuccessRate, adrCond)
 plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
-[rmvSuccRate, rmvSuccCount, rmvAllCount, rmvRetAvgPct, rmvSuccRateOk, rmvSuccRateStr] = dreperf.successRateAllTimeStatsFull(bullishRmv, bullishRmv ? low : na, iMinSigSuccessRate, adrCond)
+[rmvSuccRate, rmvSuccRateOk, rmvSuccRateStr] = dreperf.successRateAllTimeStatsMin(bullishRmv, bullishRmv ? low : na, iMinSigSuccessRate, adrCond)
 plot(series = iShowSigPerfPlots ? rmvSuccRate : na, title = 'rmv', color = rmvSigColor, linestyle = plot.linestyle_solid)
-[etcsbSuccRate, etcsbSuccCount, etcsbAllCount, etcsbRetAvgPct, etcsbSuccRateOk, etcsbSuccRateStr] = dreperf.successRateAllTimeStatsFull(etcsb, etcsb ? low : na, iMinSigSuccessRate, adrCond)
+[etcsbSuccRate, etcsbSuccRateOk, etcsbSuccRateStr] = dreperf.successRateAllTimeStatsMin(etcsb, etcsb ? low : na, iMinSigSuccessRate, adrCond)
 plot(series = iShowSigPerfPlots ? etcsbSuccRate : na, title = 'etcsb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-[obvDivSuccRate, obvDivSuccCount, obvDivAllCount, obvDivRetAvgPct, obvDivSuccRateOk, obvDivSuccRateStr] = dreperf.successRateAllTimeStatsFull(obvDiv, obvDiv ? low : na, iMinSigSuccessRate, adrCond)
+[obvDivSuccRate, obvDivSuccRateOk, obvDivSuccRateStr] = dreperf.successRateAllTimeStatsMin(obvDiv, obvDiv ? low : na, iMinSigSuccessRate, adrCond)
 plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
 
 if barstate.islast and iShowSigPerfTable
