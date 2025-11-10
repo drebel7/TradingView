@@ -42,29 +42,31 @@ bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
-iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1MaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS3Lookback = input.int(defval = 2, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1MaxBarsSinceContraction = input.int(defval = 2, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 1 (v. short)')
+
+iContr2RmvMainLookback = input.int(defval = 21, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2MaxBarsSinceContraction = input.int(defval = 4, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 2 (short)')
+
+iContr3RmvMainLookback = input.int(defval = 55, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS1Lookback = input.int(defval = 34, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS2Lookback = input.int(defval = 21, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS3Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3MaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 3 (medium)')
 
 //Relative Measured Volatility
-rmvContraction = drelib.rmvContraction(13, 5, 3, 2, 25)
-contractionCond0 = ta.barssince(rmvContraction) <= 2
-rmvContraction1 = drelib.rmvContraction(13, 8, 5, 3, 25)
-contractionCond1 = ta.barssince(rmvContraction1) <= 2
-rmvContraction2 = drelib.rmvContraction(16, 8, 5, 3, 25)
-contractionCond2 = ta.barssince(rmvContraction2) <= 2
-contractionCond3 = ta.barssince(rmvContraction2) <= iContr1MaxBarsSinceContraction
-rmvContraction4 = drelib.rmvContraction(21, 8, 5, 3, 25)
-contractionCond4 = ta.barssince(rmvContraction4) <= 2
-contractionCond5 = ta.barssince(rmvContraction4) <= iContr1MaxBarsSinceContraction
-rmvContraction6 = drelib.rmvContraction(30, 13, 8, 5, 25)
-contractionCond6 = ta.barssince(rmvContraction6) <= 5
-rmvContraction7 = drelib.rmvContraction(55, 34, 21, 13, 25)
-contractionCond7 = ta.barssince(rmvContraction7) <= 2
-rmvContraction8 = drelib.rmvContraction(55, 34, 21, 13, 25)
-contractionCond8 = ta.barssince(rmvContraction8) <= 5
+rmvContraction1 = drelib.rmvContraction(iContr1RmvMainLookback, iContr1RmvS1Lookback, iContr1RmvS2Lookback, iContr1RmvS3Lookback, 25)
+contractionCond1 = ta.barssince(rmvContraction1) <= iContr1MaxBarsSinceContraction
+rmvContraction2 = drelib.rmvContraction(iContr2RmvMainLookback, iContr2RmvS1Lookback, iContr2RmvS2Lookback, iContr2RmvS3Lookback, 25)
+contractionCond2 = ta.barssince(rmvContraction2) <= iContr2MaxBarsSinceContraction
+rmvContraction3 = drelib.rmvContraction(iContr3RmvMainLookback, iContr3RmvS1Lookback, iContr3RmvS2Lookback, iContr3RmvS3Lookback, 25)
+contractionCond3 = ta.barssince(rmvContraction3) <= iContr3MaxBarsSinceContraction
 
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
 iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
@@ -79,68 +81,44 @@ strongBreakoutCond = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples
 minevriniTrendCond = ta.barssince(minevriniTrend) < 63
 
 mtsb = minevriniTrendCond and strongBreakoutCond
-mtcb = minevriniTrendCond and contractionCond0 and strongBreakoutCond
-mtcb1 = minevriniTrendCond and contractionCond1 and strongBreakoutCond
-mtcb2 = minevriniTrendCond and contractionCond2 and strongBreakoutCond
-mtcb3 = minevriniTrendCond and contractionCond3 and strongBreakoutCond
-mtcb4 = minevriniTrendCond and contractionCond4 and strongBreakoutCond
-mtcb5 = minevriniTrendCond and contractionCond5 and strongBreakoutCond
-mtcb6 = minevriniTrendCond and contractionCond6 and strongBreakoutCond
-mtcb7 = minevriniTrendCond and contractionCond7 and strongBreakoutCond
-mtcb8 = minevriniTrendCond and contractionCond8 and strongBreakoutCond
+mtc1sb = minevriniTrendCond and contractionCond1 and strongBreakoutCond
+mtc2sb = minevriniTrendCond and contractionCond2 and strongBreakoutCond
+mtc3sb = minevriniTrendCond and contractionCond3 and strongBreakoutCond
 
 //additionali signal if there is an OpeningRangeBrakeout the next day after main signal
 orb = drelib.openingRangeBreakout(5, true, true)
 mtsb_p1D = mtsb[1] and orb
-mtcb_p1D = mtcb[1] and orb
+mtc1sb_p1D = mtc1sb[1] and orb
 
 alertcondition(gFilter and mtsb, title = 'bullish MTSB', message = 'MTSB')
 alertcondition(gFilter and (mtsb or mtsb_p1D), title = 'bullish MTSB+', message = 'MTSB+')
-alertcondition(gFilter and mtcb, title = 'bullish MTCB', message = 'MTCB')
-alertcondition(gFilter and (mtcb or mtcb_p1D), title = 'bullish MTCB+', message = 'MTCB+')
+alertcondition(gFilter and mtc1sb, title = 'bullish MTCB', message = 'MTCB')
+alertcondition(gFilter and (mtc1sb or mtc1sb_p1D), title = 'bullish MTCB+', message = 'MTCB+')
 plotshape(mtsb, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
 
 
 //check performance
 //sig stats table
-adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = 0.8 * adrPct
 
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-[s1SuccRate, s1SuccRateOk,s1SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtsb, mtsb ? low : na, 39, adrCond)
-[s2SuccRate, s2SuccRateOk, s2SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb, mtcb ? low : na, 39, adrCond)
-[s3SuccRate, s3SuccRateOk, s3SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb1, mtcb1 ? low : na, 39, adrCond)
-[s4SuccRate, s4SuccRateOk, s4SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb2, mtcb2 ? low : na, 39, adrCond)
-[s5SuccRate, s5SuccRateOk, s5SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb3, mtcb3 ? low : na, 39, adrCond)
-[s6SuccRate, s6SuccRateOk, s6SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb4, mtcb4 ? low : na, 39, adrCond)
-[s7SuccRate, s7SuccRateOk, s7SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb5, mtcb5 ? low : na, 39, adrCond)
-[s8SuccRate, s8SuccRateOk, s8SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb6, mtcb6 ? low : na, 39, adrCond)
-[s9SuccRate, s9SuccRateOk, s9SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb7, mtcb7 ? low : na, 39, adrCond)
-[s10SuccRate, s10SuccRateOk, s10SuccRateStr] = dreperf.successRateAllTimeStatsMin(mtcb8, mtcb8 ? low : na, 39, adrCond)
+[mtsbSuccRate, mtsbSuccRateOk, mtsbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtsb, mtsb ? low : na, 39, adrCond)
+[mtc1sbSuccRate, mtc1sbSuccRateOk, mtc1sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc1sb, mtc1sb ? low : na, 39, adrCond)
+[mtc2sbSuccRate, mtc2sbSuccRateOk, mtc2sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc2sb, mtc2sb ? low : na, 39, adrCond)
+[mtc3sbSuccRate, mtc3sbSuccRateOk, mtc3sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc3sb, mtc3sb ? low : na, 39, adrCond)
 
-var tbl = table.new(position = position.top_right, columns = 11, rows = 11)
+var tbl = table.new(position = position.top_right, columns = 2, rows = 5)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
 
     table.cell(table_id = tbl, column = 0, row = 1, text = "mtsb")
-    table.cell(table_id = tbl, column = 1, row = 1, text = s1SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 2, text = "mtcb")
-    table.cell(table_id = tbl, column = 1, row = 2, text = s2SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "mtcb1")
-    table.cell(table_id = tbl, column = 1, row = 3, text = s3SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "mtcb2")
-    table.cell(table_id = tbl, column = 1, row = 4, text = s4SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 5, text = "mtcb3.")
-    table.cell(table_id = tbl, column = 1, row = 5, text = s5SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 6, text = "mtcb4")
-    table.cell(table_id = tbl, column = 1, row = 6, text = s6SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 7, text = "mtcb5.")
-    table.cell(table_id = tbl, column = 1, row = 7, text = s7SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 8, text = "mtcb6")
-    table.cell(table_id = tbl, column = 1, row = 8, text = s8SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 9, text = "mtcb7")
-    table.cell(table_id = tbl, column = 1, row = 9, text = s9SuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 10, text = "mtcb8.")
-    table.cell(table_id = tbl, column = 1, row = 10, text = s10SuccRateStr)
+    table.cell(table_id = tbl, column = 1, row = 1, text = mtsbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "mtc1sb")
+    table.cell(table_id = tbl, column = 1, row = 2, text = mtc1sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "mtc2sb")
+    table.cell(table_id = tbl, column = 1, row = 3, text = mtc2sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "mtc3sb")
+    table.cell(table_id = tbl, column = 1, row = 4, text = mtc3sbSuccRateStr)
