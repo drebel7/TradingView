@@ -21,6 +21,14 @@ int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
 bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
 bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 
+//sig success rate filter
+iShowMtsbSig = input.bool(defval = true, title = 'Show mtsb', group = 'Signals')
+iShowMtc1sbSig = input.bool(defval = true, title = 'Show mtc1sb', group = 'Signals')
+iShowMtc2sbSig = input.bool(defval = true, title = 'Show mtc2sb', group = 'Signals')
+iShowMtc3sbSig = input.bool(defval = true, title = 'Show mtc3sb', group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 39.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.85, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
+
 //minevrini trend inputs
 iBullish = input.bool(defval = true, title = 'bullish', group = 'trend', inline = 'bb')
 iBearish = input.bool(defval = true, title = 'bearish', group = 'trend', inline = 'bb')
@@ -52,7 +60,7 @@ iContr2RmvMainLookback = input.int(defval = 21, title = 'Lookbacks (main/s1/s2/s
 iContr2RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
 iContr2RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
 iContr2RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2MaxBarsSinceContraction = input.int(defval = 4, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 2 (short)')
+iContr2MaxBarsSinceContraction = input.int(defval = 3, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 2 (short)')
 
 iContr3RmvMainLookback = input.int(defval = 55, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
 iContr3RmvS1Lookback = input.int(defval = 34, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
@@ -89,25 +97,34 @@ mtc3sb = minevriniTrendCond and contractionCond3 and strongBreakoutCond
 orb = drelib.openingRangeBreakout(5, true, true)
 mtsb_p1D = mtsb[1] and orb
 mtc1sb_p1D = mtc1sb[1] and orb
+mtc2sb_p1D = mtc2sb[1] and orb
+mtc3sb_p1D = mtc3sb[1] and orb
 
 alertcondition(gFilter and mtsb, title = 'bullish MTSB', message = 'MTSB')
 alertcondition(gFilter and (mtsb or mtsb_p1D), title = 'bullish MTSB+', message = 'MTSB+')
-alertcondition(gFilter and mtc1sb, title = 'bullish MTCB', message = 'MTCB')
-alertcondition(gFilter and (mtc1sb or mtc1sb_p1D), title = 'bullish MTCB+', message = 'MTCB+')
-plotshape(mtsb, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
+alertcondition(gFilter and mtc1sb, title = 'bullish MTC1B', message = 'MTC1B')
+alertcondition(gFilter and (mtc1sb or mtc1sb_p1D), title = 'bullish MTC1B+', message = 'MTC1B+')
+alertcondition(gFilter and mtc2sb, title = 'bullish MTC2B', message = 'MTC2B')
+alertcondition(gFilter and (mtc2sb or mtc2sb_p1D), title = 'bullish MTC2B+', message = 'MTC2B+')
+alertcondition(gFilter and mtc3sb, title = 'bullish MTC3B', message = 'MTC3B')
+alertcondition(gFilter and (mtc3sb or mtc3sb_p1D), title = 'bullish MTC3B+', message = 'MTC3B+')
+plotshape(iShowMtsbSig and mtsb, title = 'mtsb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtsb', textcolor = color.new(color.green, 0))
+plotshape(iShowMtc1sbSig and mtc1sb, title = 'mtc1sb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtc1sb', textcolor = color.new(color.green, 0))
+plotshape(iShowMtc2sbSig and mtc2sb, title = 'mtc2sb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtc2sb', textcolor = color.new(color.green, 0))
+plotshape(iShowMtc3sbSig and mtc3sb, title = 'mtc3sb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtc3sb', textcolor = color.new(color.green, 0))
 
 
 //check performance
 //sig stats table
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
-adrCond = 0.8 * adrPct
+adrCond = iMinSigReturnAdrMultiple * adrPct
 
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-[mtsbSuccRate, mtsbSuccRateOk, mtsbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtsb, mtsb ? low : na, 39, adrCond)
-[mtc1sbSuccRate, mtc1sbSuccRateOk, mtc1sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc1sb, mtc1sb ? low : na, 39, adrCond)
-[mtc2sbSuccRate, mtc2sbSuccRateOk, mtc2sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc2sb, mtc2sb ? low : na, 39, adrCond)
-[mtc3sbSuccRate, mtc3sbSuccRateOk, mtc3sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc3sb, mtc3sb ? low : na, 39, adrCond)
+[mtsbSuccRate, mtsbSuccRateOk, mtsbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtsb, mtsb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc1sbSuccRate, mtc1sbSuccRateOk, mtc1sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc1sb, mtc1sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc2sbSuccRate, mtc2sbSuccRateOk, mtc2sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc3sbSuccRate, mtc3sbSuccRateOk, mtc3sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc3sb, mtc3sb ? low : na, iMinSigSuccessRate, adrCond)
 
 var tbl = table.new(position = position.top_right, columns = 2, rows = 5)
 if barstate.islast and iShowSigPerfTable
