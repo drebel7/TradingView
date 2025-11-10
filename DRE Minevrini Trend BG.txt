@@ -121,21 +121,65 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-[mtsbSuccRate, mtsbSuccRateOk, mtsbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtsb, mtsb ? low : na, iMinSigSuccessRate, adrCond)
-[mtc1sbSuccRate, mtc1sbSuccRateOk, mtc1sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc1sb, mtc1sb ? low : na, iMinSigSuccessRate, adrCond)
-[mtc2sbSuccRate, mtc2sbSuccRateOk, mtc2sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
-[mtc3sbSuccRate, mtc3sbSuccRateOk, mtc3sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(mtc3sb, mtc3sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtsbSuccRate, mtsbSuccCount, mtsbSigCount, mtsbAvgReturn, mtsbSuccRateOk, mtsbSuccRateStr] = dreperf.successRateAllTimeStatsFull(mtsb, mtsb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc1sbSuccRate, mtc1sbSuccCount, mtc1sbSigCount, mtc1sbAvgReturn, mtc1sbSuccRateOk, mtc1sbSuccRateStr] = dreperf.successRateAllTimeStatsFull(mtc1sb, mtc1sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc2sbSuccRate, mtc2sbSuccCount, mtc2sbSigCount, mtc2sbAvgReturn, mtc2sbSuccRateOk, mtc2sbSuccRateStr] = dreperf.successRateAllTimeStatsFull(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc3sbSuccRate, mtc3sbSuccCount, mtc3sbSigCount, mtc3sbAvgReturn, mtc3sbSuccRateOk, mtc3sbSuccRateStr] = dreperf.successRateAllTimeStatsFull(mtc3sb, mtc3sb ? low : na, iMinSigSuccessRate, adrCond)
+
+array<float> succRates = array.new<float>(4)
+array<int> succCounts = array.new<int>(4)
+array<int> sigCounts = array.new<int>(4)
+array<float> avgReturns = array.new<float>(4)
+array<bool> oks = array.new<bool>(4)
+array<string> signalNames = array.new<string>(4)
+
+array.push(succRates, mtsbSuccRate)
+array.push(succCounts, mtsbSuccCount)
+array.push(sigCounts, mtsbSigCount)
+array.push(avgReturns, mtsbAvgReturn)
+array.push(oks, mtsbSuccRateOk)
+array.push(signalNames, "mtsb")
+
+array.push(succRates, mtc1sbSuccRate)
+array.push(succCounts, mtc1sbSuccCount)
+array.push(sigCounts, mtc1sbSigCount)
+array.push(avgReturns, mtc1sbAvgReturn)
+array.push(oks, mtc1sbSuccRateOk)
+array.push(signalNames, "mtc1sb")
+
+array.push(succRates, mtc2sbSuccRate)
+array.push(succCounts, mtc2sbSuccCount)
+array.push(sigCounts, mtc2sbSigCount)
+array.push(avgReturns, mtc2sbAvgReturn)
+array.push(oks, mtc2sbSuccRateOk)
+array.push(signalNames, "mtc2sb")
+
+array.push(succRates, mtc3sbSuccRate)
+array.push(succCounts, mtc3sbSuccCount)
+array.push(sigCounts, mtc3sbSigCount)
+array.push(avgReturns, mtc3sbAvgReturn)
+array.push(oks, mtc3sbSuccRateOk)
+array.push(signalNames, "mtc3sb")
+
+int bestSigIdx = -1
+if barstate.islast
+    float bestRate = 0.0
+    for i = 0 to array.size(succRates)-1
+        if array.get(oks, i)
+            float totalRate = 1.0 * array.get(succRates, i) * math.log(array.get(succCounts, i)) * array.get(avgReturns, i)
+            if totalRate > bestRate
+                bestSigIdx := i
 
 var tbl = table.new(position = position.top_right, columns = 2, rows = 5)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
 
-    table.cell(table_id = tbl, column = 0, row = 1, text = "mtsb")
+    table.cell(table_id = tbl, column = 0, row = 1, text = "mtsb", bgcolor = bestSigIdx > -1 and "mtsb" == signalNames.get(bestSigIdx) ? color.yellow : color.white)
     table.cell(table_id = tbl, column = 1, row = 1, text = mtsbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 2, text = "mtc1sb")
+    table.cell(table_id = tbl, column = 0, row = 2, text = "mtc1sb", bgcolor = bestSigIdx > -1 and "mtc1sb" == signalNames.get(bestSigIdx) ? color.yellow : color.white)
     table.cell(table_id = tbl, column = 1, row = 2, text = mtc1sbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "mtc2sb")
+    table.cell(table_id = tbl, column = 0, row = 3, text = "mtc2sb", bgcolor = bestSigIdx > -1 and "mtc2sb" == signalNames.get(bestSigIdx) ? color.yellow : color.white)
     table.cell(table_id = tbl, column = 1, row = 3, text = mtc2sbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "mtc3sb")
+    table.cell(table_id = tbl, column = 0, row = 4, text = "mtc3sb", bgcolor = bestSigIdx > -1 and "mtc3sb" == signalNames.get(bestSigIdx) ? color.yellow : color.white)
     table.cell(table_id = tbl, column = 1, row = 4, text = mtc3sbSuccRateStr)
