@@ -30,29 +30,19 @@ int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
 bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
 bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 
-//etsb - condition switches (for diagnosis)
-iRsCond = input.bool(defval = true, title = 'RS condition', group = 'condition switches')
-iIchimokuCloudCond = input.bool(defval = true, title = 'Ichimoku cloud condition', group = 'condition switches')
-iObvCond = input.bool(defval = true, title = 'OBV condition', group = 'condition switches')
-iNbeCond = input.bool(defval = true, title = 'NBE condition', group = 'condition switches')
-iSBCond = input.bool(defval = true, title = 'Strong Breakout condition', group = 'condition switches')
-
 benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
 rsMa = ta.sma(rs, 100)
 rsCondRaw = rs > rsMa
-rsCond = rsCondRaw and iRsCond or not iRsCond
 rsCond_10 = rsCondRaw ? 1 : 0
 
 obvCondRaw = drelib.isAboveObvSmaStddev(100, 0.35)
-obvCond = obvCondRaw and iObvCond or not iObvCond
 obvCond_10 = obvCondRaw ? 1 : 0
 
 iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, group = 'Other')
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
 nbeCondRaw = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows
-nbeCond = nbeCondRaw and iNbeCond or not iNbeCond
 nbeCond_10 = nbeCondRaw ? 1 : 0
 
 iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
@@ -61,10 +51,9 @@ iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative vo
 iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
 
 sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
-strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true) and iSBCond or not iSBCond
+strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true)
 
 aboveIchimokuCloudCondRaw = drelib.isAboveIchimokuCloud()
-aboveIchimokuCloudCond = aboveIchimokuCloudCondRaw and iIchimokuCloudCond or not iIchimokuCloudCond
 aboveIchimokuCloudCond_10 = aboveIchimokuCloudCondRaw ? 1 : 0
 
 totalCond = 4
