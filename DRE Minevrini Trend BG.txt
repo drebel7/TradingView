@@ -42,11 +42,11 @@ bgcolor(iBearish and minevriniBearishTrend ? color.new(color.red, 85) : na)
 alertcondition(gFilter and minevriniTrendSig, title = 'Minevrini Trend green', message = 'mTrend - green')
 alertcondition(gFilter and minevriniBearishTrendSig, title = 'Minevrini Trend red', message = 'mTrend - red')
 
-iRmvMainLookback = input.int(defval = 13, title = 'RMV main lookback', minval = 10, group = 'Contraction params')
-iRmvShortLookback1 = input.int(defval = 8, title = 'RMV short lookbacks', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iRmvShortLookback2 = input.int(defval = 5, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iRmvShortLookback3 = input.int(defval = 3, title = '', minval = 1, inline = 'rmv s. lookback', group = 'Contraction params')
-iMaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction params')
+iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1MaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 1 (v. short)')
 
 //Relative Measured Volatility
 rmvContraction = drelib.rmvContraction(13, 5, 3, 2, 25)
@@ -55,10 +55,10 @@ rmvContraction1 = drelib.rmvContraction(13, 8, 5, 3, 25)
 contractionCond1 = ta.barssince(rmvContraction1) <= 2
 rmvContraction2 = drelib.rmvContraction(16, 8, 5, 3, 25)
 contractionCond2 = ta.barssince(rmvContraction2) <= 2
-contractionCond3 = ta.barssince(rmvContraction2) <= iMaxBarsSinceContraction
+contractionCond3 = ta.barssince(rmvContraction2) <= iContr1MaxBarsSinceContraction
 rmvContraction4 = drelib.rmvContraction(21, 8, 5, 3, 25)
 contractionCond4 = ta.barssince(rmvContraction4) <= 2
-contractionCond5 = ta.barssince(rmvContraction4) <= iMaxBarsSinceContraction
+contractionCond5 = ta.barssince(rmvContraction4) <= iContr1MaxBarsSinceContraction
 rmvContraction6 = drelib.rmvContraction(30, 13, 8, 5, 25)
 contractionCond6 = ta.barssince(rmvContraction6) <= 5
 rmvContraction7 = drelib.rmvContraction(55, 34, 21, 13, 25)
