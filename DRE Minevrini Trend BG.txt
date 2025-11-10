@@ -133,44 +133,45 @@ array<float> avgReturns = array.new<float>(4)
 array<bool> oks = array.new<bool>(4)
 array<string> signalNames = array.new<string>(4)
 
-array.push(succRates, mtsbSuccRate)
-array.push(succCounts, mtsbSuccCount)
-array.push(sigCounts, mtsbSigCount)
-array.push(avgReturns, mtsbAvgReturn)
-array.push(oks, mtsbSuccRateOk)
-array.push(signalNames, "mtsb")
+array.set(succRates, 0, mtsbSuccRate)
+array.set(succCounts, 0, mtsbSuccCount)
+array.set(sigCounts, 0, mtsbSigCount)
+array.set(avgReturns, 0, mtsbAvgReturn)
+array.set(oks, 0, mtsbSuccRateOk)
+array.set(signalNames, 0, "mtsb")
 
-array.push(succRates, mtc1sbSuccRate)
-array.push(succCounts, mtc1sbSuccCount)
-array.push(sigCounts, mtc1sbSigCount)
-array.push(avgReturns, mtc1sbAvgReturn)
-array.push(oks, mtc1sbSuccRateOk)
-array.push(signalNames, "mtc1sb")
+array.set(succRates, 1, mtc1sbSuccRate)
+array.set(succCounts, 1, mtc1sbSuccCount)
+array.set(sigCounts, 1, mtc1sbSigCount)
+array.set(avgReturns, 1, mtc1sbAvgReturn)
+array.set(oks, 1, mtc1sbSuccRateOk)
+array.set(signalNames, 1, "mtc1sb")
 
-array.push(succRates, mtc2sbSuccRate)
-array.push(succCounts, mtc2sbSuccCount)
-array.push(sigCounts, mtc2sbSigCount)
-array.push(avgReturns, mtc2sbAvgReturn)
-array.push(oks, mtc2sbSuccRateOk)
-array.push(signalNames, "mtc2sb")
+array.set(succRates, 2, mtc2sbSuccRate)
+array.set(succCounts, 2, mtc2sbSuccCount)
+array.set(sigCounts, 2, mtc2sbSigCount)
+array.set(avgReturns, 2, mtc2sbAvgReturn)
+array.set(oks, 2, mtc2sbSuccRateOk)
+array.set(signalNames, 2, "mtc2sb")
 
-array.push(succRates, mtc3sbSuccRate)
-array.push(succCounts, mtc3sbSuccCount)
-array.push(sigCounts, mtc3sbSigCount)
-array.push(avgReturns, mtc3sbAvgReturn)
-array.push(oks, mtc3sbSuccRateOk)
-array.push(signalNames, "mtc3sb")
+array.set(succRates, 3, mtc3sbSuccRate)
+array.set(succCounts, 3, mtc3sbSuccCount)
+array.set(sigCounts, 3, mtc3sbSigCount)
+array.set(avgReturns, 3, mtc3sbAvgReturn)
+array.set(oks, 3, mtc3sbSuccRateOk)
+array.set(signalNames, 3, "mtc3sb")
 
-int bestSigIdx = -1
+array<float> totalRates = array.new<float>(4)
 if barstate.islast
-    float bestRate = 0.0
     for i = 0 to array.size(succRates)-1
-        if array.get(oks, i)
-            float totalRate = 1.0 * array.get(succRates, i) * math.log(array.get(succCounts, i)) * array.get(avgReturns, i)
-            if totalRate > bestRate
-                bestSigIdx := i
+        float totalRate = array.get(succRates, i) * math.sqrt(array.get(succCounts, i)) * array.get(avgReturns, i)
+        array.set(totalRates, i, totalRate)
 
-var tbl = table.new(position = position.top_right, columns = 2, rows = 5)
+int highestScoreIdx = array.indexof(totalRates, array.max(totalRates))
+int bestSigIdx = array.get(oks, highestScoreIdx) ? highestScoreIdx : -1
+string rates = str.tostring(array.get(totalRates, 0), "#") + " " + str.tostring(array.get(totalRates, 1), "#") + " " + str.tostring(array.get(totalRates, 2), "#") + " " + str.tostring(array.get(totalRates, 3), "#")
+
+var tbl = table.new(position = position.top_right, columns = 2, rows = 6)
 if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
     table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
@@ -183,3 +184,5 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 1, row = 3, text = mtc2sbSuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 4, text = "mtc3sb", bgcolor = bestSigIdx > -1 and "mtc3sb" == signalNames.get(bestSigIdx) ? color.yellow : color.white)
     table.cell(table_id = tbl, column = 1, row = 4, text = mtc3sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 5, text = str.tostring(bestSigIdx))
+    table.cell(table_id = tbl, column = 1, row = 5, text = rates)
