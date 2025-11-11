@@ -77,10 +77,10 @@ iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50
 iContr1RmvS3Lookback = input.int(defval = 2, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
 iContr1MaxBarsSinceContraction = input.int(defval = 2, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 1 (v. short)')
 
-iContr2RmvMainLookback = input.int(defval = 30, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2RmvS1Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2RmvS2Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2RmvS3Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvMainLookback = input.int(defval = 21, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
 iContr2MaxBarsSinceContraction = input.int(defval = 3, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 2 (short)')
 
 iContr3RmvMainLookback = input.int(defval = 55, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
