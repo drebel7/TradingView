@@ -10,9 +10,20 @@ const int DEFAULT_SIG_CHECK_TIME = 15
 const int DEFAULT_STOCK_TRADING_DAYS_IN_A_YEAR = 252
 const string SUCC_RATE_SHORT_FORMAT = "{0,number,#.#}% ({1}/{2})"
 const string SUCC_RATE_LONG_FORMAT = "{0,number,#.#}% ({1}/{2}) {3,number,#.#}%"
+const string SUCC_RATE_FULL_FORMAT = "{0,number,#.#}% ({1}/{2}) {3,number,#.#}% {4,number,#}"
 
-export sigSuccRateOk(float sigSuccRatePct, float retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
-	sigSuccRatePct > _minSuccRatePct and retAvgPct > _minRetAvgPct
+export sigSuccRateOk(float _succRatePct, float _retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
+	_succRatePct > _minSuccRatePct and _retAvgPct > _minRetAvgPct
+
+export sigScore(float _succRatePct, int _succCount, float _retAvgPct) =>
+	_succRatePct * math.sqrt(_succCount) * _retAvgPct / 10
+
+export sigScore(float _succRatePct, int _succCount, float _retAvgPct, bool _succRateOk) =>
+	_succRateOk ? sigScore(_succRatePct, _succCount, _retAvgPct) : 0.0
+
+export sigScore(float _succRatePct, int _succCount, float _retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
+	succRateOk = sigSuccRateOk(_succRatePct, _retAvgPct, _minSuccRatePct,  _minRetAvgPct)
+	succRateOk ? sigScore(_succRatePct, _succCount, _retAvgPct) : 0.0
 
 export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
 	str.format(SUCC_RATE_LONG_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
@@ -27,6 +38,10 @@ export formatSuccessRateStr(bool _longFormat, bool _star, float sigSuccRatePct, 
 export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
 	formatted = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
 	_star = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
+	formatted + (_star ? '*' : '')
+
+export formatSuccessRateFullStr(bool _star, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float score) =>
+	formatted = str.format(SUCC_RATE_FULL_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 	formatted + (_star ? '*' : '')
 
 // @function This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for a given _lookback period.
@@ -95,14 +110,12 @@ export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss
 export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, _long)
 	bool succRateOk = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
-	string succRateStr = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, _minSuccRatePct, _minRetAvgPct)
-	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr]
+	float score = sigScore(sigSuccRatePct, sigSuccCount, retAvgPct, succRateOk)
+	string succRateStr = formatSuccessRateFullStr(succRateOk, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr, score]
 
 export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, float _minSuccRatePct, float _minRetAvgPct) =>
-	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, true)
-	bool succRateOk = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
-	string succRateStr = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, _minSuccRatePct, _minRetAvgPct)
-	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr]
+	successRateAllTimeStatsFull(_sig, _sigCandleStopLoss, true, _minSuccRatePct, _minRetAvgPct)
 
 export successRateAllTimeStatsMin(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, _long)
