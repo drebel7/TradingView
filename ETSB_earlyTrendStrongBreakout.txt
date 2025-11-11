@@ -22,8 +22,8 @@ iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', group = 'Signals
 iShowRmvSig = input.bool(defval = true, title = 'Show rmv', group = 'Signals')
 iShowEtcsbSig = input.bool(defval = true, title = 'Show etcsb', group = 'Signals')
 iShowObvDivSig = input.bool(defval = true, title = 'Show Obv-Div-sb', group = 'Signals')
-iMinSigSuccessRate = input.float(defval = 39.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
-iMinSigReturnAdrMultiple = input.float(defval = 0.85, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
 
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
@@ -208,9 +208,10 @@ etcsbSig_p1D = etcsbSig[1] and orb
 obvDivSig = obvDiv and obvDivSuccRateOk
 obvDivSig_p1D = obvDivSig[1] and orb
 
+alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D), title = 'best LONG', message = 'best LONG')
+
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
 alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
 alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
 alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', message = 'ETCSB')
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
-alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D), title = 'best LONG', message = 'best LONG')
