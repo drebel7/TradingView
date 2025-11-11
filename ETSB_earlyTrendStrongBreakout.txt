@@ -5,7 +5,7 @@
 indicator("early trend strong breakout", overlay = true)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/17 as dreperf
+import drebel/DREPerf/19 as dreperf
 
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
@@ -106,11 +106,11 @@ iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Si
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
-[et3sbSuccRate, et3sbSuccRateOk, et3sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(et3sb, et3sb ? low : na, iMinSigSuccessRate, adrCond)
-[et4sbSuccRate, et4sbSuccRateOk, et4sbSuccRateStr] = dreperf.successRateAllTimeStatsMin(et4sb, et4sb ? low : na, iMinSigSuccessRate, adrCond)
-[rmvSuccRate, rmvSuccRateOk, rmvSuccRateStr] = dreperf.successRateAllTimeStatsMin(bullishRmv, bullishRmv ? low : na, iMinSigSuccessRate, adrCond)
-[etcsbSuccRate, etcsbSuccRateOk, etcsbSuccRateStr] = dreperf.successRateAllTimeStatsMin(etcsb, etcsb ? low : na, iMinSigSuccessRate, adrCond)
-[obvDivSuccRate, obvDivSuccRateOk, obvDivSuccRateStr] = dreperf.successRateAllTimeStatsMin(obvDiv, obvDiv ? low : na, iMinSigSuccessRate, adrCond)
+[et3sbSuccRate, et3sbSuccCount, et3sbSigCount, et3sbAvgReturn, et3sbSuccRateOk, et3sbSuccRateStr, et3sbScore] = dreperf.successRateAllTimeStatsFull(et3sb, et3sb ? low : na, iMinSigSuccessRate, adrCond)
+[et4sbSuccRate, et4sbSuccCount, et4sbSigCount, et4sbAvgReturn, et4sbSuccRateOk, et4sbSuccRateStr, et4sbScore] = dreperf.successRateAllTimeStatsFull(et4sb, et4sb ? low : na, iMinSigSuccessRate, adrCond)
+[rmvSuccRate, rmvSuccCount, rmvSigCount, rmvAvgReturn, rmvSuccRateOk, rmvSuccRateStr, rmvScore] = dreperf.successRateAllTimeStatsFull(bullishRmv, bullishRmv ? low : na, iMinSigSuccessRate, adrCond)
+[etcsbSuccRate, etcsbSuccCount, etcsbSigCount, etcsbAvgReturn, etcsbSuccRateOk, etcsbSuccRateStr, etcsbScore] = dreperf.successRateAllTimeStatsFull(etcsb, etcsb ? low : na, iMinSigSuccessRate, adrCond)
+[obvDivSuccRate, obvDivSuccCount, obvDivSigCount, obvDivAvgReturn, obvDivSuccRateOk, obvDivSuccRateStr, obvDivScore] = dreperf.successRateAllTimeStatsFull(obvDiv, obvDiv ? low : na, iMinSigSuccessRate, adrCond)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
