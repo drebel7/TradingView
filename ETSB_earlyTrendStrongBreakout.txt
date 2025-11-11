@@ -71,23 +71,50 @@ orb = drelib.openingRangeBreakout(5, true, true)
 dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
-iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', group = 'rmv', display = display.none)
-iRmvShortLookback1 = input.int(13, minval = 1, title = 'Short-term ATR Lookback 1', group = 'rmv', display = display.none)
-iRmvShortLookback2 = input.int(8, minval = 1, title = 'Short-term ATR Lookback 2', group = 'rmv', display = display.none)
-iRmvshortLookback3 = input.int(5, minval = 1, title = 'Short-term ATR Lookback 3', group = 'rmv', display = display.none)
-iRmvLowLevel = input.int(25, title = 'Low Level Threshold', group = 'rmv', display = display.none)
+iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS3Lookback = input.int(defval = 2, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1MaxBarsSinceContraction = input.int(defval = 2, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 1 (v. short)')
 
-rmv = drelib.rmv(iRmvLookbackPeriod, iRmvShortLookback1, iRmvShortLookback2, iRmvshortLookback3)
-lowRmv = rmv <= iRmvLowLevel
-highRmv = rmv >= 100 - iRmvLowLevel / 2
+iContr2RmvMainLookback = input.int(defval = 30, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS1Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS2Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS3Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2MaxBarsSinceContraction = input.int(defval = 3, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 2 (short)')
+
+iContr3RmvMainLookback = input.int(defval = 55, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS1Lookback = input.int(defval = 34, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS2Lookback = input.int(defval = 21, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS3Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3MaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 3 (medium)')
+
 shortMa = ta.sma(close, 50)
 gVShortMa1 = ta.ema(close, 10)
 gVolMa = ta.sma(volume, 30)
+rmvLowLevel = 25
 
-rmvCond = lowRmv[1] and not lowRmv or highRmv and lowRmv[2] or rmv == 100 and lowRmv[3]
-bullishRmv = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
+rmvContraction1 = drelib.rmv(iContr1RmvMainLookback, iContr1RmvS1Lookback, iContr1RmvS2Lookback, iContr1RmvS3Lookback)
+lowRmv1 = rmvContraction1 <= rmvLowLevel
+highRmv1 = rmvContraction1 >= 100 - rmvLowLevel / 2
+rmv1Cond = lowRmv1[1] and not lowRmv1 or highRmv1 and lowRmv1[2] or rmvContraction1 == 100 and lowRmv1[3]
+bullishRmv1 = rmv1Cond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
 
-etcsb = etsb and (rmvCond or lowRmv)
+rmvContraction2 = drelib.rmv(iContr2RmvMainLookback, iContr2RmvS1Lookback, iContr2RmvS2Lookback, iContr2RmvS3Lookback)
+lowRmv2 = rmvContraction2 <= rmvLowLevel
+highRmv2 = rmvContraction2 >= 100 - rmvLowLevel / 2
+rmv2Cond = lowRmv2[1] and not lowRmv2 or highRmv2 and lowRmv2[2] or rmvContraction2 == 100 and lowRmv2[3]
+bullishRmv2 = rmv2Cond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
+
+rmvContraction3 = drelib.rmv(iContr3RmvMainLookback, iContr3RmvS1Lookback, iContr3RmvS2Lookback, iContr3RmvS3Lookback)
+lowRmv3 = rmvContraction3 <= rmvLowLevel
+highRmv3 = rmvContraction3 >= 100 - rmvLowLevel / 2
+rmv3Cond = lowRmv3[1] and not lowRmv3 or highRmv3 and lowRmv3[2] or rmvContraction3 == 100 and lowRmv3[3]
+bullishRmv3 = rmv3Cond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
+
+etc1sb = etsb and (rmv1Cond or lowRmv1)
+etc2sb = etsb and (rmv2Cond or lowRmv2)
+etc3sb = etsb and (rmv3Cond or lowRmv3)
 
 iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, group = 'Obv-price divergence sb')
 obvMa = ta.sma(ta.obv, 100)
@@ -108,8 +135,12 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 
 [et3sbSuccRate, et3sbSuccCount, et3sbSigCount, et3sbAvgReturn, et3sbSuccRateOk, et3sbSuccRateStr, et3sbScore] = dreperf.successRateAllTimeStatsFull(et3sb, et3sb ? low : na, iMinSigSuccessRate, adrCond)
 [et4sbSuccRate, et4sbSuccCount, et4sbSigCount, et4sbAvgReturn, et4sbSuccRateOk, et4sbSuccRateStr, et4sbScore] = dreperf.successRateAllTimeStatsFull(et4sb, et4sb ? low : na, iMinSigSuccessRate, adrCond)
-[rmvSuccRate, rmvSuccCount, rmvSigCount, rmvAvgReturn, rmvSuccRateOk, rmvSuccRateStr, rmvScore] = dreperf.successRateAllTimeStatsFull(bullishRmv, bullishRmv ? low : na, iMinSigSuccessRate, adrCond)
-[etcsbSuccRate, etcsbSuccCount, etcsbSigCount, etcsbAvgReturn, etcsbSuccRateOk, etcsbSuccRateStr, etcsbScore] = dreperf.successRateAllTimeStatsFull(etcsb, etcsb ? low : na, iMinSigSuccessRate, adrCond)
+[rmv1SuccRate, rmv1SuccCount, rmv1SigCount, rmv1AvgReturn, rmv1SuccRateOk, rmv1SuccRateStr, rmv1Score] = dreperf.successRateAllTimeStatsFull(bullishRmv1, bullishRmv1 ? low : na, iMinSigSuccessRate, adrCond)
+[rmv2SuccRate, rmv2SuccCount, rmv2SigCount, rmv2AvgReturn, rmv2SuccRateOk, rmv2SuccRateStr, rmv2Score] = dreperf.successRateAllTimeStatsFull(bullishRmv2, bullishRmv2 ? low : na, iMinSigSuccessRate, adrCond)
+[rmv3SuccRate, rmv3SuccCount, rmv3SigCount, rmv3AvgReturn, rmv3SuccRateOk, rmv3SuccRateStr, rmv3Score] = dreperf.successRateAllTimeStatsFull(bullishRmv3, bullishRmv3 ? low : na, iMinSigSuccessRate, adrCond)
+[etc1sbSuccRate, etc1sbSuccCount, etc1sbSigCount, etc1sbAvgReturn, etc1sbSuccRateOk, etc1sbSuccRateStr, etc1sbScore] = dreperf.successRateAllTimeStatsFull(etc1sb, etc1sb ? low : na, iMinSigSuccessRate, adrCond)
+[etc2sbSuccRate, etc2sbSuccCount, etc2sbSigCount, etc2sbAvgReturn, etc2sbSuccRateOk, etc2sbSuccRateStr, etc2sbScore] = dreperf.successRateAllTimeStatsFull(etc2sb, etc2sb ? low : na, iMinSigSuccessRate, adrCond)
+[etc3sbSuccRate, etc3sbSuccCount, etc3sbSigCount, etc3sbAvgReturn, etc3sbSuccRateOk, etc3sbSuccRateStr, etc3sbScore] = dreperf.successRateAllTimeStatsFull(etc3sb, etc3sb ? low : na, iMinSigSuccessRate, adrCond)
 [obvDivSuccRate, obvDivSuccCount, obvDivSigCount, obvDivAvgReturn, obvDivSuccRateOk, obvDivSuccRateStr, obvDivScore] = dreperf.successRateAllTimeStatsFull(obvDiv, obvDiv ? low : na, iMinSigSuccessRate, adrCond)
 
 //plot sig performance
@@ -121,32 +152,48 @@ obvDivSigColor = color.new(color.navy, 0)
 
 plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmvSuccRate : na, title = 'rmv', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etcsbSuccRate : na, title = 'etcsb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 5, rows = 6)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 10)
     table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
-    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"))
 
     table.cell(table_id = tbl, column = 0, row = 1, text = "et3sb", text_color = et3sbSigColor)
     table.cell(table_id = tbl, column = 1, row = 1, text = et3sbSuccRateStr)
     table.cell(table_id = tbl, column = 0, row = 2, text = "et4sb", text_color = et4sbSigColor)
     table.cell(table_id = tbl, column = 1, row = 2, text = et4sbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "rmv", text_color = rmvSigColor)
-    table.cell(table_id = tbl, column = 1, row = 3, text = rmvSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "etcsb", text_color = etcsbSigColor)
-    table.cell(table_id = tbl, column = 1, row = 4, text = etcsbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 5, text = "obvDiv", text_color = obvDivSigColor)
-    table.cell(table_id = tbl, column = 1, row = 5, text = obvDivSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "rmv1", text_color = rmvSigColor)
+    table.cell(table_id = tbl, column = 1, row = 3, text = rmv1SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "rmv2", text_color = rmvSigColor)
+    table.cell(table_id = tbl, column = 1, row = 4, text = rmv2SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 5, text = "rmv3", text_color = rmvSigColor)
+    table.cell(table_id = tbl, column = 1, row = 5, text = rmv3SuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 6, text = "etc1sb", text_color = etcsbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 6, text = etc1sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 7, text = "etc2sb", text_color = etcsbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 7, text = etc2sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 8, text = "etc3sb", text_color = etcsbSigColor)
+    table.cell(table_id = tbl, column = 1, row = 8, text = etc3sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 9, text = "obvDiv", text_color = obvDivSigColor)
+    table.cell(table_id = tbl, column = 1, row = 9, text = obvDivSuccRateStr)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb, title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
 plotshape(iShowEt4sbSig and et4sb, title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
-plotshape(iShowRmvSig and bullishRmv, title = 'rmv', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv', textcolor = rmvSigColor)
-plotshape(iShowEtcsbSig and etcsb, title = 'etcsb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etcsb', textcolor = etcsbSigColor)
+plotshape(iShowRmvSig and bullishRmv1, title = 'rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1', textcolor = rmvSigColor)
+plotshape(iShowRmvSig and bullishRmv2, title = 'rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2', textcolor = rmvSigColor)
+plotshape(iShowRmvSig and bullishRmv3, title = 'rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3', textcolor = rmvSigColor)
+plotshape(iShowEtcsbSig and etc1sb, title = 'etc1sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc1sb', textcolor = etcsbSigColor)
+plotshape(iShowEtcsbSig and etc2sb, title = 'etc2sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc2sb', textcolor = etcsbSigColor)
+plotshape(iShowEtcsbSig and etc3sb, title = 'etc3sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc3sb', textcolor = etcsbSigColor)
 plotshape(iShowObvDivSig and obvDiv, title = 'obvDiv', location = location.belowbar, color = obvDivSigColor, style = shape.triangleup, text = 'obvDiv', textcolor = obvDivSigColor)
 
 //issuing alerts
@@ -154,9 +201,9 @@ et3sbSig = et3sb and et3sbSuccRateOk
 et3sbSig_p1D = et3sbSig[1] and orb
 et4sbSig = et4sb and et4sbSuccRateOk
 et4sbSig_p1D = et4sbSig[1] and orb
-bullishRmvSig = bullishRmv and rmvSuccRateOk
+bullishRmvSig = (bullishRmv1 and rmv1SuccRateOk) or (bullishRmv2 and rmv2SuccRateOk) or (bullishRmv3 and rmv3SuccRateOk)
 bullishRmvSig_p1D = bullishRmvSig[1] and orb
-etcsbSig = etcsb and etcsbSuccRateOk
+etcsbSig = (etc1sb and etc1sbSuccRateOk) or (etc2sb and etc2sbSuccRateOk) or (etc3sb and etc3sbSuccRateOk)
 etcsbSig_p1D = etcsbSig[1] and orb
 obvDivSig = obvDiv and obvDivSuccRateOk
 obvDivSig_p1D = obvDivSig[1] and orb
