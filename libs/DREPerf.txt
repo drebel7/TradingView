@@ -16,7 +16,8 @@ export sigSuccRateOk(float _succRatePct, float _retAvgPct, float _minSuccRatePct
 	_succRatePct > _minSuccRatePct and _retAvgPct > _minRetAvgPct
 
 export sigScore(float _succRatePct, int _succCount, float _retAvgPct) =>
-	_succRatePct * math.pow(_succCount, 0.4) * _retAvgPct / 10
+	years = bar_index / DEFAULT_STOCK_TRADING_DAYS_IN_A_YEAR
+	_succRatePct * math.pow(_succCount, 0.4) * _retAvgPct / years
 
 export sigScore(float _succRatePct, int _succCount, float _retAvgPct, bool _succRateOk) =>
 	_succRateOk ? sigScore(_succRatePct, _succCount, _retAvgPct) : 0.0
