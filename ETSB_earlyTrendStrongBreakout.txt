@@ -71,6 +71,8 @@ orb = drelib.openingRangeBreakout(5, true, true)
 dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
+iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Contraction (RMV)')
+
 iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
 iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
 iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
@@ -93,24 +95,25 @@ shortMa = ta.sma(close, 50)
 gVShortMa1 = ta.ema(close, 10)
 gVolMa = ta.sma(volume, 30)
 rmvLowLevel = 25
+otherRmvCond = close > close[2] and volume > iRmvMinVolumeMultiple * gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
 
 rmvContraction1 = drelib.rmv(iContr1RmvMainLookback, iContr1RmvS1Lookback, iContr1RmvS2Lookback, iContr1RmvS3Lookback)
 lowRmv1 = rmvContraction1 <= rmvLowLevel
 highRmv1 = rmvContraction1 >= 100 - rmvLowLevel / 2
 rmv1Cond = lowRmv1[1] and not lowRmv1 or highRmv1 and lowRmv1[2] or rmvContraction1 == 100 and lowRmv1[3]
-bullishRmv1 = rmv1Cond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
+bullishRmv1 = rmv1Cond and otherRmvCond
 
 rmvContraction2 = drelib.rmv(iContr2RmvMainLookback, iContr2RmvS1Lookback, iContr2RmvS2Lookback, iContr2RmvS3Lookback)
 lowRmv2 = rmvContraction2 <= rmvLowLevel
 highRmv2 = rmvContraction2 >= 100 - rmvLowLevel / 2
 rmv2Cond = lowRmv2[1] and not lowRmv2 or highRmv2 and lowRmv2[2] or rmvContraction2 == 100 and lowRmv2[3]
-bullishRmv2 = rmv2Cond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
+bullishRmv2 = rmv2Cond and otherRmvCond
 
 rmvContraction3 = drelib.rmv(iContr3RmvMainLookback, iContr3RmvS1Lookback, iContr3RmvS2Lookback, iContr3RmvS3Lookback)
 lowRmv3 = rmvContraction3 <= rmvLowLevel
 highRmv3 = rmvContraction3 >= 100 - rmvLowLevel / 2
 rmv3Cond = lowRmv3[1] and not lowRmv3 or highRmv3 and lowRmv3[2] or rmvContraction3 == 100 and lowRmv3[3]
-bullishRmv3 = rmv3Cond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > shortMa and dttTime > 0.85
+bullishRmv3 = rmv3Cond and otherRmvCond
 
 etc1sb = etsb and (rmv1Cond or lowRmv1)
 etc2sb = etsb and (rmv2Cond or lowRmv2)
