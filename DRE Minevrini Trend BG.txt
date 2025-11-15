@@ -121,6 +121,11 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', group = 'Sig. performnce check')
+
+showRow(_iShowOnlyGoodSigs, sigOk) =>
+    _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
+
 [mtsbSuccRate, mtsbSuccCount, mtsbSigCount, mtsbAvgReturn, mtsbSuccRateOk, mtsbSuccRateStr, mtsbScore] = dreperf.successRateAllTimeStatsFull(mtsb, mtsb ? low : na, iMinSigSuccessRate, adrCond)
 [mtc1sbSuccRate, mtc1sbSuccCount, mtc1sbSigCount, mtc1sbAvgReturn, mtc1sbSuccRateOk, mtc1sbSuccRateStr, mtc1sbScore] = dreperf.successRateAllTimeStatsFull(mtc1sb, mtc1sb ? low : na, iMinSigSuccessRate, adrCond)
 [mtc2sbSuccRate, mtc2sbSuccCount, mtc2sbSigCount, mtc2sbAvgReturn, mtc2sbSuccRateOk, mtc2sbSuccRateStr, mtc2sbScore] = dreperf.successRateAllTimeStatsFull(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
@@ -137,11 +142,15 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
     table.cell(table_id = tbl, column = 1, row = 1, text = "perf", text_size = txtSize)
 
-    table.cell(table_id = tbl, column = 0, row = 2, text = "mtsb", bgcolor = "mtsb" == bestSig ? color.yellow : color.white, text_size = txtSize)
-    table.cell(table_id = tbl, column = 1, row = 2, text = mtsbSuccRateStr, text_size = txtSize)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "mtc1sb", bgcolor = "mtc1sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
-    table.cell(table_id = tbl, column = 1, row = 3, text = mtc1sbSuccRateStr, text_size = txtSize)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "mtc2sb", bgcolor = "mtc2sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
-    table.cell(table_id = tbl, column = 1, row = 4, text = mtc2sbSuccRateStr, text_size = txtSize)
-    table.cell(table_id = tbl, column = 0, row = 5, text = "mtc3sb", bgcolor = "mtc3sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
-    table.cell(table_id = tbl, column = 1, row = 5, text = mtc3sbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtsbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 2, text = "mtsb", bgcolor = "mtsb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 2, text = mtsbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtc1sbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 3, text = "mtc1sb", bgcolor = "mtc1sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 3, text = mtc1sbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 4, text = "mtc2sb", bgcolor = "mtc2sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 4, text = mtc2sbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 5, text = "mtc3sb", bgcolor = "mtc3sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 5, text = mtc3sbSuccRateStr, text_size = txtSize)
