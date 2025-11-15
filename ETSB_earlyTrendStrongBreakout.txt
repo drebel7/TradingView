@@ -22,6 +22,7 @@ iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', group = 'Signals
 iShowRmvSig = input.bool(defval = true, title = 'Show rmv', group = 'Signals')
 iShowEtcsbSig = input.bool(defval = true, title = 'Show etcsb', group = 'Signals')
 iShowObvDivSig = input.bool(defval = true, title = 'Show Obv-Div-sb', group = 'Signals')
+iShowMinevriniTrendSig = input.bool(defval = true, title = 'Show MinevriniTrend-contr-sb', group = 'Signals')
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
 
@@ -128,6 +129,20 @@ divergence = risingObv and not risingPrice
 divergenceSum = math.sum(divergence ? 1 : 0, 100)
 obvDiv = divergenceSum > iDivergence and strongBreakout
 
+//minevrini trend /contraction/ strong breakout
+iIncludeEarnings = input.bool(defval = true, title = 'Include earnings', group = 'Minevrini trend /contraction/ strong breakout')
+iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. earnings change rate', minval = 0.0, maxval = 1.0, step = 0.1, group = 'Minevrini trend /contraction/ strong breakout')
+
+doIncludeEarnings = sigMod >= 1 ? false : iIncludeEarnings
+minevriniTrend = drelib.isMinevriniBullishTrend(true, doIncludeEarnings, iBetterEarningsRate)
+
+minevriniTrendCond = ta.barssince(minevriniTrend) < 63
+
+mtsb = minevriniTrendCond and strongBreakout
+mtc1sb = minevriniTrendCond and (rmv1Cond or lowRmv1) and strongBreakout
+mtc2sb = minevriniTrendCond and (rmv2Cond or lowRmv2) and strongBreakout
+mtc3sb = minevriniTrendCond and (rmv3Cond or lowRmv3) and strongBreakout
+
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
@@ -149,6 +164,10 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 [etc2sbSuccRate, etc2sbSuccCount, etc2sbSigCount, etc2sbAvgReturn, etc2sbSuccRateOk, etc2sbSuccRateStr, etc2sbScore] = dreperf.successRateAllTimeStatsFull(etc2sb, etc2sb ? low : na, iMinSigSuccessRate, adrCond)
 [etc3sbSuccRate, etc3sbSuccCount, etc3sbSigCount, etc3sbAvgReturn, etc3sbSuccRateOk, etc3sbSuccRateStr, etc3sbScore] = dreperf.successRateAllTimeStatsFull(etc3sb, etc3sb ? low : na, iMinSigSuccessRate, adrCond)
 [obvDivSuccRate, obvDivSuccCount, obvDivSigCount, obvDivAvgReturn, obvDivSuccRateOk, obvDivSuccRateStr, obvDivScore] = dreperf.successRateAllTimeStatsFull(obvDiv, obvDiv ? low : na, iMinSigSuccessRate, adrCond)
+[mtsbSuccRate, mtsbSuccCount, mtsbSigCount, mtsbAvgReturn, mtsbSuccRateOk, mtsbSuccRateStr, mtsbScore] = dreperf.successRateAllTimeStatsFull(mtsb, mtsb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc1sbSuccRate, mtc1sbSuccCount, mtc1sbSigCount, mtc1sbAvgReturn, mtc1sbSuccRateOk, mtc1sbSuccRateStr, mtc1sbScore] = dreperf.successRateAllTimeStatsFull(mtc1sb, mtc1sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc2sbSuccRate, mtc2sbSuccCount, mtc2sbSigCount, mtc2sbAvgReturn, mtc2sbSuccRateOk, mtc2sbSuccRateStr, mtc2sbScore] = dreperf.successRateAllTimeStatsFull(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
+[mtc3sbSuccRate, mtc3sbSuccCount, mtc3sbSigCount, mtc3sbAvgReturn, mtc3sbSuccRateOk, mtc3sbSuccRateStr, mtc3sbScore] = dreperf.successRateAllTimeStatsFull(mtc3sb, mtc3sb ? low : na, iMinSigSuccessRate, adrCond)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -156,20 +175,11 @@ et4sbSigColor = color.new(color.lime, 0)
 rmvSigColor = color.new(color.maroon, 0)
 etcsbSigColor = color.new(color.fuchsia, 0)
 obvDivSigColor = color.new(color.navy, 0)
-
-plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
+mtsbSigColor = color.new(color.gray, 0)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 11)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 15)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -203,17 +213,33 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, obvDivSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 10, text = "obvDiv", text_color = obvDivSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 10, text = obvDivSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtsbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 11, text = "mtsb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 11, text = mtsbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtc1sbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 12, text = "mtc1sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 12, text = mtc1sbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 13, text = "mtc2sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 13, text = mtc2sbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 14, text = "mtc3sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 14, text = mtc3sbSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
-plotshape(iShowEt3sbSig and et3sb, title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
-plotshape(iShowEt4sbSig and et4sb, title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
-plotshape(iShowRmvSig and bullishRmv1, title = 'rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1', textcolor = rmvSigColor)
-plotshape(iShowRmvSig and bullishRmv2, title = 'rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2', textcolor = rmvSigColor)
-plotshape(iShowRmvSig and bullishRmv3, title = 'rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3', textcolor = rmvSigColor)
-plotshape(iShowEtcsbSig and etc1sb, title = 'etc1sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc1sb', textcolor = etcsbSigColor)
-plotshape(iShowEtcsbSig and etc2sb, title = 'etc2sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc2sb', textcolor = etcsbSigColor)
-plotshape(iShowEtcsbSig and etc3sb, title = 'etc3sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc3sb', textcolor = etcsbSigColor)
-plotshape(iShowObvDivSig and obvDiv, title = 'obvDiv', location = location.belowbar, color = obvDivSigColor, style = shape.triangleup, text = 'obvDiv', textcolor = obvDivSigColor)
+plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? mtsbSuccRate : na, title = 'mtsb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? mtc1sbSuccRate : na, title = 'mtc1sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? mtc2sbSuccRate : na, title = 'mtc2sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -226,11 +252,14 @@ etcsbSig = (etc1sb and etc1sbSuccRateOk) or (etc2sb and etc2sbSuccRateOk) or (et
 etcsbSig_p1D = etcsbSig[1] and orb
 obvDivSig = obvDiv and obvDivSuccRateOk
 obvDivSig_p1D = obvDivSig[1] and orb
+mtsbSig = mtsb or mtc1sb or mtc2sb or mtc3sb
+mtsbSig_p1D = mtsbSig[1] and orb
 
-alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D), title = 'best LONG', message = 'best LONG')
+alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D), title = 'best LONG', message = 'best LONG')
 
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
 alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
 alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
 alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', message = 'ETCSB')
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
+alertcondition(gFilter and (mtsbSig or mtsbSig_p1D), title = 'bullish mtsb', message = 'mtsb')
