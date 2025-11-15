@@ -129,16 +129,19 @@ iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Si
 maxScore = math.max(mtsbScore, mtc1sbScore, mtc2sbScore, mtc3sbScore)
 bestSig = maxScore > 0.0 ? (maxScore == mtsbScore ? "mtsb" : maxScore == mtc1sbScore ? "mtc1sb" : maxScore == mtc2sbScore ? "mtc2sb" : "mtc3sb") : ""
 
-var tbl = table.new(position = position.top_right, columns = 2, rows = 6)
 if barstate.islast and iShowSigPerfTable
-    table.cell(table_id = tbl, column = 0, row = 0, text = "sig")
-    table.cell(table_id = tbl, column = 1, row = 0, text = "perf")
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 6)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 0, text = '')
+    table.cell(table_id = tbl, column = 1, row = 0, text = '')
+    table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 1, text = "perf", text_size = txtSize)
 
-    table.cell(table_id = tbl, column = 0, row = 1, text = "mtsb", bgcolor = "mtsb" == bestSig ? color.yellow : color.white)
-    table.cell(table_id = tbl, column = 1, row = 1, text = mtsbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 2, text = "mtc1sb", bgcolor = "mtc1sb" == bestSig ? color.yellow : color.white)
-    table.cell(table_id = tbl, column = 1, row = 2, text = mtc1sbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 3, text = "mtc2sb", bgcolor = "mtc2sb" == bestSig ? color.yellow : color.white)
-    table.cell(table_id = tbl, column = 1, row = 3, text = mtc2sbSuccRateStr)
-    table.cell(table_id = tbl, column = 0, row = 4, text = "mtc3sb", bgcolor = "mtc3sb" == bestSig ? color.yellow : color.white)
-    table.cell(table_id = tbl, column = 1, row = 4, text = mtc3sbSuccRateStr)
+    table.cell(table_id = tbl, column = 0, row = 2, text = "mtsb", bgcolor = "mtsb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = mtsbSuccRateStr, text_size = txtSize)
+    table.cell(table_id = tbl, column = 0, row = 3, text = "mtc1sb", bgcolor = "mtc1sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 3, text = mtc1sbSuccRateStr, text_size = txtSize)
+    table.cell(table_id = tbl, column = 0, row = 4, text = "mtc2sb", bgcolor = "mtc2sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 4, text = mtc2sbSuccRateStr, text_size = txtSize)
+    table.cell(table_id = tbl, column = 0, row = 5, text = "mtc3sb", bgcolor = "mtc3sb" == bestSig ? color.yellow : color.white, text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 5, text = mtc3sbSuccRateStr, text_size = txtSize)
