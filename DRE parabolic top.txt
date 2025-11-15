@@ -481,9 +481,9 @@ float minSuccRate = 39.0
 [s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, minSuccRate, adrCond)
 
 
-var tbl = table.new(position = position.top_right, columns = 2, rows = 20)
-txtSize = size.small
 if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 20)
+    txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
