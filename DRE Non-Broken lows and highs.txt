@@ -4,7 +4,7 @@
 //@version=6
 indicator("Non-Broken lows and highs", overlay=false)
 
-import drebel/DRELib/25 as drelib
+import drebel/DRELib/35 as drelib
 
 lookback = input.int(defval = 100, title = "Lookback", minval = 10, maxval = 500)
 highLvl = input.int(defval = 24, title = "High Level", minval = 0, maxval = 100)
