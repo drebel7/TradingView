@@ -3,7 +3,7 @@
 //calc_bars_count = 3024 (12 years of 252 bars/year) - no need for more
 
 //@version=6
-indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252)
+indicator("early trend strong breakout", overlay = true)//, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/35 as drelib
 import drebel/DREPerf/22 as dreperf
@@ -21,6 +21,7 @@ iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from be
 iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', group = 'Signals')
 iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', group = 'Signals')
 iShowRmvSig = input.bool(defval = true, title = 'Show rmv', group = 'Signals')
+iShowRmvPbSig = input.bool(defval = true, title = 'Show rmv-pb', group = 'Signals')
 iShowEtcsbSig = input.bool(defval = true, title = 'Show etcsb', group = 'Signals')
 iShowObvDivSig = input.bool(defval = true, title = 'Show Obv-Div-sb', group = 'Signals')
 iShowMinevriniTrendSig = input.bool(defval = true, title = 'Show MinevriniTrend-contr-sb', group = 'Signals')
@@ -74,6 +75,7 @@ dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
 iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Contraction (RMV)')
+iRmvPbLen = input.int(11, title = 'Pullback Len.', display = display.none, group = 'Contraction (RMV)')
 
 iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
 iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
@@ -116,6 +118,16 @@ lowRmv3 = rmvContraction3 <= rmvLowLevel
 highRmv3 = rmvContraction3 >= 100 - rmvLowLevel / 2
 rmv3Cond = lowRmv3[1] and not lowRmv3 or highRmv3 and lowRmv3[2] or rmvContraction3 == 100 and lowRmv3[3]
 bullishRmv3 = rmv3Cond and otherRmvCond
+
+bullishRmv1PbAgo = ta.barssince(bullishRmv1)
+bullishRmv1Pb = not bullishRmv1 and bullishRmv1PbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmv1PbAgo])
+
+bullishRmv2PbAgo = ta.barssince(bullishRmv2)
+bullishRmv2Pb = not bullishRmv2 and bullishRmv2PbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmv2PbAgo])
+
+bullishRmv3PbAgo = ta.barssince(bullishRmv3)
+bullishRmv3Pb = not bullishRmv3 and bullishRmv3PbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmv3PbAgo])
+
 
 etc1sb = etsb and (rmv1Cond or lowRmv1)
 etc2sb = etsb and (rmv2Cond or lowRmv2)
@@ -161,6 +173,9 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 [rmv1SuccRate, rmv1SuccCount, rmv1SigCount, rmv1AvgReturn, rmv1SuccRateOk, rmv1SuccRateStr, rmv1Score] = dreperf.successRateAllTimeStatsFull(bullishRmv1, bullishRmv1 ? low : na, iMinSigSuccessRate, adrCond)
 [rmv2SuccRate, rmv2SuccCount, rmv2SigCount, rmv2AvgReturn, rmv2SuccRateOk, rmv2SuccRateStr, rmv2Score] = dreperf.successRateAllTimeStatsFull(bullishRmv2, bullishRmv2 ? low : na, iMinSigSuccessRate, adrCond)
 [rmv3SuccRate, rmv3SuccCount, rmv3SigCount, rmv3AvgReturn, rmv3SuccRateOk, rmv3SuccRateStr, rmv3Score] = dreperf.successRateAllTimeStatsFull(bullishRmv3, bullishRmv3 ? low : na, iMinSigSuccessRate, adrCond)
+[rmv1PbSuccRate, rmv1PbSuccCount, rmv1PbSigCount, rmv1PbAvgReturn, rmv1PbSuccRateOk, rmv1PbSuccRateStr, rmv1PbScore] = dreperf.successRateAllTimeStatsFull(bullishRmv1Pb, bullishRmv1Pb ? low : na, iMinSigSuccessRate, adrCond)
+[rmv2PbSuccRate, rmv2PbSuccCount, rmv2PbSigCount, rmv2PbAvgReturn, rmv2PbSuccRateOk, rmv2PbSuccRateStr, rmv2PbScore] = dreperf.successRateAllTimeStatsFull(bullishRmv2Pb, bullishRmv2Pb ? low : na, iMinSigSuccessRate, adrCond)
+[rmv3PbSuccRate, rmv3PbSuccCount, rmv3PbSigCount, rmv3PbAvgReturn, rmv3PbSuccRateOk, rmv3PbSuccRateStr, rmv3PbScore] = dreperf.successRateAllTimeStatsFull(bullishRmv3Pb, bullishRmv3Pb ? low : na, iMinSigSuccessRate, adrCond)
 [etc1sbSuccRate, etc1sbSuccCount, etc1sbSigCount, etc1sbAvgReturn, etc1sbSuccRateOk, etc1sbSuccRateStr, etc1sbScore] = dreperf.successRateAllTimeStatsFull(etc1sb, etc1sb ? low : na, iMinSigSuccessRate, adrCond)
 [etc2sbSuccRate, etc2sbSuccCount, etc2sbSigCount, etc2sbAvgReturn, etc2sbSuccRateOk, etc2sbSuccRateStr, etc2sbScore] = dreperf.successRateAllTimeStatsFull(etc2sb, etc2sb ? low : na, iMinSigSuccessRate, adrCond)
 [etc3sbSuccRate, etc3sbSuccCount, etc3sbSigCount, etc3sbAvgReturn, etc3sbSuccRateOk, etc3sbSuccRateStr, etc3sbScore] = dreperf.successRateAllTimeStatsFull(etc3sb, etc3sb ? low : na, iMinSigSuccessRate, adrCond)
@@ -183,6 +198,9 @@ plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = e
 plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv1PbSuccRate : na, title = 'rmv1-pb', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv2PbSuccRate : na, title = 'rmv2-pb', color = rmvSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? rmv3PbSuccRate : na, title = 'rmv3-pb', color = rmvSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
@@ -194,7 +212,7 @@ plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color =
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 15)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 18)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -216,30 +234,39 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, rmv3SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 6, text = "rmv3", text_color = rmvSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 6, text = rmv3SuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, rmv1PbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 7, text = "rmv1-pb", text_color = rmvSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 7, text = rmv1PbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, rmv2PbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 8, text = "rmv2-pb", text_color = rmvSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 8, text = rmv2PbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, rmv3PbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 9, text = "rmv3-pb", text_color = rmvSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 9, text = rmv3PbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, etc1sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 7, text = "etc1sb", text_color = etcsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 7, text = etc1sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 10, text = "etc1sb", text_color = etcsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 10, text = etc1sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, etc2sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 8, text = "etc2sb", text_color = etcsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 8, text = etc2sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 11, text = "etc2sb", text_color = etcsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 11, text = etc2sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, etc3sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 9, text = "etc3sb", text_color = etcsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 9, text = etc3sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 12, text = "etc3sb", text_color = etcsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 12, text = etc3sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, obvDivSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 10, text = "obvDiv", text_color = obvDivSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 10, text = obvDivSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 13, text = "obvDiv", text_color = obvDivSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 13, text = obvDivSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtsbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 11, text = "mtsb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 11, text = mtsbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 14, text = "mtsb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 14, text = mtsbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtc1sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 12, text = "mtc1sb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 12, text = mtc1sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 15, text = "mtc1sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 15, text = mtc1sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 13, text = "mtc2sb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 13, text = mtc2sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 16, text = "mtc2sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 16, text = mtc2sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 14, text = "mtc3sb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 14, text = mtc3sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 17, text = "mtc3sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 17, text = mtc3sbSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb, title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -247,6 +274,9 @@ plotshape(iShowEt4sbSig and et4sb, title = 'et4sb', location = location.belowbar
 plotshape(iShowRmvSig and bullishRmv1, title = 'rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1', textcolor = rmvSigColor)
 plotshape(iShowRmvSig and bullishRmv2, title = 'rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2', textcolor = rmvSigColor)
 plotshape(iShowRmvSig and bullishRmv3, title = 'rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3', textcolor = rmvSigColor)
+plotshape(iShowRmvPbSig and bullishRmv1Pb, title = 'rmv1-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1-pb', textcolor = rmvSigColor)
+plotshape(iShowRmvPbSig and bullishRmv2Pb, title = 'rmv2-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2-pb', textcolor = rmvSigColor)
+plotshape(iShowRmvPbSig and bullishRmv3Pb, title = 'rmv3-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3-pb', textcolor = rmvSigColor)
 plotshape(iShowEtcsbSig and etc1sb, title = 'etc1sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc1sb', textcolor = etcsbSigColor)
 plotshape(iShowEtcsbSig and etc2sb, title = 'etc2sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc2sb', textcolor = etcsbSigColor)
 plotshape(iShowEtcsbSig and etc3sb, title = 'etc3sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc3sb', textcolor = etcsbSigColor)
