@@ -2,10 +2,10 @@
 // © drebel
 
 //@version=6
-indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200)
+indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/35 as drelib
-import drebel/DREPerf/21 as dreperf
+import drebel/DREPerf/22 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')
@@ -455,8 +455,11 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 
 //check performance
 //sig stats table
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
+
 adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
-adrCond = 0.8 * adrPct
+adrCond = iMinSigReturnAdrMultiple * adrPct
 
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
@@ -465,25 +468,24 @@ iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', gr
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
 
-float minSuccRate = 39.0
-[s1SuccRate, s1SuccCount, s1SigCount, s1AvgReturn, s1SuccRateOk, s1SuccRateStr, s1Score] = dreperf.successRateAllTimeStatsFull(juniorSig, juniorSig ? low : na, minSuccRate, adrCond)
-[s2SuccRate, s2SuccCount, s2SigCount, s2AvgReturn, s2SuccRateOk, s2SuccRateStr, s2Score] = dreperf.successRateAllTimeStatsFull(junior2Sig, junior2Sig ? low : na, minSuccRate, adrCond)
-[s3SuccRate, s3SuccCount, s3SigCount, s3AvgReturn, s3SuccRateOk, s3SuccRateStr, s3Score] = dreperf.successRateAllTimeStatsFull(junior3Sig, junior3Sig ? low : na, minSuccRate, adrCond)
-[s4SuccRate, s4SuccCount, s4SigCount, s4AvgReturn, s4SuccRateOk, s4SuccRateStr, s4Score] = dreperf.successRateAllTimeStatsFull(bullishStarterSig, bullishStarterSig ? low : na, minSuccRate, adrCond)
-[s5SuccRate, s5SuccCount, s5SigCount, s5AvgReturn, s5SuccRateOk, s5SuccRateStr, s5Score] = dreperf.successRateAllTimeStatsFull(bullishFireStarterSig, bullishFireStarterSig ? low : na, minSuccRate, adrCond)
-[s6SuccRate, s6SuccCount, s6SigCount, s6AvgReturn, s6SuccRateOk, s6SuccRateStr, s6Score] = dreperf.successRateAllTimeStatsFull(longerSig, longerSig ? low : na, minSuccRate, adrCond)
-[s7SuccRate, s7SuccCount, s7SigCount, s7AvgReturn, s7SuccRateOk, s7SuccRateStr, s7Score] = dreperf.successRateAllTimeStatsFull(smallerLongerSig, smallerLongerSig ? low : na, minSuccRate, adrCond)
-[s8SuccRate, s8SuccCount, s8SigCount, s8AvgReturn, s8SuccRateOk, s8SuccRateStr, s8Score] = dreperf.successRateAllTimeStatsFull(bullishStepperSig, bullishStepperSig ? low : na, minSuccRate, adrCond)
-[s9SuccRate, s9SuccCount, s9SigCount, s9AvgReturn, s9SuccRateOk, s9SuccRateStr, s9Score] = dreperf.successRateAllTimeStatsFull(bullishLongerStepperSig, bullishLongerStepperSig ? low : na, minSuccRate, adrCond)
-[s10SuccRate, s10SuccCount, s10SigCount, s10AvgReturn, s10SuccRateOk, s10SuccRateStr, s10Score] = dreperf.successRateAllTimeStatsFull(bullishSLongerStepperSig, bullishSLongerStepperSig ? low : na, minSuccRate, adrCond)
-[s11SuccRate, s11SuccCount, s11SigCount, s11AvgReturn, s11SuccRateOk, s11SuccRateStr, s11Score] = dreperf.successRateAllTimeStatsFull(bullishObvSig, bullishObvSig ? low : na, minSuccRate, adrCond)
-[s12SuccRate, s12SuccCount, s12SigCount, s12AvgReturn, s12SuccRateOk, s12SuccRateStr, s12Score] = dreperf.successRateAllTimeStatsFull(bullishRmvSig, bullishRmvSig ? low : na, minSuccRate, adrCond)
-[s13SuccRate, s13SuccCount, s13SigCount, s13AvgReturn, s13SuccRateOk, s13SuccRateStr, s13Score] = dreperf.successRateAllTimeStatsFull(bullishRmvPbSig, bullishRmvPbSig ? low : na, minSuccRate, adrCond)
-[s14SuccRate, s14SuccCount, s14SigCount, s14AvgReturn, s14SuccRateOk, s14SuccRateStr, s14Score] = dreperf.successRateAllTimeStatsFull(mtbSig, mtbSig ? low : na, minSuccRate, adrCond)
-[s15SuccRate, s15SuccCount, s15SigCount, s15AvgReturn, s15SuccRateOk, s15SuccRateStr, s15Score] = dreperf.successRateAllTimeStatsFull(pvc, pvc ? low : na, minSuccRate, adrCond)
-[s16SuccRate, s16SuccCount, s16SigCount, s16AvgReturn, s16SuccRateOk, s16SuccRateStr, s16Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, minSuccRate, adrCond)
-[s17SuccRate, s17SuccCount, s17SigCount, s17AvgReturn, s17SuccRateOk, s17SuccRateStr, s17Score] = dreperf.successRateAllTimeStatsFull(bullishHunterSig, bullishHunterSig ? low : na, minSuccRate, adrCond)
-[s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, minSuccRate, adrCond)
+[s1SuccRate, s1SuccCount, s1SigCount, s1AvgReturn, s1SuccRateOk, s1SuccRateStr, s1Score] = dreperf.successRateAllTimeStatsFull(juniorSig, juniorSig ? low : na, iMinSigSuccessRate, adrCond)
+[s2SuccRate, s2SuccCount, s2SigCount, s2AvgReturn, s2SuccRateOk, s2SuccRateStr, s2Score] = dreperf.successRateAllTimeStatsFull(junior2Sig, junior2Sig ? low : na, iMinSigSuccessRate, adrCond)
+[s3SuccRate, s3SuccCount, s3SigCount, s3AvgReturn, s3SuccRateOk, s3SuccRateStr, s3Score] = dreperf.successRateAllTimeStatsFull(junior3Sig, junior3Sig ? low : na, iMinSigSuccessRate, adrCond)
+[s4SuccRate, s4SuccCount, s4SigCount, s4AvgReturn, s4SuccRateOk, s4SuccRateStr, s4Score] = dreperf.successRateAllTimeStatsFull(bullishStarterSig, bullishStarterSig ? low : na, iMinSigSuccessRate, adrCond)
+[s5SuccRate, s5SuccCount, s5SigCount, s5AvgReturn, s5SuccRateOk, s5SuccRateStr, s5Score] = dreperf.successRateAllTimeStatsFull(bullishFireStarterSig, bullishFireStarterSig ? low : na, iMinSigSuccessRate, adrCond)
+[s6SuccRate, s6SuccCount, s6SigCount, s6AvgReturn, s6SuccRateOk, s6SuccRateStr, s6Score] = dreperf.successRateAllTimeStatsFull(longerSig, longerSig ? low : na, iMinSigSuccessRate, adrCond)
+[s7SuccRate, s7SuccCount, s7SigCount, s7AvgReturn, s7SuccRateOk, s7SuccRateStr, s7Score] = dreperf.successRateAllTimeStatsFull(smallerLongerSig, smallerLongerSig ? low : na, iMinSigSuccessRate, adrCond)
+[s8SuccRate, s8SuccCount, s8SigCount, s8AvgReturn, s8SuccRateOk, s8SuccRateStr, s8Score] = dreperf.successRateAllTimeStatsFull(bullishStepperSig, bullishStepperSig ? low : na, iMinSigSuccessRate, adrCond)
+[s9SuccRate, s9SuccCount, s9SigCount, s9AvgReturn, s9SuccRateOk, s9SuccRateStr, s9Score] = dreperf.successRateAllTimeStatsFull(bullishLongerStepperSig, bullishLongerStepperSig ? low : na, iMinSigSuccessRate, adrCond)
+[s10SuccRate, s10SuccCount, s10SigCount, s10AvgReturn, s10SuccRateOk, s10SuccRateStr, s10Score] = dreperf.successRateAllTimeStatsFull(bullishSLongerStepperSig, bullishSLongerStepperSig ? low : na, iMinSigSuccessRate, adrCond)
+[s11SuccRate, s11SuccCount, s11SigCount, s11AvgReturn, s11SuccRateOk, s11SuccRateStr, s11Score] = dreperf.successRateAllTimeStatsFull(bullishObvSig, bullishObvSig ? low : na, iMinSigSuccessRate, adrCond)
+[s12SuccRate, s12SuccCount, s12SigCount, s12AvgReturn, s12SuccRateOk, s12SuccRateStr, s12Score] = dreperf.successRateAllTimeStatsFull(bullishRmvSig, bullishRmvSig ? low : na, iMinSigSuccessRate, adrCond)
+[s13SuccRate, s13SuccCount, s13SigCount, s13AvgReturn, s13SuccRateOk, s13SuccRateStr, s13Score] = dreperf.successRateAllTimeStatsFull(bullishRmvPbSig, bullishRmvPbSig ? low : na, iMinSigSuccessRate, adrCond)
+[s14SuccRate, s14SuccCount, s14SigCount, s14AvgReturn, s14SuccRateOk, s14SuccRateStr, s14Score] = dreperf.successRateAllTimeStatsFull(mtbSig, mtbSig ? low : na, iMinSigSuccessRate, adrCond)
+[s15SuccRate, s15SuccCount, s15SigCount, s15AvgReturn, s15SuccRateOk, s15SuccRateStr, s15Score] = dreperf.successRateAllTimeStatsFull(pvc, pvc ? low : na, iMinSigSuccessRate, adrCond)
+[s16SuccRate, s16SuccCount, s16SigCount, s16AvgReturn, s16SuccRateOk, s16SuccRateStr, s16Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, iMinSigSuccessRate, adrCond)
+[s17SuccRate, s17SuccCount, s17SigCount, s17AvgReturn, s17SuccRateOk, s17SuccRateStr, s17Score] = dreperf.successRateAllTimeStatsFull(bullishHunterSig, bullishHunterSig ? low : na, iMinSigSuccessRate, adrCond)
+[s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, iMinSigSuccessRate, adrCond)
 
 
 if barstate.islast and iShowSigPerfTable
@@ -492,7 +494,7 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
-    table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(minSuccRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 1, text = str.format("perf {0,number,#.#} {1,number,#.#}", iMinSigSuccessRate, adrCond), text_size = txtSize)
 
     if showRow(iShowOnlyGoodSigs, s1SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 2, text = "junior", text_size = txtSize)
