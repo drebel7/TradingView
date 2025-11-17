@@ -32,18 +32,12 @@ export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCo
 export formatSuccessRateStr(bool _longFormat, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
 	str.format(_longFormat ? SUCC_RATE_LONG_FORMAT : SUCC_RATE_SHORT_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
 
-export formatSuccessRateStr(bool _longFormat, bool _star, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
-	formatted = formatSuccessRateStr(_longFormat, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
-	formatted + (_star ? '*' : '')
+export formatSuccessRateFullStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float score) =>
+	formatted = str.format(SUCC_RATE_FULL_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 
 export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
-	formatted = formatSuccessRateStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
-	_star = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
-	formatted + (_star ? '*' : '')
-
-export formatSuccessRateFullStr(bool _star, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float score) =>
-	formatted = str.format(SUCC_RATE_FULL_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
-	formatted + (_star ? '*' : '')
+	score = sigScore(sigSuccRatePct, sigSuccCount, retAvgPct, _minSuccRatePct, _minRetAvgPct)
+	formatted = formatSuccessRateFullStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 
 // @function This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for a given _lookback period.
 // @param _sig A bool series indicationg signal was triggered on given candle or not.
@@ -112,7 +106,7 @@ export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStop
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, _long)
 	bool succRateOk = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
 	float score = sigScore(sigSuccRatePct, sigSuccCount, retAvgPct, succRateOk)
-	string succRateStr = formatSuccessRateFullStr(succRateOk, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
+	string succRateStr = formatSuccessRateFullStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr, score]
 
 export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, float _minSuccRatePct, float _minRetAvgPct) =>
