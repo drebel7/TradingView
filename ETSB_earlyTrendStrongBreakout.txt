@@ -3,7 +3,7 @@
 //calc_bars_count = 3024 (12 years of 252 bars/year) - no need for more
 
 //@version=6
-indicator("early trend strong breakout", overlay = true)//, calc_bars_count = 12 * 252)
+indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/35 as drelib
 import drebel/DREPerf/22 as dreperf
@@ -119,14 +119,14 @@ highRmv3 = rmvContraction3 >= 100 - rmvLowLevel / 2
 rmv3Cond = lowRmv3[1] and not lowRmv3 or highRmv3 and lowRmv3[2] or rmvContraction3 == 100 and lowRmv3[3]
 bullishRmv3 = rmv3Cond and otherRmvCond
 
-bullishRmv1PbAgo = ta.barssince(bullishRmv1)
-bullishRmv1Pb = not bullishRmv1 and bullishRmv1PbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmv1PbAgo])
+bullishRmv1Ago = ta.barssince(bullishRmv1)
+bullishRmv1Pb = bullishRmv1Ago <= iRmvPbLen and bullishRmv1[bullishRmv1Ago] and drelib.crossover(low[bullishRmv1Ago])
 
-bullishRmv2PbAgo = ta.barssince(bullishRmv2)
-bullishRmv2Pb = not bullishRmv2 and bullishRmv2PbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmv2PbAgo])
+bullishRmv2Ago = ta.barssince(bullishRmv2)
+bullishRmv2Pb = bullishRmv2Ago <= iRmvPbLen and bullishRmv2[bullishRmv2Ago] and drelib.crossover(low[bullishRmv2Ago])
 
-bullishRmv3PbAgo = ta.barssince(bullishRmv3)
-bullishRmv3Pb = not bullishRmv3 and bullishRmv3PbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmv3PbAgo])
+bullishRmv3Ago = ta.barssince(bullishRmv3)
+bullishRmv3Pb = bullishRmv3Ago <= iRmvPbLen and bullishRmv3[bullishRmv3Ago] and drelib.crossover(low[bullishRmv3Ago])
 
 
 etc1sb = etsb and (rmv1Cond or lowRmv1)
@@ -269,22 +269,22 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 1, row = 17, text = mtc3sbSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
-plotshape(iShowEt3sbSig and et3sb, title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
-plotshape(iShowEt4sbSig and et4sb, title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
-plotshape(iShowRmvSig and bullishRmv1, title = 'rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1', textcolor = rmvSigColor)
-plotshape(iShowRmvSig and bullishRmv2, title = 'rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2', textcolor = rmvSigColor)
-plotshape(iShowRmvSig and bullishRmv3, title = 'rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3', textcolor = rmvSigColor)
-plotshape(iShowRmvPbSig and bullishRmv1Pb, title = 'rmv1-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1-pb', textcolor = rmvSigColor)
-plotshape(iShowRmvPbSig and bullishRmv2Pb, title = 'rmv2-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2-pb', textcolor = rmvSigColor)
-plotshape(iShowRmvPbSig and bullishRmv3Pb, title = 'rmv3-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3-pb', textcolor = rmvSigColor)
-plotshape(iShowEtcsbSig and etc1sb, title = 'etc1sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc1sb', textcolor = etcsbSigColor)
-plotshape(iShowEtcsbSig and etc2sb, title = 'etc2sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc2sb', textcolor = etcsbSigColor)
-plotshape(iShowEtcsbSig and etc3sb, title = 'etc3sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc3sb', textcolor = etcsbSigColor)
-plotshape(iShowObvDivSig and obvDiv, title = 'obvDiv', location = location.belowbar, color = obvDivSigColor, style = shape.triangleup, text = 'obvDiv', textcolor = obvDivSigColor)
-plotshape(iShowMinevriniTrendSig and mtsb, title = 'mtsb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtsb', textcolor = mtsbSigColor)
-plotshape(iShowMinevriniTrendSig and mtc1sb, title = 'mtc1sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc1sb', textcolor = mtsbSigColor)
-plotshape(iShowMinevriniTrendSig and mtc2sb, title = 'mtc2sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc2sb', textcolor = mtsbSigColor)
-plotshape(iShowMinevriniTrendSig and mtc3sb, title = 'mtc3sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc3sb', textcolor = mtsbSigColor)
+plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
+plotshape(iShowEt4sbSig and et4sb and showRow(iShowOnlyGoodSigs, et4sbSuccRateOk), title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
+plotshape(iShowRmvSig and bullishRmv1 and showRow(iShowOnlyGoodSigs, rmv1SuccRateOk), title = 'rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1', textcolor = rmvSigColor)
+plotshape(iShowRmvSig and bullishRmv2 and showRow(iShowOnlyGoodSigs, rmv2SuccRateOk), title = 'rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2', textcolor = rmvSigColor)
+plotshape(iShowRmvSig and bullishRmv3 and showRow(iShowOnlyGoodSigs, rmv3SuccRateOk), title = 'rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3', textcolor = rmvSigColor)
+plotshape(iShowRmvPbSig and bullishRmv1Pb and showRow(iShowOnlyGoodSigs, rmv1PbSuccRateOk), title = 'rmv1-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1-pb', textcolor = rmvSigColor)
+plotshape(iShowRmvPbSig and bullishRmv2Pb and showRow(iShowOnlyGoodSigs, rmv2PbSuccRateOk), title = 'rmv2-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2-pb', textcolor = rmvSigColor)
+plotshape(iShowRmvPbSig and bullishRmv3Pb and showRow(iShowOnlyGoodSigs, rmv3PbSuccRateOk), title = 'rmv3-pb', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3-pb', textcolor = rmvSigColor)
+plotshape(iShowEtcsbSig and etc1sb and showRow(iShowOnlyGoodSigs, etc1sbSuccRateOk), title = 'etc1sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc1sb', textcolor = etcsbSigColor)
+plotshape(iShowEtcsbSig and etc2sb and showRow(iShowOnlyGoodSigs, etc2sbSuccRateOk), title = 'etc2sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc2sb', textcolor = etcsbSigColor)
+plotshape(iShowEtcsbSig and etc3sb and showRow(iShowOnlyGoodSigs, etc3sbSuccRateOk), title = 'etc3sb', location = location.belowbar, color = etcsbSigColor, style = shape.triangleup, text = 'etc3sb', textcolor = etcsbSigColor)
+plotshape(iShowObvDivSig and obvDiv and showRow(iShowOnlyGoodSigs, obvDivSuccRateOk), title = 'obvDiv', location = location.belowbar, color = obvDivSigColor, style = shape.triangleup, text = 'obvDiv', textcolor = obvDivSigColor)
+plotshape(iShowMinevriniTrendSig and mtsb and showRow(iShowOnlyGoodSigs, mtsbSuccRateOk), title = 'mtsb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtsb', textcolor = mtsbSigColor)
+plotshape(iShowMinevriniTrendSig and mtc1sb and showRow(iShowOnlyGoodSigs, mtc1sbSuccRateOk), title = 'mtc1sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc1sb', textcolor = mtsbSigColor)
+plotshape(iShowMinevriniTrendSig and mtc2sb and showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk), title = 'mtc2sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc2sb', textcolor = mtsbSigColor)
+plotshape(iShowMinevriniTrendSig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk), title = 'mtc3sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc3sb', textcolor = mtsbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
