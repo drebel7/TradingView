@@ -75,7 +75,7 @@ dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
 iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Contraction (RMV)')
-iRmvPbLen = input.int(11, title = 'Pullback Len.', display = display.none, group = 'Contraction (RMV)')
+iRmvPbLen = input.int(6, title = 'Pullback Len.', display = display.none, group = 'Contraction (RMV)')
 
 iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
 iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
