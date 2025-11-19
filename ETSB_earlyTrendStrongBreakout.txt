@@ -303,11 +303,13 @@ et4sbSig = et4sb and et4sbSuccRateOk
 et4sbSig_p1D = et4sbSig[1] and orb
 bullishRmvSig = (bullishRmv1 and rmv1SuccRateOk) or (bullishRmv2 and rmv2SuccRateOk) or (bullishRmv3 and rmv3SuccRateOk)
 bullishRmvSig_p1D = bullishRmvSig[1] and orb
+bullishRmvPbSig = (bullishRmv1Pb and rmv1PbSuccRateOk) or (bullishRmv2Pb and rmv2PbSuccRateOk) or (bullishRmv3Pb and rmv3PbSuccRateOk)
+bullishRmvPbSig_p1D = bullishRmvPbSig[1] and orb
 etcsbSig = (etc1sb and etc1sbSuccRateOk) or (etc2sb and etc2sbSuccRateOk) or (etc3sb and etc3sbSuccRateOk)
 etcsbSig_p1D = etcsbSig[1] and orb
 obvDivSig = obvDiv and obvDivSuccRateOk
 obvDivSig_p1D = obvDivSig[1] and orb
-mtsbSig = mtsb or mtc1sb or mtc2sb or mtc3sb
+mtsbSig = (mtsb and mtsbSuccRateOk) or (mtc1sb and mtc1sbSuccRateOk) or (mtc2sb and mtc2sbSuccRateOk) or (mtc3sb and mtc3sbSuccRateOk)
 mtsbSig_p1D = mtsbSig[1] and orb
 
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D), title = 'best LONG', message = 'best LONG')
