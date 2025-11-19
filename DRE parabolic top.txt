@@ -450,8 +450,15 @@ alertcondition(candleBearishBoOnVolumeCond and gFilter and bearishSig[1], title 
 
 alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
 
+//RunAwayGap-pullback
+iBullishRagPb = input.bool(defval = true, title = 'bullish', group = 'RunAwayGap - pullback')
+iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, group = 'RunAwayGap - pullback')
+runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * gAdr / 100 * high[1]
+runAwayGapAgo = ta.barssince(runAwayGap)
+ragPb = not runAwayGap and runAwayGapAgo < 50 and drelib.crossover(low[runAwayGapAgo]) and shortMa > shortMa[1]
 
-
+alertcondition(gFilter and ragPb, title = 'RunAwayGap-pb', message = 'rag-pb')
+plotshape(ragPb and iBullishRagPb, title = 'bullish rag-pbb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rag-pb', textcolor = color.new(color.green, 0))
 
 //check performance
 //sig stats table
@@ -486,10 +493,11 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 [s16SuccRate, s16SuccCount, s16SigCount, s16AvgReturn, s16SuccRateOk, s16SuccRateStr, s16Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, iMinSigSuccessRate, adrCond)
 [s17SuccRate, s17SuccCount, s17SigCount, s17AvgReturn, s17SuccRateOk, s17SuccRateStr, s17Score] = dreperf.successRateAllTimeStatsFull(bullishHunterSig, bullishHunterSig ? low : na, iMinSigSuccessRate, adrCond)
 [s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, iMinSigSuccessRate, adrCond)
+[s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(ragPb, ragPb ? low : na, iMinSigSuccessRate, adrCond)
 
 
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 20)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 21)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -550,3 +558,6 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, s18SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 19, text = "bearishHunter", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 19, text = s18SuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, s19SuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 20, text = "rag-pb", text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 20, text = s19SuccRateStr, text_size = txtSize)
