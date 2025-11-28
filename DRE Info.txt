@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/31 as drelib
+import drebel/DRELib/35 as drelib
 
 show_ticker = input.bool(defval = false, title = 'Show ticker')
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
@@ -22,9 +22,10 @@ show_sharpe_ratio = input.bool(defval = false, title = 'Sharpe ratio')
 show_earnings_up = input.bool(defval = true, title = 'Earnings going up')
 show_industry_sector = input.bool(defval = true, title = 'Industry and Sector')
 show_non_broken_extremes = input.bool(defval = true, title = 'nBroken extremes')
+show_years_on_exchange = input.bool(defval = true, title = 'Years on exchage')
 
-len = input.int(defval = 30, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.')
-riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01)
+len = input.int(defval = 30, title = 'Calculations Length', minval = 1, tooltip = 'The number of daily bars used in calculations.', display = display.none)
+riskFreeRateAnnual = input.float(defval = 0.05, title = "Risk free annual rate.", minval = 0, step = 0.01, display = display.none)
 bg_col = input.color(defval = #00000000, title = 'Background Color')
 adrp_col = input.color(defval = color.black, title = 'Text Color')
 red_col = input.color(defval = color.red, title = 'Text Color (for sig)')
@@ -72,6 +73,8 @@ modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '
 
 [nBLowsPct, nBHighsPct, nBBoth, ratio, mod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
 mod2Str = mod2 == 1 ? '(+)' : mod2 == 0 ? '(0)' : '(-)'
+
+ageYears = (timenow - time[bar_index]) / 1000 / 60 / 60 / 24 / 365
 
 table t = table.new(position.top_right, 2, 18, bgcolor = bg_col)
 txtSize = size.small
@@ -127,3 +130,6 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
     if show_non_broken_extremes
         table.cell(t, 0, 16, 'nBroken extremes', text_color = adrp_col, text_size = txtSize)
         table.cell(t, 1, 16, str.tostring(math.round(nBLowsPct)) + mod2Str, text_color = adrp_col, text_size = txtSize)
+    if show_years_on_exchange
+        table.cell(t, 0, 17, 'years on exch.', text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 17, str.tostring(math.round(ageYears)), text_color = adrp_col, text_size = txtSize)
