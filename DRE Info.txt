@@ -74,7 +74,7 @@ modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '
 [nBLowsPct, nBHighsPct, nBBoth, ratio, mod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
 mod2Str = mod2 == 1 ? '(+)' : mod2 == 0 ? '(0)' : '(-)'
 
-ageYears = (timenow - time[math.max(bar_index, 10000)]) / 1000 / 60 / 60 / 24 / 365
+ageYears = (timenow - time[math.min(bar_index, 10000)]) / 1000 / 60 / 60 / 24 / 365
 
 table t = table.new(position.top_right, 2, 18, bgcolor = bg_col)
 txtSize = size.small
