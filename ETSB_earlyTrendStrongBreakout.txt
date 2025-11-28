@@ -135,7 +135,7 @@ etc1sb = etsb and (rmv1Cond or lowRmv1)
 etc2sb = etsb and (rmv2Cond or lowRmv2)
 etc3sb = etsb and (rmv3Cond or lowRmv3)
 
-iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, display = display.none, group = 'Obv-price divergence sb')
+iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, display = display.none, group = 'Signal: Obv-price divergence sb')
 obvMa = ta.sma(ta.obv, 100)
 priceMa = ta.sma(close, 100)
 risingObv = obvMa > obvMa[1]
@@ -145,8 +145,8 @@ divergenceSum = math.sum(divergence ? 1 : 0, 100)
 obvDiv = divergenceSum > iDivergence and strongBreakout
 
 //minevrini trend /contraction/ strong breakout
-iIncludeEarnings = input.bool(defval = true, title = 'Include earnings', display = display.none, group = 'Minevrini trend /contraction/ strong breakout')
-iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. earnings change rate', minval = 0.0, maxval = 1.0, step = 0.1, display = display.none, group = 'Minevrini trend /contraction/ strong breakout')
+iIncludeEarnings = input.bool(defval = true, title = 'Include earnings', display = display.none, group = 'Signal: Minevrini trend /contraction/ strong breakout')
+iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. earnings change rate', minval = 0.0, maxval = 1.0, step = 0.1, display = display.none, group = 'Signal: Minevrini trend /contraction/ strong breakout')
 
 doIncludeEarnings = sigMod >= 1 ? false : iIncludeEarnings
 bool minevriniTrend = drelib.isMinevriniBullishTrend(true, doIncludeEarnings, iBetterEarningsRate)
@@ -159,8 +159,8 @@ mtc2sb = minevriniTrendCond and (rmv2Cond or lowRmv2) and strongBreakout
 mtc3sb = minevriniTrendCond and (rmv3Cond or lowRmv3) and strongBreakout
 
 //RunAwayGap-pullback
-iBullishRagPbMaxTimeSinceRag = input.int(defval = 30, title = 'Max. pullback time', minval = 2, maxval = 50, display = display.none, group = 'RunAwayGap - pullback')
-iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, display = display.none, group = 'RunAwayGap - pullback')
+iBullishRagPbMaxTimeSinceRag = input.int(defval = 30, title = 'Max. pullback time', minval = 2, maxval = 50, display = display.none, group = 'Signal: RunAwayGap - pullback')
+iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, display = display.none, group = 'Signal: RunAwayGap - pullback')
 runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1]
 runAwayGapAgo = ta.barssince(runAwayGap)
 ragPb = not runAwayGap and runAwayGapAgo < iBullishRagPbMaxTimeSinceRag and drelib.crossover(low[runAwayGapAgo]) and shortMa > shortMa[1]
@@ -169,9 +169,9 @@ ragPb = not runAwayGap and runAwayGapAgo < iBullishRagPbMaxTimeSinceRag and drel
 countChanges(series, length) =>
     math.sum(series != series[1] ? 1 : 0, length)
 
-iOneilPercentileLookback = input.int(200, title = 'Main percentile lookback', minval = 20, maxval = 756, display = display.none, group = 'ONeil Inspired')
-iOneilEpsYearsCheck = input.int(3, title = 'Eps years check', minval = 1, maxval = 5, display = display.none, group = 'ONeil Inspired')
-iOneilMinPercentileAvg = input.float(70, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = 'ONeil Inspired')
+iOneilPercentileLookback = input.int(200, title = 'Main percentile lookback', minval = 20, maxval = 756, display = display.none, group = "Signal: O'Neil Inspired")
+iOneilEpsYearsCheck = input.int(3, title = 'Eps years check', minval = 1, maxval = 5, display = display.none, group = "Signal: O'Neil Inspired")
+iOneilMinPercentileAvg = input.float(70, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = "Signal: O'Neil Inspired")
 oiObvPercentile = ta.percentrank(ta.obv, iOneilPercentileLookback)
 oiRsPercentile = ta.percentrank(rs, iOneilPercentileLookback)
 totalShares1M = syminfo.shares_outstanding_total / 1000000.0
@@ -181,7 +181,6 @@ epsChanges = countChanges(epsAct1M, iOneilEpsYearsCheck * 252)
 oiPercentileAvg = math.avg(oiObvPercentile, oiRsPercentile, oiEpsPercentile)
 oiPercentilesOkAgo = ta.barssince(oiPercentileAvg > (100 + iOneilMinPercentileAvg) / 2)
 oiSb = oiPercentileAvg > iOneilMinPercentileAvg and oiPercentilesOkAgo < 50 and (rmv1Cond or rmv2Cond or rmv3Cond) and epsChanges > 3 * iOneilEpsYearsCheck and strongBreakout
-plot(series = oiPercentileAvg, title = "oi-eps percentile", display = display.all)
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
