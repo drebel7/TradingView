@@ -9,32 +9,33 @@ import drebel/DRELib/35 as drelib
 import drebel/DREPerf/22 as dreperf
 
 //common filters inputs
-iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', group = 'General filter for signal')
-iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, group = 'General filter for signal')
-iMinAdr = input.float(defval = 3, title = 'Min. ADR[%]', minval = 0, step = 0.2, group = 'General filter for signal')
-iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, inline = 'min max price', group = 'General filter for signal')
-iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, inline = 'min max price', group = 'General filter for signal')
-iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal')
-iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, group = 'General filter for signal')
+iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', display = display.none, group = 'General filter for signal')
+iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, display = display.none, group = 'General filter for signal')
+iMinAdr = input.float(defval = 3, title = 'Min. ADR[%]', minval = 0, step = 0.2, display = display.none, group = 'General filter for signal')
+iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, display = display.none, inline = 'min max price', group = 'General filter for signal')
+iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, display = display.none, inline = 'min max price', group = 'General filter for signal')
+iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, display = display.none, group = 'General filter for signal')
+iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, display = display.none, group = 'General filter for signal')
 
 //sig success rate filter
-iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', group = 'Signals')
-iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', group = 'Signals')
-iShowRmv1Sig = input.bool(defval = true, title = 'Show rmv', group = 'Signals', inline = "rmv")
-iShowRmv2Sig = input.bool(defval = true, title = '2', group = 'Signals', inline = "rmv")
-iShowRmv3Sig = input.bool(defval = true, title = '3', group = 'Signals', inline = "rmv")
-iShowEtc1sbSig = input.bool(defval = true, title = 'Show etcsb', group = 'Signals', inline = "etcsb")
-iShowEtc2sbSig = input.bool(defval = true, title = 'c2', group = 'Signals', inline = "etcsb")
-iShowEtc3sbSig = input.bool(defval = true, title = 'c3', group = 'Signals', inline = "etcsb")
-iShowObvDivSig = input.bool(defval = true, title = 'Show Obv-Div-sb', group = 'Signals')
-iShowMinevriniTrendSig = input.bool(defval = true, title = 'Show MinevriniTrend-contr-sb', group = 'Signals', inline = "mtsb")
-iShowMinevriniTrendC1Sig = input.bool(defval = true, title = 'c1', group = 'Signals', inline = "mtsb")
-iShowMinevriniTrendC2Sig = input.bool(defval = true, title = 'c2', group = 'Signals', inline = "mtsb")
-iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', group = 'Signals', inline = "mtsb")
-iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', group = 'Signals')
+iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', display = display.none, group = 'Signals')
+iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', display = display.none, group = 'Signals')
+iShowRmv1Sig = input.bool(defval = true, title = 'Show rmv', display = display.none, group = 'Signals', inline = "rmv")
+iShowRmv2Sig = input.bool(defval = true, title = '2', display = display.none, group = 'Signals', inline = "rmv")
+iShowRmv3Sig = input.bool(defval = true, title = '3', display = display.none, group = 'Signals', inline = "rmv")
+iShowEtc1sbSig = input.bool(defval = true, title = 'Show etcsb', display = display.none, group = 'Signals', inline = "etcsb")
+iShowEtc2sbSig = input.bool(defval = true, title = 'c2', display = display.none, group = 'Signals', inline = "etcsb")
+iShowEtc3sbSig = input.bool(defval = true, title = 'c3', display = display.none, group = 'Signals', inline = "etcsb")
+iShowObvDivSig = input.bool(defval = true, title = 'Show Obv-Div-sb', display = display.none, group = 'Signals')
+iShowMinevriniTrendSig = input.bool(defval = true, title = 'Show MinevriniTrend-contr-sb', display = display.none, group = 'Signals', inline = "mtsb")
+iShowMinevriniTrendC1Sig = input.bool(defval = true, title = 'c1', display = display.none, group = 'Signals', inline = "mtsb")
+iShowMinevriniTrendC2Sig = input.bool(defval = true, title = 'c2', display = display.none, group = 'Signals', inline = "mtsb")
+iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', display = display.none, group = 'Signals', inline = "mtsb")
+iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', display = display.none, group = 'Signals')
+iShowOi = input.bool(defval = true, title = 'Show ONeil Inspired', display = display.none, group = 'Signals')
 
-iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
-iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
 //common filters calculations 
 int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
@@ -53,16 +54,16 @@ rsCond_10 = rsCondRaw ? 1 : 0
 obvCondRaw = drelib.isAboveObvSmaStddev(100, 0.35)
 obvCond_10 = obvCondRaw ? 1 : 0
 
-iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, group = 'Other')
+iMinNonBrokenLows = input.int(defval = 10, title = 'Min. non-broken Lows', minval = 0, step = 1, maxval = 40, display = display.none, group = 'Other')
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
 nbeCondRaw = nonBrokenLowsPct > nonBrokenHighsPct and nonBrokenExtremesPct >= iMinNonBrokenLows
 nbeCond_10 = nbeCondRaw ? 1 : 0
 
-iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, group = 'Breakout params')
-iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', group = 'Breakout params')
-iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, group = 'Breakout params')
-iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, group = 'Breakout params')
+iBreakoutLookback = input.int(defval = 7, title = 'Min. breakout lookback', minval = 1, maxval = 21, display = display.none, group = 'Breakout params')
+iBreakoutMultiples = input.bool(defval = true, title = 'Use also multiples of lookback', display = display.none, group = 'Breakout params')
+iInitialMinVolumePct = input.int(defval = 600, title = 'Initial min. relative volume Pct.', minval = 100, display = display.none, group = 'Breakout params')
+iDayEndMinVolumePct = input.int(defval = 125, title = 'Day end min. relative volume Pct.', minval = 100, display = display.none, group = 'Breakout params')
 
 sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
 strongBreakout = drelib.strongBreakout(iBreakoutLookback, iBreakoutMultiples, iInitialMinVolumePct, iDayEndMinVolumePct, sigMod, true)
@@ -85,25 +86,25 @@ orb = drelib.openingRangeBreakout(5, true, true)
 dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
-iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Contraction (RMV)')
+iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, display = display.none, group = 'Contraction (RMV)')
 
-iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1RmvS3Lookback = input.int(defval = 2, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
-iContr1MaxBarsSinceContraction = input.int(defval = 2, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvMainLookback = input.int(defval = 13, title = 'Lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1RmvS3Lookback = input.int(defval = 2, title = '', minval = 1, maxval = 50, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 1 (v. short)')
+iContr1MaxBarsSinceContraction = input.int(defval = 2, title = 'Max. bars since contraction', minval = 0, display = display.none, group = 'Contraction (RMV) params 1 (v. short)')
 
-iContr2RmvMainLookback = input.int(defval = 21, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
-iContr2MaxBarsSinceContraction = input.int(defval = 3, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvMainLookback = input.int(defval = 21, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 2 (short)')
+iContr2MaxBarsSinceContraction = input.int(defval = 3, title = 'Max. bars since contraction', minval = 0, display = display.none, group = 'Contraction (RMV) params 2 (short)')
 
-iContr3RmvMainLookback = input.int(defval = 55, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
-iContr3RmvS1Lookback = input.int(defval = 34, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
-iContr3RmvS2Lookback = input.int(defval = 21, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
-iContr3RmvS3Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
-iContr3MaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvMainLookback = input.int(defval = 55, title = 'Lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, display = display.none, inline = 'rmv lookbacks', group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS1Lookback = input.int(defval = 34, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', display = display.none, group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS2Lookback = input.int(defval = 21, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', display = display.none, group = 'Contraction (RMV) params 3 (medium)')
+iContr3RmvS3Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, inline = 'rmv lookbacks', display = display.none, group = 'Contraction (RMV) params 3 (medium)')
+iContr3MaxBarsSinceContraction = input.int(defval = 5, title = 'Max. bars since contraction', minval = 0, display = display.none, group = 'Contraction (RMV) params 3 (medium)')
 
 shortMa = ta.sma(close, 50)
 gVShortMa1 = ta.ema(close, 10)
@@ -134,7 +135,7 @@ etc1sb = etsb and (rmv1Cond or lowRmv1)
 etc2sb = etsb and (rmv2Cond or lowRmv2)
 etc3sb = etsb and (rmv3Cond or lowRmv3)
 
-iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, group = 'Obv-price divergence sb')
+iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, display = display.none, group = 'Obv-price divergence sb')
 obvMa = ta.sma(ta.obv, 100)
 priceMa = ta.sma(close, 100)
 risingObv = obvMa > obvMa[1]
@@ -144,8 +145,8 @@ divergenceSum = math.sum(divergence ? 1 : 0, 100)
 obvDiv = divergenceSum > iDivergence and strongBreakout
 
 //minevrini trend /contraction/ strong breakout
-iIncludeEarnings = input.bool(defval = true, title = 'Include earnings', group = 'Minevrini trend /contraction/ strong breakout')
-iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. earnings change rate', minval = 0.0, maxval = 1.0, step = 0.1, group = 'Minevrini trend /contraction/ strong breakout')
+iIncludeEarnings = input.bool(defval = true, title = 'Include earnings', display = display.none, group = 'Minevrini trend /contraction/ strong breakout')
+iBetterEarningsRate = input.float(defval = 0.5, title = 'Min. earnings change rate', minval = 0.0, maxval = 1.0, step = 0.1, display = display.none, group = 'Minevrini trend /contraction/ strong breakout')
 
 doIncludeEarnings = sigMod >= 1 ? false : iIncludeEarnings
 bool minevriniTrend = drelib.isMinevriniBullishTrend(true, doIncludeEarnings, iBetterEarningsRate)
@@ -158,16 +159,34 @@ mtc2sb = minevriniTrendCond and (rmv2Cond or lowRmv2) and strongBreakout
 mtc3sb = minevriniTrendCond and (rmv3Cond or lowRmv3) and strongBreakout
 
 //RunAwayGap-pullback
-iBullishRagPbMaxTimeSinceRag = input.int(defval = 30, title = 'Max. pullback time', minval = 2, maxval = 50, group = 'RunAwayGap - pullback')
-iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, group = 'RunAwayGap - pullback')
+iBullishRagPbMaxTimeSinceRag = input.int(defval = 30, title = 'Max. pullback time', minval = 2, maxval = 50, display = display.none, group = 'RunAwayGap - pullback')
+iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, display = display.none, group = 'RunAwayGap - pullback')
 runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1]
 runAwayGapAgo = ta.barssince(runAwayGap)
 ragPb = not runAwayGap and runAwayGapAgo < iBullishRagPbMaxTimeSinceRag and drelib.crossover(low[runAwayGapAgo]) and shortMa > shortMa[1]
 
+//O'Neil Inspired
+countChanges(series, length) =>
+    math.sum(series != series[1] ? 1 : 0, length)
+
+iOneilPercentileLookback = input.int(200, title = 'Main percentile lookback', minval = 20, maxval = 756, display = display.none, group = 'ONeil Inspired')
+iOneilEpsYearsCheck = input.int(3, title = 'Eps years check', minval = 1, maxval = 5, display = display.none, group = 'ONeil Inspired')
+iOneilMinPercentileAvg = input.float(70, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = 'ONeil Inspired')
+oiObvPercentile = ta.percentrank(ta.obv, iOneilPercentileLookback)
+oiRsPercentile = ta.percentrank(rs, iOneilPercentileLookback)
+totalShares1M = syminfo.shares_outstanding_total / 1000000.0
+epsAct1M = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares1M
+oiEpsPercentile = ta.percentrank(epsAct1M, iOneilEpsYearsCheck * 252)
+epsChanges = countChanges(epsAct1M, iOneilEpsYearsCheck * 252)
+oiPercentileAvg = math.avg(oiObvPercentile, oiRsPercentile, oiEpsPercentile)
+oiPercentilesOkAgo = ta.barssince(oiPercentileAvg > (100 + iOneilMinPercentileAvg) / 2)
+oiSb = oiPercentileAvg > iOneilMinPercentileAvg and oiPercentilesOkAgo < 50 and (rmv1Cond or rmv2Cond or rmv3Cond) and epsChanges > 3 * iOneilEpsYearsCheck and strongBreakout
+plot(series = oiPercentileAvg, title = "oi-eps percentile", display = display.all)
+
 //check performance
-iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
-iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', group = 'Sig. performnce check')
+iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performnce check')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performnce check')
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
@@ -186,6 +205,7 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 [mtc2sbSuccRate, mtc2sbSuccCount, mtc2sbSigCount, mtc2sbAvgReturn, mtc2sbSuccRateOk, mtc2sbSuccRateStr, mtc2sbScore] = dreperf.successRateAllTimeStatsFull(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
 [mtc3sbSuccRate, mtc3sbSuccCount, mtc3sbSigCount, mtc3sbAvgReturn, mtc3sbSuccRateOk, mtc3sbSuccRateStr, mtc3sbScore] = dreperf.successRateAllTimeStatsFull(mtc3sb, mtc3sb ? low : na, iMinSigSuccessRate, adrCond)
 [ragPbSuccRate, ragPbSuccCount, ragPbSigCount, ragPbAvgReturn, ragPbSuccRateOk, ragPbSuccRateStr, ragPbScore] = dreperf.successRateAllTimeStatsFull(ragPb, ragPb ? low : na, iMinSigSuccessRate, adrCond)
+[oiSbSuccRate, oiSbSuccCount, oiSbSigCount, oiSbAvgReturn, oiSbSuccRateOk, oiSbSuccRateStr, oiSbScore] = dreperf.successRateAllTimeStatsFull(oiSb, oiSb ? low : na, iMinSigSuccessRate, adrCond)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -195,6 +215,7 @@ etcsbSigColor = color.new(color.fuchsia, 0)
 obvDivSigColor = color.new(color.navy, 0)
 mtsbSigColor = color.new(color.gray, 0)
 ragPbSigColor = color.new(color.olive, 0)
+oiSbSigColor = color.new(color.teal, 0)
 
 plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
@@ -210,10 +231,11 @@ plot(series = iShowSigPerfPlots ? mtc1sbSuccRate : na, title = 'mtc1sb', color =
 plot(series = iShowSigPerfPlots ? mtc2sbSuccRate : na, title = 'mtc2sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? oiSbSuccRate : na, title = 'oiSb', color = oiSbSigColor, linestyle = plot.linestyle_solid)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 16)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 17)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -262,6 +284,9 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, ragPbSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 15, text = "rag-pb", text_color = ragPbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 15, text = ragPbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, oiSbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 16, text = "oiSb", text_color = oiSbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 16, text = oiSbSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -278,6 +303,7 @@ plotshape(iShowMinevriniTrendC1Sig and mtc1sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowMinevriniTrendC2Sig and mtc2sb and showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk), title = 'mtc2sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc2sb', textcolor = mtsbSigColor)
 plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk), title = 'mtc3sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc3sb', textcolor = mtsbSigColor)
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
+plotshape(iShowOi and oiSb and showRow(iShowOnlyGoodSigs, oiSbSuccRateOk), title = 'oiSb', location = location.belowbar, color = oiSbSigColor, style = shape.triangleup, text = 'oiSb', textcolor = oiSbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -294,8 +320,12 @@ mtsbSig = (mtsb and mtsbSuccRateOk) or (mtc1sb and mtc1sbSuccRateOk) or (mtc2sb 
 mtsbSig_p1D = mtsbSig[1] and orb
 ragPbSig = ragPb and ragPbSuccRateOk
 ragPbSig_p1D = ragPbSig[1] and orb
+oiSbSig = oiSb and oiSbSuccRateOk
+oiSbSig_p1D = oiSbSig[1] and orb
 
-alertcondition(gFilter and (et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D), title = 'best LONG', message = 'best LONG')
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or oiSbSig or oiSbSig_p1D
+
+alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
 alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
@@ -303,4 +333,5 @@ alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullis
 alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', message = 'ETCSB')
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
 alertcondition(gFilter and (mtsbSig or mtsbSig_p1D), title = 'bullish mtsb', message = 'mtsb')
-alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'RunAwayGap-pb', message = 'rag-pb')
+alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayGap-pb', message = 'rag-pb')
+alertcondition(gFilter and (oiSbSig or oiSbSig_p1D), title = 'bullish OneilInspired-sb', message = 'oiSb')
