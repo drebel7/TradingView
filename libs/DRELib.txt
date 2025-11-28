@@ -10,29 +10,36 @@ export getDefaultStockTradingDaysInAYear() => 252
 
 export getSessionLengthMinutes() => (time_close - time) / 60000
 
-export getDefaultBenchmarkOpen(string _period) =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, open) : request.security('SP:SPX', _period, open)
+getDefaultBenchmark(string _period, series float _series) =>
+    if syminfo.prefix == 'GPW'
+        request.security('GPW:WIG', _period, _series)
+    else if syminfo.prefix == 'NEWCONNECT'
+        request.security('NEWCONNECT:NCINDEX', _period, _series)
+    else if syminfo.prefix == 'NASDAQ'
+        request.security('NASDAQ:NDX', _period, _series)
+    else
+        request.security('SP:SPX', _period, _series)
+
+getDefaultBenchmark(series float _series) =>
+    getDefaultBenchmark(timeframe.period, _series)
+
+export getDefaultBenchmark(string _period) =>
+    getDefaultBenchmark(_period, close)
+
+export getDefaultBenchmark() =>
+    getDefaultBenchmark(timeframe.period, close)
 
 export getDefaultBenchmarkOpen() =>
-    getDefaultBenchmarkOpen(timeframe.period)
-
-export getDefaultBenchmarkClose(string _period) =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, close) : request.security('SP:SPX', _period, close)
+    getDefaultBenchmark(timeframe.period, open)
 
 export getDefaultBenchmarkClose() =>
-    getDefaultBenchmarkClose(timeframe.period)
-
-export getDefaultBenchmarkLow(string _period) =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, low) : request.security('SP:SPX', _period, low)
-
-export getDefaultBenchmarkLow() =>
-    getDefaultBenchmarkLow(timeframe.period)
-
-export getDefaultBenchmarkHigh(string _period) =>
-    syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', _period, high) : request.security('SP:SPX', _period, high)
+    getDefaultBenchmark(timeframe.period, close)
 
 export getDefaultBenchmarkHigh() =>
-    getDefaultBenchmarkHigh(timeframe.period)
+    getDefaultBenchmark(timeframe.period, high)
+
+export getDefaultBenchmarkLow() =>
+    getDefaultBenchmark(timeframe.period, low)
 
 export getSectorIndex() =>
     bool isGPW = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT'
@@ -281,25 +288,25 @@ export priceMasBearishAligned(series float closePrice, int _tradingDaysInAYear) 
     priceMasBearishAligned(closePrice, closePrice, closePrice, _tradingDaysInAYear)
 
 export defaultBenchmarkMasBearishAligned(int _tradingDaysInAYear) =>
-    closePrice = getDefaultBenchmarkClose()
-    lowPrice = getDefaultBenchmarkLow()
-    highPrice = getDefaultBenchmarkHigh()
+    closePrice = getDefaultBenchmark(close)
+    lowPrice = getDefaultBenchmark(low)
+    highPrice = getDefaultBenchmark(high)
     priceMasBearishAligned(closePrice, lowPrice, highPrice, _tradingDaysInAYear)
 
 export defaultBenchmarkMasBearishAligned() =>
-    closePrice = getDefaultBenchmarkClose()
+    closePrice = getDefaultBenchmark(close)
     priceMasBearishAligned(closePrice, closePrice, closePrice, getDefaultStockTradingDaysInAYear())
 
 // substitute for "RS Score > 70"
 export simpleRelativeStrengthStrong(int _tradingDaysInAYear) =>
-    benchmark = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    benchmark = getDefaultBenchmark(close)
     halfYearDays = _tradingDaysInAYear / 2
     quarterYearDays = _tradingDaysInAYear / 4
     relativelyStrong = close / benchmark > close[halfYearDays] / benchmark[halfYearDays] and close / benchmark > close[quarterYearDays] / benchmark[quarterYearDays]
     relativelyStrong
 
 export simpleRelativeStrengthWeak(int _tradingDaysInAYear) =>
-    benchmark = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT' ? request.security('GPW:WIG', timeframe.period, close) : request.security('SP:SPX', timeframe.period, close)
+    benchmark = getDefaultBenchmark(close)
     halfYearDays = _tradingDaysInAYear / 2
     quarterYearDays = _tradingDaysInAYear / 4
     relativelyWeak = close / benchmark < close[halfYearDays] / benchmark[halfYearDays] and close / benchmark < close[quarterYearDays] / benchmark[quarterYearDays]
@@ -352,7 +359,7 @@ export isMinevriniBearishTrend(bool _includeRelativeStrength, bool _includeEarni
     isMinevriniBearishTrend(getDefaultStockTradingDaysInAYear(), _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
 
 export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
-    wideIndexClose = getDefaultBenchmarkClose()
+    wideIndexClose = getDefaultBenchmark(close)
     [wideIndexBullish, wideIndexBearish] = priceMasTrendAligned(wideIndexClose)
     isWideIndexRecentlyBullishCond = nz(ta.barssince(wideIndexBullish), 9999) < daysSinceTrend
     isWideIndexRecentlyBearishCond = nz(ta.barssince(wideIndexBearish), 9999) < daysSinceTrend
