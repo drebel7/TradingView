@@ -4,21 +4,21 @@
 //@version=6
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200, calc_bars_count = 12 * 252)
 
-import drebel/DRELib/35 as drelib
+import drebel/DRELib/37 as drelib
 import drebel/DREPerf/22 as dreperf
 
 //common filters
-iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', group = 'Common signal filters', inline = 'trn')
-iMinTurnover = input.float(defval = 0.15, title = '', minval = 0, group = 'Common signal filters', inline = 'trn')
-iAdrCond = input.bool(defval = true, title = 'Min. ADR% for signal', group = 'Common signal filters', inline = 'adr')
-iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, group = 'Common signal filters', inline = 'adr')
+iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', display = display.none, group = 'Common signal filters', inline = 'trn')
+iMinTurnover = input.float(defval = 0.15, title = '', minval = 0, display = display.none, group = 'Common signal filters', inline = 'trn')
+iAdrCond = input.bool(defval = true, title = 'Min. ADR% for signal', display = display.none, group = 'Common signal filters', inline = 'adr')
+iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, display = display.none, group = 'Common signal filters', inline = 'adr')
 
 //common inputs
-iMainMaLength = input.int(defval = 200, title = 'Main MA length', minval = 50, maxval = 500, group = 'Common parameters')
-iShortMaLength = input.int(defval = 50, title = 'Short MA length', minval = 10, maxval = 200, group = 'Common parameters')
-iLongMaLength = input.int(defval = 750, title = 'Long MA length', minval = 200, maxval = 1000, group = 'Common parameters')
-iVShortMaLength1 = input.int(defval = 10, title = 'Very short MA length', minval = 5, maxval = 50, group = 'Common parameters')
-iVShortMaLength2 = input.int(defval = 21, title = 'Very short MA length2', minval = 8, maxval = 50, group = 'Common parameters')
+iMainMaLength = input.int(defval = 200, title = 'Main MA length', minval = 50, maxval = 500, display = display.none, group = 'Common parameters')
+iShortMaLength = input.int(defval = 50, title = 'Short MA length', minval = 10, maxval = 200, display = display.none, group = 'Common parameters')
+iLongMaLength = input.int(defval = 750, title = 'Long MA length', minval = 200, maxval = 1000, display = display.none, group = 'Common parameters')
+iVShortMaLength1 = input.int(defval = 10, title = 'Very short MA length', minval = 5, maxval = 50, display = display.none, group = 'Common parameters')
+iVShortMaLength2 = input.int(defval = 21, title = 'Very short MA length2', minval = 8, maxval = 50, display = display.none, group = 'Common parameters')
 
 //common calculations
 mainAtr = ta.atr(iMainMaLength)
@@ -38,15 +38,15 @@ gAdrCond = not iAdrCond or iAdrCond and gAdr > iMinAdr
 gFilter = gTurnoverCond and gAdrCond
 
 //parabolic top sig
-iParabolicTop = input.bool(defval = true, title = 'Parabolic top', group = 'parabolic top')
-iParTopAtrMulti = input.int(defval = 8, title = 'ATR Multiple Since Low', minval = 2, maxval = 30, group = 'parabolic top', display = display.none)
-iParTopGainDays = input.int(defval = 100, title = 'Number Of Days To top', minval = 5, maxval = 150, step = 5, group = 'parabolic top', display = display.none)
-iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', group = 'parabolic top', inline = 'top1', display = display.none)
-iDownDaysAfterTop1 = input.int(defval = 2, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top1', display = display.none)
-iDownDays2 = input.bool(defval = true, title = 'Down Days After Top 2', group = 'parabolic top', inline = 'top2', display = display.none)
-iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top2', display = display.none)
-iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', group = 'parabolic top', inline = 'top3', display = display.none)
-iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, group = 'parabolic top', inline = 'top3', display = display.none)
+iParabolicTop = input.bool(defval = true, title = 'Parabolic top', display = display.none, group = 'parabolic top')
+iParTopAtrMulti = input.int(defval = 8, title = 'ATR Multiple Since Low', minval = 2, maxval = 30, display = display.none, group = 'parabolic top')
+iParTopGainDays = input.int(defval = 100, title = 'Number Of Days To top', minval = 5, maxval = 150, step = 5, display = display.none, group = 'parabolic top')
+iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', display = display.none, group = 'parabolic top', inline = 'top1')
+iDownDaysAfterTop1 = input.int(defval = 2, title = '', minval = 1, maxval = 8, display = display.none, group = 'parabolic top', inline = 'top1')
+iDownDays2 = input.bool(defval = true, title = 'Down Days After Top 2', display = display.none, group = 'parabolic top', inline = 'top2')
+iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, display = display.none, group = 'parabolic top', inline = 'top2')
+iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', display = display.none, group = 'parabolic top', inline = 'top3')
+iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, display = display.none, group = 'parabolic top', inline = 'top3')
 
 top1Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop1, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays1
 top2Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop2, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays2
@@ -58,9 +58,9 @@ plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location
 
 
 //junior sig
-iJunior = input.bool(defval = true, title = 'bullish junior', group = 'junior')
-iJunior2 = input.bool(defval = true, title = 'bullish junior2', group = 'junior')
-iJunior3 = input.bool(defval = true, title = 'bullish junior3', group = 'junior')
+iJunior = input.bool(defval = true, title = 'bullish junior', display = display.none, group = 'junior')
+iJunior2 = input.bool(defval = true, title = 'bullish junior2', display = display.none, group = 'junior')
+iJunior3 = input.bool(defval = true, title = 'bullish late-junior', display = display.none, group = 'junior')
 
 func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
@@ -73,10 +73,18 @@ func_sig_junior(_maxAge) =>
     ret = bar_index < _maxAge and drelib.crossover(initVwap)
     ret
 
+func_sig_junior_late(_minAge) =>
+    initVwap = func_init_vwap_excl_init_higher_volume()
+    ret = bar_index >= _minAge and drelib.crossover(initVwap)
+    ret
+
 juniorSig = func_sig_junior(iLongMaLength)
+juniorLateSig = func_sig_junior_late(iLongMaLength)
 
 alertcondition(juniorSig, title = 'DRE junior sig', message = 'junior')
+alertcondition(juniorLateSig, title = 'DRE late-junior', message = 'late-junior')
 plotshape(juniorSig and iJunior, title = 'junior', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior', textcolor = color.new(color.green, 0))
+plotshape(juniorLateSig and iJunior3, title = 'late-junior', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'late-junior', textcolor = color.new(color.green, 0))
 
 
 
@@ -91,15 +99,15 @@ junior2Sig = initialHighBarsAgo > bars2 and drelib.candle_crossover(initHighVwap
 alertcondition(junior2Sig, title = 'DRE junior2 sig', message = 'junior2')
 plotshape(junior2Sig and iJunior2, title = 'junior2', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior2', textcolor = color.new(color.green, 0))
 
-junior3Sig = freshStock and initialHighBarsAgo > bars2 and drelib.candle_crossover(initialHigh[1])
-alertcondition(junior3Sig, title = 'DRE junior3 sig', message = 'junior3')
-plotshape(junior3Sig and iJunior3, title = 'junior3', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior3', textcolor = color.new(color.green, 0))
+// junior3Sig = freshStock and initialHighBarsAgo > bars2 and drelib.candle_crossover(initialHigh[1])
+// alertcondition(junior3Sig, title = 'DRE junior3 sig', message = 'junior3')
+// plotshape(junior3Sig and iJunior3, title = 'junior3', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'junior3', textcolor = color.new(color.green, 0))
 
 
 //coil and strech sig
-iCoil = input.bool(defval = false, title = 'bullish', group = 'coil_n_strech', inline = 'coil1')
-iCoilStrech = input.bool(defval = false, title = 'bearish', group = 'coil_n_strech', inline = 'coil1')
-iCoilPercent = input.int(defval = 2, title = 'Percentile rank distance from MAs', minval = 1, maxval = 20, group = 'coil_n_strech', display = display.none)
+iCoil = input.bool(defval = false, title = 'bullish', display = display.none, group = 'coil_n_strech', inline = 'coil1')
+iCoilStrech = input.bool(defval = false, title = 'bearish', display = display.none, group = 'coil_n_strech', inline = 'coil1')
+iCoilPercent = input.int(defval = 2, title = 'Percentile rank distance from MAs', minval = 1, maxval = 20, display = display.none, group = 'coil_n_strech')
 
 func_ma_distance(_shortMaLen, _mediumMaLen, _longMaLen) =>
     ma1 = ta.sma(close, _shortMaLen)
@@ -133,13 +141,13 @@ plotshape(strechBearishSig and iCoilStrech, title = 'strech', location = locatio
 
 
 //starter sig
-iBullishStarter = input.bool(defval = true, title = 'bullish', group = 'starter', inline = 'starter1')
-iBearishStarter = input.bool(defval = false, title = 'bearish', group = 'starter', inline = 'starter1')
-iBullishFireStarter = input.bool(defval = true, title = 'bullish fire starter', group = 'starter', display = display.none)
-iStarterMinDecliningDays = input.int(defval = 200, title = 'Number of SMA declining days', minval = 20, maxval = 1000, group = 'starter', display = display.none)
-iStarterMaxIncliningDays = input.int(defval = 200, title = 'Number of SMA inclining day', minval = 0, maxval = 300, group = 'starter', display = display.none)
-iStarterSmaSmoothing = input.int(defval = 3, title = 'SMA smoothing', minval = 0, maxval = 10, group = 'starter', display = display.none)
-iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA difference ATR multiple', minval = 0.5, maxval = 10, step = 0.5, group = 'starter', display = display.none)
+iBullishStarter = input.bool(defval = true, title = 'bullish', display = display.none, group = 'starter', inline = 'starter1')
+iBearishStarter = input.bool(defval = false, title = 'bearish', display = display.none, group = 'starter', inline = 'starter1')
+iBullishFireStarter = input.bool(defval = true, title = 'bullish fire starter', display = display.none, group = 'starter')
+iStarterMinDecliningDays = input.int(defval = 200, title = 'Number of SMA declining days', minval = 20, maxval = 1000, display = display.none, group = 'starter')
+iStarterMaxIncliningDays = input.int(defval = 200, title = 'Number of SMA inclining day', minval = 0, maxval = 300, display = display.none, group = 'starter')
+iStarterSmaSmoothing = input.int(defval = 3, title = 'SMA smoothing', minval = 0, maxval = 10, display = display.none, group = 'starter')
+iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA difference ATR multiple', minval = 0.5, maxval = 10, step = 0.5, display = display.none, group = 'starter')
 
 func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
     ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
@@ -171,8 +179,8 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title = 'bullish fire s
 
 
 //longer sig
-iLonger = input.bool(defval = true, title = 'bullish', group = 'longer', inline = 'longer1')
-iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, group = 'longer', display = display.none)
+iLonger = input.bool(defval = true, title = 'bullish', display = display.none, group = 'longer', inline = 'longer1')
+iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, display = display.none, group = 'longer')
 
 func_sig_longer(series float _shortMa, series float _longMa, float _offset, float _atr) =>
     longMaCond = na(_longMa[1]) ? true : (_longMa > _longMa[1] and _shortMa > _longMa)
@@ -189,10 +197,10 @@ plotshape(smallerLongerSig and iLonger, title = 's-longer', location = location.
 
 
 //bubble sig
-iBullishZscore = input.bool(defval = false, title = 'bullish', group = 'bubble', inline = 'bubble1')
-iBearishZscore = input.bool(defval = false, title = 'bearish', group = 'bubble', inline = 'bubble1')
-iZScore2ndMaLength = input.int(21, 'Z-Score 2nd MA Length (short)', minval = 3, maxval = 21, group = 'bubble', display = display.none)
-iZScore2ndMaMinScore = input.float(2.3, 'Min. zScore', minval = 1.0, maxval = 14, step = 0.1, group = 'bubble', display = display.none)
+iBullishZscore = input.bool(defval = false, title = 'bullish', display = display.none, group = 'bubble', inline = 'bubble1')
+iBearishZscore = input.bool(defval = false, title = 'bearish', display = display.none, group = 'bubble', inline = 'bubble1')
+iZScore2ndMaLength = input.int(21, 'Z-Score 2nd MA Length (short)', minval = 3, maxval = 21, display = display.none, group = 'bubble')
+iZScore2ndMaMinScore = input.float(2.3, 'Min. zScore', minval = 1.0, maxval = 14, step = 0.1, display = display.none, group = 'bubble')
 
 zscoreVolCond = ta.ema(drelib.z_score(volume, iMainMaLength), iZScore2ndMaLength) >= iZScore2ndMaMinScore
 zscoreEma = ta.ema(close, 2 * iZScore2ndMaLength / 3)
@@ -206,15 +214,15 @@ plotshape(zscoreBearishSig and iBearishZscore, title = 'bubble dn', location = l
 
 
 //hunter sig
-iBullishHunter = input.bool(defval = true, title = 'bullish', group = 'hunter', inline = 'hunter1')
-iBearishHunter = input.bool(defval = true, title = 'bearish', group = 'hunter', inline = 'hunter1')
-iHunterGracePeriod = input.int(defval = 40, title = 'grace period', minval = 20, maxval = 200, group = 'hunter', display = display.none)
-iHunterShort = input.bool(defval = true, title = 'short', group = 'hunter', inline = 'hunter2', display = display.none)
-iHunterLookbackShort = input.int(defval = 250, title = 'lookback', minval = 50, maxval = 1000, group = 'hunter', inline = 'hunter2', display = display.none)
-iHunterMid = input.bool(defval = true, title = 'mid', group = 'hunter', inline = 'hunter3', display = display.none)
-iHunterLookbackMid = input.int(defval = 700, title = 'lookback', minval = 100, maxval = 1500, group = 'hunter', inline = 'hunter3', display = display.none)
-iHunterLong = input.bool(defval = true, title = 'long', group = 'hunter', inline = 'hunter4', display = display.none)
-iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, group = 'hunter', inline = 'hunter4', display = display.none)
+iBullishHunter = input.bool(defval = true, title = 'bullish', display = display.none, group = 'hunter', inline = 'hunter1')
+iBearishHunter = input.bool(defval = true, title = 'bearish', display = display.none, group = 'hunter', inline = 'hunter1')
+iHunterGracePeriod = input.int(defval = 40, title = 'grace period', minval = 20, maxval = 200, display = display.none, group = 'hunter')
+iHunterShort = input.bool(defval = true, title = 'short', display = display.none, group = 'hunter', inline = 'hunter2')
+iHunterLookbackShort = input.int(defval = 250, title = 'lookback', minval = 50, maxval = 1000, display = display.none, group = 'hunter', inline = 'hunter2')
+iHunterMid = input.bool(defval = true, title = 'mid', display = display.none, group = 'hunter', inline = 'hunter3')
+iHunterLookbackMid = input.int(defval = 700, title = 'lookback', minval = 100, maxval = 1500, display = display.none, group = 'hunter', inline = 'hunter3')
+iHunterLong = input.bool(defval = true, title = 'long', display = display.none, group = 'hunter', inline = 'hunter4')
+iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, display = display.none, group = 'hunter', inline = 'hunter4')
 
 func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
     localLow = ta.lowest(_lookback)
@@ -251,11 +259,11 @@ plotshape(bearishHunterSig and iBearishHunter, title = 'bearish hunter', locatio
 
 
 //stepper sig
-iBullishStepper = input.bool(defval = true, title = 'bullish', group = 'stepper')
-iBullishLongerStepper = input.bool(defval = true, title = 'bullish longer stepper', group = 'stepper')
-iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'stepper', display = display.none)
-iStepperMaDist = input.float(defval = 1.25, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, step = 0.25, group = 'stepper', display = display.none)
-iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, group = 'stepper', display = display.none)
+iBullishStepper = input.bool(defval = true, title = 'bullish', display = display.none, group = 'stepper')
+iBullishLongerStepper = input.bool(defval = true, title = 'bullish longer stepper', display = display.none, group = 'stepper')
+iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, display = display.none, group = 'stepper')
+iStepperMaDist = input.float(defval = 1.25, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, step = 0.25, display = display.none, group = 'stepper')
+iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, display = display.none, group = 'stepper')
 
 func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
     localHigh = ta.highest(_lookback)
@@ -278,11 +286,11 @@ plotshape(bullishSLongerStepperSig and iBullishLongerStepper, title = 'bullish s
 
 
 //obv sig
-iBullishObv = input.bool(defval = true, title = 'bullish', group = 'obv', inline = 'obv1')
-iBearishObv = input.bool(defval = true, title = 'bearish', group = 'obv', inline = 'obv1')
-iObvMaLength = input.int(defval=100, title='Ma len.', minval=10, maxval=250, group='obv', display = display.none)
-iObvSource = input.source(close, title = 'Source', group = 'obv', display = display.none)
-iObvStdDevBand = input.float(defval = 0.35, title = 'StdDev.', minval = 0, maxval = 10.0, step = 0.05, group = 'obv', display = display.none)
+iBullishObv = input.bool(defval = true, title = 'bullish', display = display.none, group = 'obv', inline = 'obv1')
+iBearishObv = input.bool(defval = true, title = 'bearish', display = display.none, group = 'obv', inline = 'obv1')
+iObvMaLength = input.int(defval=100, title='Ma len.', minval=10, maxval=250, display = display.none, group='obv')
+iObvSource = input.source(close, title = 'Source', display = display.none, group = 'obv')
+iObvStdDevBand = input.float(defval = 0.35, title = 'StdDev.', minval = 0, maxval = 10.0, step = 0.05, display = display.none, group = 'obv')
 
 func_obv(_source) =>
     ta.cum(math.sign(ta.change(_source)) * volume)
@@ -308,20 +316,20 @@ plotshape(bullishObvSig and iBullishObv, title = 'bullish obv', location = locat
 plotshape(bearishObvSig and iBearishObv, title = 'bearish obv', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'obv', textcolor = color.new(color.red, 0))
 
 //rmv sig
-iBullishRmv = input.bool(defval = true, title = 'bullish', group = 'rmv', inline = 'rmv1')
-iBearishRmv = input.bool(defval = true, title = 'bearish', group = 'rmv', inline = 'rmv1')
-iBullishRmvPb = input.bool(defval = true, title = 'bullish-pb', group = 'rmv', inline = 'rmv2')
-iBearishRmvPb = input.bool(defval = true, title = 'bearish-pb', group = 'rmv', inline = 'rmv2')
-iBullishRmvEarnings = input.bool(defval = true, title = 'bullish-earnings', group = 'rmv', inline = 'rmv3')
-iBearishRmvEarnings = input.bool(defval = true, title = 'bearish-earnings', group = 'rmv', inline = 'rmv3')
-iBullishRmvEarningsPb = input.bool(defval = true, title = 'bullish-earnings-pb', group = 'rmv', inline = 'rmv4')
-iBearishRmvEarningsPb = input.bool(defval = true, title = 'bearish-earnings-pb', group = 'rmv', inline = 'rmv4')
-iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', group = 'rmv', display = display.none)
-iRmvShortLookback1 = input.int(13, minval = 1, title = 'Short-term ATR Lookback 1', group = 'rmv', display = display.none)
-iRmvShortLookback2 = input.int(8, minval = 1, title = 'Short-term ATR Lookback 2', group = 'rmv', display = display.none)
-iRmvshortLookback3 = input.int(5, minval = 1, title = 'Short-term ATR Lookback 3', group = 'rmv', display = display.none)
-iRmvLowLevel = input.int(25, title = 'Low Level Threshold', group = 'rmv', display = display.none)
-iRmvPbLen = input.int(11, title = 'Pullback Len.', group = 'rmv', display = display.none)
+iBullishRmv = input.bool(defval = true, title = 'bullish', display = display.none, group = 'rmv', inline = 'rmv1')
+iBearishRmv = input.bool(defval = true, title = 'bearish', display = display.none, group = 'rmv', inline = 'rmv1')
+iBullishRmvPb = input.bool(defval = true, title = 'bullish-pb', display = display.none, group = 'rmv', inline = 'rmv2')
+iBearishRmvPb = input.bool(defval = true, title = 'bearish-pb', display = display.none, group = 'rmv', inline = 'rmv2')
+iBullishRmvEarnings = input.bool(defval = true, title = 'bullish-earnings', display = display.none, group = 'rmv', inline = 'rmv3')
+iBearishRmvEarnings = input.bool(defval = true, title = 'bearish-earnings', display = display.none, group = 'rmv', inline = 'rmv3')
+iBullishRmvEarningsPb = input.bool(defval = true, title = 'bullish-earnings-pb', display = display.none, group = 'rmv', inline = 'rmv4')
+iBearishRmvEarningsPb = input.bool(defval = true, title = 'bearish-earnings-pb', display = display.none, group = 'rmv', inline = 'rmv4')
+iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', display = display.none, group = 'rmv')
+iRmvShortLookback1 = input.int(13, minval = 1, title = 'Short-term ATR Lookback 1', display = display.none, group = 'rmv')
+iRmvShortLookback2 = input.int(8, minval = 1, title = 'Short-term ATR Lookback 2', display = display.none, group = 'rmv')
+iRmvshortLookback3 = input.int(5, minval = 1, title = 'Short-term ATR Lookback 3', display = display.none, group = 'rmv')
+iRmvLowLevel = input.int(25, title = 'Low Level Threshold', display = display.none, group = 'rmv')
+iRmvPbLen = input.int(11, title = 'Pullback Len.', display = display.none, group = 'rmv')
 
 func_rmv(_artShortLen1, _artShortLen2, _artShortLen3, _MainLookback) =>
     shortAtrAvg = (ta.atr(_artShortLen1) + ta.atr(_artShortLen2) + ta.atr(_artShortLen3)) / 3
@@ -367,9 +375,9 @@ alertcondition(gFilter and bearishRmvEarningsPbSig, title = 'DRE Bearish earning
 
 
 //mtb sig (Minevrini + Trigger Bar / Shakeout Demand Tail / Gap Down Reversal)
-iBullishMtb = input.bool(defval = true, title = 'bullish', group = 'mtb', inline = 'mtb1')
-iMaxDistFromMaPctRank = input.int(defval = 10, title = 'Max. distance from MA', minval = 1, maxval = 99, group = 'mtb')
-iTriggerBarMaxPercentile = input.int(defval = 30, title = 'Trigger Bar max. percentiles', minval = 1, maxval = 99, group = 'mtb')
+iBullishMtb = input.bool(defval = true, title = 'bullish', display = display.none, group = 'mtb', inline = 'mtb1')
+iMaxDistFromMaPctRank = input.int(defval = 10, title = 'Max. distance from MA', minval = 1, maxval = 99, display = display.none, group = 'mtb')
+iTriggerBarMaxPercentile = input.int(defval = 30, title = 'Trigger Bar max. percentiles', minval = 1, maxval = 99, display = display.none, group = 'mtb')
 
 sma50 = ta.sma(close, 50)
 sma150 = ta.sma(close, 150)
@@ -410,7 +418,7 @@ alertcondition(gFilter and mtbSig, title = 'DRE Bullish mtb', message = 'mtb')
 plotshape(mtbSig and iBullishMtb, title = 'bullish mtb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'mtb', textcolor = color.new(color.green, 0))
 
 //price - volume corelation
-iPcvMinCorrelation = input.float(defval = 0.75, title = 'PCV - min. correlation', minval = -1.0, maxval = 1.0, step = 0.05, group = 'price-vol. corralation')
+iPcvMinCorrelation = input.float(defval = 0.75, title = 'PCV - min. correlation', minval = -1.0, maxval = 1.0, step = 0.05, display = display.none, group = 'price-vol. corralation')
 priceMa = ta.ema(close, 50)
 volumeMa = ta.ema(volume, 50)
 pvCorrelation = ta.correlation(priceMa, volumeMa, 50)
@@ -429,8 +437,8 @@ alertcondition(gFilter and bearishSig, title = 'DRE Bearish pattern sig', messag
 alertcondition(gFilter and (bullishSig or bearishSig), title = 'DRE ALL pattern sig', message = 'all patterns')
 
 
-iBoVolumeMultiple = input.float(defval = 2.0, title = 'Breakout volume multiple', minval = 0.0, maxval = 5.0, step = 0.1, group = 'Breakout parameters')
-iBoMaxRiskPct = input.float(defval = 7.0, title = 'Breakout max risk', minval = 0.0, maxval = 12.0, step = 0.5, group = 'Breakout parameters')
+iBoVolumeMultiple = input.float(defval = 2.0, title = 'Breakout volume multiple', minval = 0.0, maxval = 5.0, step = 0.1, display = display.none, group = 'Breakout parameters')
+iBoMaxRiskPct = input.float(defval = 7.0, title = 'Breakout max risk', minval = 0.0, maxval = 12.0, step = 0.5, display = display.none, group = 'Breakout parameters')
 
 currCandleRelativeVol(int _iMaLength) =>
     candleVolPart = volume / ta.sma(volume, _iMaLength)
@@ -452,22 +460,22 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 
 //check performance
 //sig stats table
-iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, group = 'Signals')
-iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
 adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
-// iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', group = 'Sig. performnce check')
-iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', group = 'Sig. performnce check')
+// iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performnce check')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performnce check')
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
 
 [s1SuccRate, s1SuccCount, s1SigCount, s1AvgReturn, s1SuccRateOk, s1SuccRateStr, s1Score] = dreperf.successRateAllTimeStatsFull(juniorSig, juniorSig ? low : na, iMinSigSuccessRate, adrCond)
 [s2SuccRate, s2SuccCount, s2SigCount, s2AvgReturn, s2SuccRateOk, s2SuccRateStr, s2Score] = dreperf.successRateAllTimeStatsFull(junior2Sig, junior2Sig ? low : na, iMinSigSuccessRate, adrCond)
-[s3SuccRate, s3SuccCount, s3SigCount, s3AvgReturn, s3SuccRateOk, s3SuccRateStr, s3Score] = dreperf.successRateAllTimeStatsFull(junior3Sig, junior3Sig ? low : na, iMinSigSuccessRate, adrCond)
+[s3SuccRate, s3SuccCount, s3SigCount, s3AvgReturn, s3SuccRateOk, s3SuccRateStr, s3Score] = dreperf.successRateAllTimeStatsFull(juniorLateSig, juniorLateSig ? low : na, iMinSigSuccessRate, adrCond)
 [s4SuccRate, s4SuccCount, s4SigCount, s4AvgReturn, s4SuccRateOk, s4SuccRateStr, s4Score] = dreperf.successRateAllTimeStatsFull(bullishStarterSig, bullishStarterSig ? low : na, iMinSigSuccessRate, adrCond)
 [s5SuccRate, s5SuccCount, s5SigCount, s5AvgReturn, s5SuccRateOk, s5SuccRateStr, s5Score] = dreperf.successRateAllTimeStatsFull(bullishFireStarterSig, bullishFireStarterSig ? low : na, iMinSigSuccessRate, adrCond)
 [s6SuccRate, s6SuccCount, s6SigCount, s6AvgReturn, s6SuccRateOk, s6SuccRateStr, s6Score] = dreperf.successRateAllTimeStatsFull(longerSig, longerSig ? low : na, iMinSigSuccessRate, adrCond)
@@ -500,7 +508,7 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 3, text = "junior2", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 3, text = s2SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 4, text = "junior3", text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 4, text = "late-junior", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 4, text = s3SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s4SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 5, text = "Starter", text_size = txtSize)
