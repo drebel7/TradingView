@@ -5,7 +5,7 @@
 //@version=6
 indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252)
 
-import drebel/DRELib/36 as drelib
+import drebel/DRELib/37 as drelib
 import drebel/DREPerf/22 as dreperf
 
 //common filters inputs
