@@ -643,9 +643,68 @@ export openingRangeBreakdown(int minutes, bool openLowerThanPrevClose, bool only
     orb
 
 // Signals
-export sig_parabolic_top(series float _volMa, int _downDaysAfterTop, int _prevPeriodGainLen, int _atrMulti, series float _atr) =>
+export sigParabolicTop(series float _volMa, int _downDaysAfterTop, int _prevPeriodGainLen, int _atrMulti, series float _atr) =>
     barsSinceVolDown = ta.barssince(_volMa < _volMa[3])
     localLow = ta.lowest(close, _prevPeriodGainLen)
     downDaysCond = bar_index > _downDaysAfterTop and volume < volume[_downDaysAfterTop] and open < close[_downDaysAfterTop]
     ret = barsSinceVolDown > 15 and close > localLow + _atrMulti * _atr and downDaysCond
     ret
+
+func_init_vwap_excl_init_higher_volume() =>
+    x = 0.5
+    reset = bar_index == 0 or bar_index == 1 and volume < x * volume[1] or bar_index == 2 and volume < x * volume[1] and volume[1] < x * volume[2]
+    ret = ta.vwap(ohlc4, reset)
+    ret
+
+export sigJunior(int _maxAge) =>
+    initVwap = func_init_vwap_excl_init_higher_volume()
+    ret = bar_index < _maxAge and crossover(initVwap)
+    ret
+
+export sigStarter(bool _isBullish, int _maLen, int _minMove1Len, int _maxMove2Len, int _smoothing) =>
+    ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
+    // Only calculate move1 after MA has enough data
+    move1 = bar_index >= _maLen ? math.min(1000, ta.barssince(_isBullish ? ma > ma[1] : ma < ma[1])) : 1000
+    move2 = math.min(1000, ta.barssince(move1 == 0 and (_isBullish ? move1[1] > _minMove1Len : move1[1] < _minMove1Len)))
+    ret = move2 < _maxMove2Len and (_isBullish ? crossover(ma) and ma >= ma[move2] : crossunder(ma) and ma <= ma[move2])
+    ret
+
+export sigFireStarter(int _maLen, int _minMove1Len, float _atrMulti, int _smoothing, float _atr) =>
+    sma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
+    vwma = ta.vwma(ohlc4, _maLen)
+    move1 = ta.barssince(sma > sma[1])
+    maDiffLen = math.ceil(0.4 * (move1 > _minMove1Len ? move1 : _minMove1Len))
+    highestMaDiff = ta.highest(sma - vwma, maDiffLen) / _atr
+    ret = move1 > _minMove1Len and (crossover(sma) or crossover(vwma)) and highestMaDiff > _atrMulti and highestMaDiff > highestMaDiff[maDiffLen]
+    ret
+
+export sigLonger(series float _shortMa, series float _longMa, float _offset, float _atr) =>
+    longMaCond = na(_longMa[1]) ? true : (_longMa > _longMa[1] and _shortMa > _longMa)
+    ret = _shortMa > _shortMa[1] and longMaCond and crossover(_shortMa + _offset * _atr)
+    ret
+
+export sigBullSLHunter(float _atr, int _lookback, int _gracePeriod) =>
+    localLow = ta.lowest(_lookback)
+    localLowCandlesAgo = ta.barssince(low == localLow)
+    validCandlesAgo = localLowCandlesAgo == 0 ? 1 : nz(localLowCandlesAgo, 1)
+    localHigh = ta.highest(math.min(_lookback, validCandlesAgo))
+    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+    sig = crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
+    sig
+
+export sigBearSLHunter(float _atr, int _lookback, int _gracePeriod) =>
+    localHigh = ta.highest(_lookback)
+    localHighCandlesAgo = ta.barssince(high == localHigh)
+    validCandlesAgo = nz(localHighCandlesAgo, _lookback)
+    localLow = ta.lowest(math.max(1, validCandlesAgo))
+    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
+    sig = crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
+    sig
+
+export sigBullStepper(float _atr, series float _mainMa, int _lookback, float _maxMaDist) =>
+    localHigh = ta.highest(_lookback)
+    localHighCandlesAgo = ta.barssince(high == localHigh)
+    localHighVwap = ta.vwap(ohlc4, high == localHigh)
+    maDist = localHighVwap - _mainMa
+    sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(localHighCandlesAgo) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and crossover(localHighVwap)
+    sig

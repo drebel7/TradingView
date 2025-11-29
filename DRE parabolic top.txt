@@ -4,7 +4,7 @@
 //@version=6
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200, calc_bars_count = 12 * 252)
 
-import drebel/DRELib/37 as drelib
+import drebel/DRELib/38 as drelib
 import drebel/DREPerf/22 as dreperf
 
 //common filters
@@ -48,9 +48,9 @@ iDownDaysAfterTop2 = input.int(defval = 3, title = '', minval = 1, maxval = 8, d
 iDownDays3 = input.bool(defval = true, title = 'Down Days After Top 3', display = display.none, group = 'parabolic top', inline = 'top3')
 iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, display = display.none, group = 'parabolic top', inline = 'top3')
 
-top1Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop1, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays1
-top2Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop2, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays2
-top3Sig = drelib.sig_parabolic_top(gVolMa, iDownDaysAfterTop3, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays3
+top1Sig = drelib.sigParabolicTop(gVolMa, iDownDaysAfterTop1, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays1
+top2Sig = drelib.sigParabolicTop(gVolMa, iDownDaysAfterTop2, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays2
+top3Sig = drelib.sigParabolicTop(gVolMa, iDownDaysAfterTop3, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays3
 topSig = top1Sig or top2Sig or top3Sig
 
 alertcondition(gFilter and topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
@@ -68,17 +68,12 @@ func_init_vwap_excl_init_higher_volume() =>
     ret = ta.vwap(ohlc4, reset)
     ret
 
-func_sig_junior(_maxAge) =>
-    initVwap = func_init_vwap_excl_init_higher_volume()
-    ret = bar_index < _maxAge and drelib.crossover(initVwap)
-    ret
-
 func_sig_junior_late(_minAge) =>
     initVwap = func_init_vwap_excl_init_higher_volume()
     ret = bar_index >= _minAge and drelib.crossover(initVwap)
     ret
 
-juniorSig = func_sig_junior(iLongMaLength)
+juniorSig = drelib.sigJunior(iLongMaLength)
 juniorLateSig = func_sig_junior_late(iLongMaLength)
 
 alertcondition(juniorSig, title = 'DRE junior sig', message = 'junior')
@@ -149,26 +144,9 @@ iStarterMaxIncliningDays = input.int(defval = 200, title = 'Number of SMA inclin
 iStarterSmaSmoothing = input.int(defval = 3, title = 'SMA smoothing', minval = 0, maxval = 10, display = display.none, group = 'starter')
 iFireStarterMaDiffAtrMultiple = input.float(defval = 1, title = 'Fire starter MA difference ATR multiple', minval = 0.5, maxval = 10, step = 0.5, display = display.none, group = 'starter')
 
-func_sig_starter(_isBullish, _maLen, _minMove1Len, _maxMove2Len, _smoothing) =>
-    ma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
-    // Only calculate move1 after MA has enough data
-    move1 = bar_index >= _maLen ? math.min(1000, ta.barssince(_isBullish ? ma > ma[1] : ma < ma[1])) : 1000
-    move2 = math.min(1000, ta.barssince(move1 == 0 and (_isBullish ? move1[1] > _minMove1Len : move1[1] < _minMove1Len)))
-    ret = move2 < _maxMove2Len and (_isBullish ? drelib.crossover(ma) and ma >= ma[move2] : drelib.crossunder(ma) and ma <= ma[move2])
-    ret
-
-func_sig_f_starter(_maLen, _minMove1Len, _atrMulti, _smoothing) =>
-    sma = _smoothing > 0 ? ta.ema(ta.sma(close, _maLen), _smoothing) : ta.sma(close, _maLen)
-    vwma = ta.vwma(ohlc4, _maLen)
-    move1 = ta.barssince(sma > sma[1])
-    maDiffLen = math.ceil(0.4 * (move1 > _minMove1Len ? move1 : _minMove1Len))
-    highestMaDiff = ta.highest(sma - vwma, maDiffLen) / mainAtr
-    ret = move1 > _minMove1Len and (drelib.crossover(sma) or drelib.crossover(vwma)) and highestMaDiff > _atrMulti and highestMaDiff > highestMaDiff[maDiffLen]
-    ret
-
-bullishStarterSig = func_sig_starter(true, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
-bearishStarterSig = func_sig_starter(false, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
-bullishFireStarterSig = func_sig_f_starter(iMainMaLength, iStarterMinDecliningDays, iFireStarterMaDiffAtrMultiple, iStarterSmaSmoothing)
+bullishStarterSig = drelib.sigStarter(true, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bearishStarterSig = drelib.sigStarter(false, iMainMaLength, iStarterMinDecliningDays, iStarterMaxIncliningDays, iStarterSmaSmoothing)
+bullishFireStarterSig = drelib.sigFireStarter(iMainMaLength, iStarterMinDecliningDays, iFireStarterMaDiffAtrMultiple, iStarterSmaSmoothing, mainAtr)
 
 alertcondition(gFilter and bullishStarterSig, title = 'DRE bullish starter sig', message = 'bullish starter')
 alertcondition(gFilter and bearishStarterSig, title = 'DRE bearish starter sig', message = 'bearish starter')
@@ -182,13 +160,8 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title = 'bullish fire s
 iLonger = input.bool(defval = true, title = 'bullish', display = display.none, group = 'longer', inline = 'longer1')
 iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, display = display.none, group = 'longer')
 
-func_sig_longer(series float _shortMa, series float _longMa, float _offset, float _atr) =>
-    longMaCond = na(_longMa[1]) ? true : (_longMa > _longMa[1] and _shortMa > _longMa)
-    ret = _shortMa > _shortMa[1] and longMaCond and drelib.crossover(_shortMa + _offset * _atr)
-    ret
-
-longerSig = func_sig_longer(mainMa, longMa, 0, mainAtr)
-smallerLongerSig = func_sig_longer(shortMa, mainMa, 0, mainAtr)
+longerSig = drelib.sigLonger(mainMa, longMa, 0, mainAtr)
+smallerLongerSig = drelib.sigLonger(shortMa, mainMa, 0, mainAtr)
 
 alertcondition(gFilter and longerSig, title = 'DRE longer sig', message = 'longer')
 alertcondition(gFilter and smallerLongerSig, title = 'DRE sLonger sig', message = 's-longer')
@@ -224,32 +197,14 @@ iHunterLookbackMid = input.int(defval = 700, title = 'lookback', minval = 100, m
 iHunterLong = input.bool(defval = true, title = 'long', display = display.none, group = 'hunter', inline = 'hunter4')
 iHunterLookbackLong = input.int(defval = 1300, title = 'lookback', minval = 200, maxval = 2000, display = display.none, group = 'hunter', inline = 'hunter4')
 
-func_sig_bull_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    localLow = ta.lowest(_lookback)
-    localLowCandlesAgo = ta.barssince(low == localLow)
-    validCandlesAgo = localLowCandlesAgo == 0 ? 1 : nz(localLowCandlesAgo, 1)
-    localHigh = ta.highest(math.min(_lookback, validCandlesAgo))
-    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    sig = drelib.crossover(localLow[_gracePeriod]) and localHigh[_gracePeriod] > localLow[_gracePeriod] + lohi * _atr and localLow[_gracePeriod] == localLow[2 * _gracePeriod]
-    sig
-
-func_sig_bear_sl_hunter(_atr, _lookback, _gracePeriod) =>
-    localHigh = ta.highest(_lookback)
-    localHighCandlesAgo = ta.barssince(high == localHigh)
-    validCandlesAgo = nz(localHighCandlesAgo, _lookback)
-    localLow = ta.lowest(math.max(1, validCandlesAgo))
-    lohi = math.pow(math.log(_lookback), 1.25) - 1.25
-    sig = drelib.crossunder(localHigh[_gracePeriod]) and localLow[_gracePeriod] < localHigh[_gracePeriod] - lohi * _atr and localHigh[_gracePeriod] == localHigh[2 * _gracePeriod]
-    sig
-
-bullishHunterShortSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort
-bullishHunterMidSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
-bullishHunterLongSig = func_sig_bull_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
+bullishHunterShortSig = drelib.sigBullSLHunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort
+bullishHunterMidSig = drelib.sigBullSLHunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
+bullishHunterLongSig = drelib.sigBullSLHunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
 bullishHunterSig = bullishHunterShortSig or bullishHunterMidSig or bullishHunterLongSig
 
-bearishHunterShortSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort 
-bearishHunterMidSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
-bearishHunterLongSig = func_sig_bear_sl_hunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
+bearishHunterShortSig = drelib.sigBearSLHunter(mainAtr, iHunterLookbackShort, iHunterGracePeriod) and iHunterShort 
+bearishHunterMidSig = drelib.sigBearSLHunter(mainAtr, iHunterLookbackMid, iHunterGracePeriod) and iHunterMid
+bearishHunterLongSig = drelib.sigBearSLHunter(mainAtr, iHunterLookbackLong, iHunterGracePeriod) and iHunterLong
 bearishHunterSig = bearishHunterShortSig or bearishHunterMidSig or bearishHunterLongSig
 
 alertcondition(gFilter and bullishHunterSig, title = 'DRE Bullish hunter', message = 'hunter')
@@ -265,15 +220,7 @@ iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, max
 iStepperMaDist = input.float(defval = 1.25, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, step = 0.25, display = display.none, group = 'stepper')
 iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, display = display.none, group = 'stepper')
 
-func_sig_bull_stepper(_atr, _mainMa, _lookback, _maxMaDist) =>
-    localHigh = ta.highest(_lookback)
-    localHighCandlesAgo = ta.barssince(high == localHigh)
-    localHighVwap = ta.vwap(ohlc4, high == localHigh)
-    maDist = localHighVwap - _mainMa
-    sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(localHighCandlesAgo) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and drelib.crossover(localHighVwap)
-    sig
-
-bullishStepperSig = func_sig_bull_stepper(mainAtr, mainMa, iStepperLookback, iStepperMaDist)
+bullishStepperSig = drelib.sigBullStepper(mainAtr, mainMa, iStepperLookback, iStepperMaDist)
 bullishLongerStepperSig = ta.barssince(longerSig) <= iLongerStepperDist and bullishStepperSig
 bullishSLongerStepperSig = ta.barssince(smallerLongerSig) <= 3 and bullishStepperSig
 
