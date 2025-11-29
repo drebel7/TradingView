@@ -6,7 +6,7 @@
 //@version=6
 indicator(title = 'DRE Info', shorttitle = 'Info', overlay = true)
 
-import drebel/DRELib/36 as drelib
+import drebel/DRELib/37 as drelib
 
 show_ticker = input.bool(defval = false, title = 'Show ticker')
 show_adrp = input.bool(defval = true, title = 'Show ADR %')
@@ -74,8 +74,6 @@ modStr = mod == 2 ? '(++)' : mod == 1 ? '(+)' : mod == 0 ? '(0)' : mod == -1 ? '
 [nBLowsPct, nBHighsPct, nBBoth, ratio, mod2] = drelib.nonBrokenExtremesPctSigMod(100, 24, 14, 3.25)
 mod2Str = mod2 == 1 ? '(+)' : mod2 == 0 ? '(0)' : '(-)'
 
-ageYears = (timenow - time[math.min(bar_index, 10000)]) / 1000 / 60 / 60 / 24 / 365
-
 table t = table.new(position.top_right, 2, 18, bgcolor = bg_col)
 txtSize = size.small
 if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
@@ -132,4 +130,4 @@ if barstate.islast and timeframe.period != 'W' and timeframe.period != 'M'
         table.cell(t, 1, 16, str.tostring(math.round(nBLowsPct)) + mod2Str, text_color = adrp_col, text_size = txtSize)
     if show_years_on_exchange
         table.cell(t, 0, 17, 'years on exch.', text_color = adrp_col, text_size = txtSize)
-        table.cell(t, 1, 17, str.tostring(math.round(ageYears)), text_color = adrp_col, text_size = txtSize)
+        table.cell(t, 1, 17, str.tostring(math.round(drelib.getYearsOnExchange())), text_color = adrp_col, text_size = txtSize)

@@ -10,6 +10,19 @@ export getDefaultStockTradingDaysInAYear() => 252
 
 export getSessionLengthMinutes() => (time_close - time) / 60000
 
+export getDaysOnExchange() =>
+    maxIndex = math.min(bar_index, 500)
+    (timenow - time[maxIndex]) * bar_index / maxIndex / 1000 / 60 / 60 / 24
+
+export getWeeksOnExchange() =>
+    getDaysOnExchange() / 7
+
+export getMonthsOnExchange() =>
+    getDaysOnExchange() / 30.43
+
+export getYearsOnExchange() =>
+    getDaysOnExchange() / 365.25
+
 getDefaultBenchmark(string _period, series float _series) =>
     if syminfo.prefix == 'GPW'
         request.security('GPW:WIG', _period, _series)
