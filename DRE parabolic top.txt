@@ -406,7 +406,7 @@ bottom = ta.lowest(iTurnaroundExtremeAgo)
 bottomAgo = ta.barssince(low == bottom)
 bottomNotFarAway = bottomAgo >= 4 and bottomAgo < 20
 bullMainCond = volumeCond and close / close[1] >= 1.0 + iTurnaroundGoMinRange / 100.0
-bullCondCount = math.sum(bullMainCond ? 1 : 0, 20)
+bullCondCount = math.sum(bullMainCond ? 1 : 0, math.min(20, math.max(10, 4 * iTurnaroundGoMinDays)))
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
 bullGoSig2 = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
 plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
@@ -415,7 +415,7 @@ peak = ta.highest(iTurnaroundExtremeAgo)
 peakAgo = ta.barssince(high == peak)
 peakNotFarAway = peakAgo >= 4 and peakAgo < 20
 bearMainCond = volumeCond and close / close[1] <= 1.0 - iTurnaroundGoMinRange / 100.0
-bearCondCount = math.sum(bearMainCond ? 1 : 0, 20)
+bearCondCount = math.sum(bearMainCond ? 1 : 0,  math.min(20, math.max(10, 4 * iTurnaroundGoMinDays)))
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
 bearGoSig2 = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
 plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
