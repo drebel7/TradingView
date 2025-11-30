@@ -416,19 +416,18 @@ dailyHigh = request.security(syminfo.tickerid, "1D", high)
 dailyLow = request.security(syminfo.tickerid, "1D", low)
 dailyVol = request.security(syminfo.tickerid, "1D", volume)
 vol50sma = ta.sma(dailyVol, 50)
-dailyRangePct = 100 * (dailyHigh - dailyLow) / dailyClose[1]
-commonCond = dailyRangePct >= iTurnaroundGoMinRange and dailyVol > dailyVol[1] and dailyVol > vol50sma
+commonCond = dailyVol > dailyVol[1] and dailyVol > vol50sma
 
 bottom = ta.lowest(dailyLow, iTurnaroundExtremeAgo)
 bottomNotFarAway = ta.barssince(dailyLow == bottom) > 10
-bullCondCount = math.sum(commonCond and dailyClose > dailyClose[1]  ? 1 : 0, 20)
+bullCondCount = math.sum(commonCond and dailyClose >= iTurnaroundGoMinRange / 100 * dailyClose[1]  ? 1 : 0, 20)
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
 bullGoSig2 = ta.barssince(bullGoSig[1]) > 20 and bullGoSig
 plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
 peak = ta.highest(dailyHigh, iTurnaroundExtremeAgo)
 peakNotFarAway = ta.barssince(dailyHigh == peak) > 10
-bearCondCount = math.sum(commonCond and dailyClose < dailyClose[1]  ? 1 : 0, 20)
+bearCondCount = math.sum(commonCond and dailyClose <= (1.0 - iTurnaroundGoMinRange / 100) * dailyClose[1]  ? 1 : 0, 20)
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
 bearGoSig2 = ta.barssince(bearGoSig[1]) > 20 and bearGoSig
 plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
