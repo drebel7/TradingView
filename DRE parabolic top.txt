@@ -361,8 +361,8 @@ pvc = priceMa > priceMa[1] and pvCorrelation > iPcvMinCorrelation
 pvc2 = pvc and gVShortMa1 > gVShortMa2 and close > shortMa
 //end
 
-bullishRmvSigs = bullishRmvSig or bullishRmvPbSig or bullishRmvEarningsSig or bullishRmvEarningsPbSig
-bearishRmvSigs = bearishRmvSig or bearishRmvPbSig or bearishRmvEarningsSig or bearishRmvEarningsPbSig
+bullishRmvSigs = bullishRmvSig or bullishRmvPbSig
+bearishRmvSigs = bearishRmvSig or bearishRmvPbSig
 bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or bullishHunterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs or mtbSig
 bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
 
