@@ -404,7 +404,7 @@ volumeCond = volume > volume[1] and volume > vol50sma
 
 bottom = ta.lowest(iTurnaroundExtremeAgo)
 bottomAgo = ta.barssince(low == bottom)
-bottomNotFarAway = bottomAgo >= 4 and bottomAgo < 20
+bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20
 bullMainCond = volumeCond and close / close[1] >= 1.0 + iTurnaroundGoMinRange / 100.0
 bullCondCount = math.sum(bullMainCond ? 1 : 0, math.min(20, math.max(10, 4 * iTurnaroundGoMinDays)))
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
@@ -413,7 +413,7 @@ plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = locatio
 
 peak = ta.highest(iTurnaroundExtremeAgo)
 peakAgo = ta.barssince(high == peak)
-peakNotFarAway = peakAgo >= 4 and peakAgo < 20
+peakNotFarAway = peakAgo >= 3 and peakAgo < 20
 bearMainCond = volumeCond and close / close[1] <= 1.0 - iTurnaroundGoMinRange / 100.0
 bearCondCount = math.sum(bearMainCond ? 1 : 0,  math.min(20, math.max(10, 4 * iTurnaroundGoMinDays)))
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
@@ -453,8 +453,10 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 [s16SuccRate, s16SuccCount, s16SigCount, s16AvgReturn, s16SuccRateOk, s16SuccRateStr, s16Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, iMinSigSuccessRate, adrCond)
 [s17SuccRate, s17SuccCount, s17SigCount, s17AvgReturn, s17SuccRateOk, s17SuccRateStr, s17Score] = dreperf.successRateAllTimeStatsFull(bullishHunterSig, bullishHunterSig ? low : na, iMinSigSuccessRate, adrCond)
 [s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, iMinSigSuccessRate, adrCond)
-[s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(bullGoSig2, bullGoSig2 ? low : na, iMinSigSuccessRate, adrCond)
-[s20SuccRate, s20SuccCount, s20SigCount, s20AvgReturn, s20SuccRateOk, s20SuccRateStr, s20Score] = dreperf.successRateAllTimeStatsFull(bearGoSig2, bearGoSig2 ? high : na, false, iMinSigSuccessRate, adrCond)
+lowest3 = ta.lowest(2)
+highest3 = ta.highest(2)
+[s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(bullGoSig2, bullGoSig2 ? lowest3 : na, iMinSigSuccessRate, adrCond)
+[s20SuccRate, s20SuccCount, s20SigCount, s20AvgReturn, s20SuccRateOk, s20SuccRateStr, s20Score] = dreperf.successRateAllTimeStatsFull(bearGoSig2, bearGoSig2 ? highest3 : na, false, iMinSigSuccessRate, adrCond)
 
 
 if barstate.islast and iShowSigPerfTable
