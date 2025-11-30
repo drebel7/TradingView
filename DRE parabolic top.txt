@@ -407,6 +407,7 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 
 //only for general market turnaround (as William O'Neil)
 iTurnaroundGo = input.bool(defval = true, title = "O'Neail big index turnaround GO", display = display.none, group = "William O'Neil turnaround and GO")
+iTurnaroundExtremeAgo = input.int(defval = 50, title = "max. peak/bottom ago", minval = 20, maxval = 100, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
 iTurnaroundGoMinRange = input.float(defval = 1.7, title = "min. day range", minval = 0.1, maxval = 5.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO")
 iTurnaroundGoMinDays = input.int(defval = 5, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
 
@@ -418,14 +419,14 @@ vol50sma = ta.sma(dailyVol, 50)
 dailyRangePct = 100 * (dailyHigh - dailyLow) / dailyClose[1]
 commonCond = dailyRangePct >= iTurnaroundGoMinRange and dailyVol > dailyVol[1] and dailyVol > vol50sma
 
-bottom = ta.lowest(dailyLow, 20)
+bottom = ta.lowest(dailyLow, iTurnaroundExtremeAgo)
 bottomNotFarAway = ta.barssince(dailyLow == bottom) > 10
 bullCondCount = math.sum(commonCond and dailyClose > dailyClose[1]  ? 1 : 0, 20)
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
 bullGoSig2 = ta.barssince(bullGoSig[1]) > 20 and bullGoSig
 plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
-peak = ta.highest(dailyHigh, 20)
+peak = ta.highest(dailyHigh, iTurnaroundExtremeAgo)
 peakNotFarAway = ta.barssince(dailyHigh == peak) > 10
 bearCondCount = math.sum(commonCond and dailyClose < dailyClose[1]  ? 1 : 0, 20)
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
