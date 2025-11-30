@@ -38,7 +38,7 @@ gAdrCond = not iAdrCond or iAdrCond and gAdr > iMinAdr
 gFilter = gTurnoverCond and gAdrCond
 
 //parabolic top sig
-iParabolicTop = input.bool(defval = true, title = 'Parabolic top', display = display.none, group = 'parabolic top')
+iParabolicTop = input.bool(defval = false, title = 'Parabolic top', display = display.none, group = 'parabolic top')
 iParTopAtrMulti = input.int(defval = 8, title = 'ATR Multiple Since Low', minval = 2, maxval = 30, display = display.none, group = 'parabolic top')
 iParTopGainDays = input.int(defval = 100, title = 'Number Of Days To top', minval = 5, maxval = 150, step = 5, display = display.none, group = 'parabolic top')
 iDownDays1 = input.bool(defval = true, title = 'Down Days After Top 1', display = display.none, group = 'parabolic top', inline = 'top1')
@@ -58,9 +58,9 @@ plotshape(topSig and iParabolicTop, title = 'parabolic top', location = location
 
 
 //junior sig
-iJunior = input.bool(defval = true, title = 'bullish junior', display = display.none, group = 'junior')
-iJunior2 = input.bool(defval = true, title = 'bullish junior2', display = display.none, group = 'junior')
-iJunior3 = input.bool(defval = true, title = 'bullish late-junior', display = display.none, group = 'junior')
+iJunior = input.bool(defval = false, title = 'bullish junior', display = display.none, group = 'junior')
+iJunior2 = input.bool(defval = false, title = 'bullish junior2', display = display.none, group = 'junior')
+iJunior3 = input.bool(defval = false, title = 'bullish late-junior', display = display.none, group = 'junior')
 
 func_init_vwap_excl_init_higher_volume() =>
     x = 0.5
@@ -136,9 +136,9 @@ plotshape(strechBearishSig and iCoilStrech, title = 'strech', location = locatio
 
 
 //starter sig
-iBullishStarter = input.bool(defval = true, title = 'bullish', display = display.none, group = 'starter', inline = 'starter1')
+iBullishStarter = input.bool(defval = false, title = 'bullish', display = display.none, group = 'starter', inline = 'starter1')
 iBearishStarter = input.bool(defval = false, title = 'bearish', display = display.none, group = 'starter', inline = 'starter1')
-iBullishFireStarter = input.bool(defval = true, title = 'bullish fire starter', display = display.none, group = 'starter')
+iBullishFireStarter = input.bool(defval = false, title = 'bullish fire starter', display = display.none, group = 'starter')
 iStarterMinDecliningDays = input.int(defval = 200, title = 'Number of SMA declining days', minval = 20, maxval = 1000, display = display.none, group = 'starter')
 iStarterMaxIncliningDays = input.int(defval = 200, title = 'Number of SMA inclining day', minval = 0, maxval = 300, display = display.none, group = 'starter')
 iStarterSmaSmoothing = input.int(defval = 3, title = 'SMA smoothing', minval = 0, maxval = 10, display = display.none, group = 'starter')
@@ -157,7 +157,7 @@ plotshape(bullishFireStarterSig and iBullishFireStarter, title = 'bullish fire s
 
 
 //longer sig
-iLonger = input.bool(defval = true, title = 'bullish', display = display.none, group = 'longer', inline = 'longer1')
+iLonger = input.bool(defval = false, title = 'bullish', display = display.none, group = 'longer', inline = 'longer1')
 iLongerOffset = input.float(defval = 0.1, title = 'Price offset (atr multiple)', minval = -2.0, maxval = 2.0, step = 0.5, display = display.none, group = 'longer')
 
 longerSig = drelib.sigLonger(mainMa, longMa, 0, mainAtr)
@@ -187,8 +187,8 @@ plotshape(zscoreBearishSig and iBearishZscore, title = 'bubble dn', location = l
 
 
 //hunter sig
-iBullishHunter = input.bool(defval = true, title = 'bullish', display = display.none, group = 'hunter', inline = 'hunter1')
-iBearishHunter = input.bool(defval = true, title = 'bearish', display = display.none, group = 'hunter', inline = 'hunter1')
+iBullishHunter = input.bool(defval = false, title = 'bullish', display = display.none, group = 'hunter', inline = 'hunter1')
+iBearishHunter = input.bool(defval = false, title = 'bearish', display = display.none, group = 'hunter', inline = 'hunter1')
 iHunterGracePeriod = input.int(defval = 40, title = 'grace period', minval = 20, maxval = 200, display = display.none, group = 'hunter')
 iHunterShort = input.bool(defval = true, title = 'short', display = display.none, group = 'hunter', inline = 'hunter2')
 iHunterLookbackShort = input.int(defval = 250, title = 'lookback', minval = 50, maxval = 1000, display = display.none, group = 'hunter', inline = 'hunter2')
@@ -214,8 +214,8 @@ plotshape(bearishHunterSig and iBearishHunter, title = 'bearish hunter', locatio
 
 
 //stepper sig
-iBullishStepper = input.bool(defval = true, title = 'bullish', display = display.none, group = 'stepper')
-iBullishLongerStepper = input.bool(defval = true, title = 'bullish longer stepper', display = display.none, group = 'stepper')
+iBullishStepper = input.bool(defval = false, title = 'bullish', display = display.none, group = 'stepper')
+iBullishLongerStepper = input.bool(defval = false, title = 'bullish longer stepper', display = display.none, group = 'stepper')
 iStepperLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, display = display.none, group = 'stepper')
 iStepperMaDist = input.float(defval = 1.25, title = 'max vwap-ma dist.', minval = 0.0, maxval = 5.0, step = 0.25, display = display.none, group = 'stepper')
 iLongerStepperDist = input.int(defval = 5, title = 'longer-stepper max. distance', minval = 0, maxval = 20, display = display.none, group = 'stepper')
@@ -233,8 +233,8 @@ plotshape(bullishSLongerStepperSig and iBullishLongerStepper, title = 'bullish s
 
 
 //obv sig
-iBullishObv = input.bool(defval = true, title = 'bullish', display = display.none, group = 'obv', inline = 'obv1')
-iBearishObv = input.bool(defval = true, title = 'bearish', display = display.none, group = 'obv', inline = 'obv1')
+iBullishObv = input.bool(defval = false, title = 'bullish', display = display.none, group = 'obv', inline = 'obv1')
+iBearishObv = input.bool(defval = false, title = 'bearish', display = display.none, group = 'obv', inline = 'obv1')
 iObvMaLength = input.int(defval=100, title='Ma len.', minval=10, maxval=250, display = display.none, group='obv')
 iObvSource = input.source(close, title = 'Source', display = display.none, group = 'obv')
 iObvStdDevBand = input.float(defval = 0.35, title = 'StdDev.', minval = 0, maxval = 10.0, step = 0.05, display = display.none, group = 'obv')
@@ -263,14 +263,10 @@ plotshape(bullishObvSig and iBullishObv, title = 'bullish obv', location = locat
 plotshape(bearishObvSig and iBearishObv, title = 'bearish obv', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'obv', textcolor = color.new(color.red, 0))
 
 //rmv sig
-iBullishRmv = input.bool(defval = true, title = 'bullish', display = display.none, group = 'rmv', inline = 'rmv1')
-iBearishRmv = input.bool(defval = true, title = 'bearish', display = display.none, group = 'rmv', inline = 'rmv1')
-iBullishRmvPb = input.bool(defval = true, title = 'bullish-pb', display = display.none, group = 'rmv', inline = 'rmv2')
-iBearishRmvPb = input.bool(defval = true, title = 'bearish-pb', display = display.none, group = 'rmv', inline = 'rmv2')
-iBullishRmvEarnings = input.bool(defval = true, title = 'bullish-earnings', display = display.none, group = 'rmv', inline = 'rmv3')
-iBearishRmvEarnings = input.bool(defval = true, title = 'bearish-earnings', display = display.none, group = 'rmv', inline = 'rmv3')
-iBullishRmvEarningsPb = input.bool(defval = true, title = 'bullish-earnings-pb', display = display.none, group = 'rmv', inline = 'rmv4')
-iBearishRmvEarningsPb = input.bool(defval = true, title = 'bearish-earnings-pb', display = display.none, group = 'rmv', inline = 'rmv4')
+iBullishRmv = input.bool(defval = false, title = 'bullish', display = display.none, group = 'rmv', inline = 'rmv1')
+iBearishRmv = input.bool(defval = false, title = 'bearish', display = display.none, group = 'rmv', inline = 'rmv1')
+iBullishRmvPb = input.bool(defval = false, title = 'bullish-pb', display = display.none, group = 'rmv', inline = 'rmv2')
+iBearishRmvPb = input.bool(defval = false, title = 'bearish-pb', display = display.none, group = 'rmv', inline = 'rmv2')
 iRmvLookbackPeriod = input.int(30, minval = 1, title = 'Lookback Period', display = display.none, group = 'rmv')
 iRmvShortLookback1 = input.int(13, minval = 1, title = 'Short-term ATR Lookback 1', display = display.none, group = 'rmv')
 iRmvShortLookback2 = input.int(8, minval = 1, title = 'Short-term ATR Lookback 2', display = display.none, group = 'rmv')
@@ -295,22 +291,14 @@ rmvCond = lowRmv[1] and not lowRmv or highRmv and lowRmv[2] or rmv == 100 and lo
 bullishRmvSig = rmvCond and close > close[2] and volume > gVolMa and close > gVShortMa1 and close > gVShortMa2 and close > shortMa
 bullishRmvPbAgo = ta.barssince(bullishRmvSig)
 bullishRmvPbSig = not bullishRmvSig and bullishRmvPbAgo <= iRmvPbLen and drelib.crossover(low[bullishRmvPbAgo])
-bullishRmvEarningsSig = bullishRmvSig and (earningsSig or earningsSig[1])
-bullishRmvEarningsPbSig = bullishRmvPbSig and (earningsSig[bullishRmvPbAgo] or earningsSig[bullishRmvPbAgo + 1])
 bearishRmvSig = rmvCond and close < close[2] and volume > gVolMa and close < gVShortMa1 and close < gVShortMa2 and close < shortMa
 bearishRmvPbAgo = ta.barssince(bearishRmvSig)
 bearishRmvPbSig = not bearishRmvSig and bearishRmvPbAgo <= iRmvPbLen and drelib.crossunder(high[bearishRmvPbAgo])
-bearishRmvEarningsSig = bearishRmvSig and (earningsSig or earningsSig[1])
-bearishRmvEarningsPbSig = bearishRmvPbSig and (earningsSig[bearishRmvPbAgo] or earningsSig[bearishRmvPbAgo + 1])
 
 alertcondition(gFilter and bullishRmvSig, title = 'DRE Bullish rmv', message = 'rmv')
 alertcondition(gFilter and bullishRmvPbSig, title = 'DRE Bullish rmv-pb', message = 'rmv-pb')
 alertcondition(gFilter and bearishRmvSig, title = 'DRE Bearish rmv', message = 'rmv')
 alertcondition(gFilter and bearishRmvPbSig, title = 'DRE Bearish rmv-pb', message = 'rmv-pb')
-alertcondition(gFilter and bullishRmvEarningsSig, title = 'DRE Bullish earnings rmv', message = 'rmv-e')
-alertcondition(gFilter and bearishRmvEarningsSig, title = 'DRE Bearish earnings rmv', message = 'rmv-e')
-alertcondition(gFilter and bullishRmvEarningsPbSig, title = 'DRE Bullish earnings rmv-pb', message = 'rmv-e-pb')
-alertcondition(gFilter and bearishRmvEarningsPbSig, title = 'DRE Bearish earnings rmv-pb', message = 'rmv-e-pb')
 //plotshape(bullishRmvSig and iBullishRmv, title = 'bullish rmv', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv', textcolor = color.new(color.green, 0))
 //plotshape(bullishRmvPbSig and iBullishRmvPb, title = 'bullish rmv-pb', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-pb', textcolor = color.new(color.green, 0))
 //plotshape(bullishRmvEarningsSig and iBullishRmvEarnings, title = 'bullish rmv-e', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'rmv-e', textcolor = color.new(color.green, 0))
@@ -322,7 +310,7 @@ alertcondition(gFilter and bearishRmvEarningsPbSig, title = 'DRE Bearish earning
 
 
 //mtb sig (Minevrini + Trigger Bar / Shakeout Demand Tail / Gap Down Reversal)
-iBullishMtb = input.bool(defval = true, title = 'bullish', display = display.none, group = 'mtb', inline = 'mtb1')
+iBullishMtb = input.bool(defval = false, title = 'bullish', display = display.none, group = 'mtb', inline = 'mtb1')
 iMaxDistFromMaPctRank = input.int(defval = 10, title = 'Max. distance from MA', minval = 1, maxval = 99, display = display.none, group = 'mtb')
 iTriggerBarMaxPercentile = input.int(defval = 30, title = 'Trigger Bar max. percentiles', minval = 1, maxval = 99, display = display.none, group = 'mtb')
 
@@ -406,30 +394,30 @@ alertcondition(candleBearishBoOnVolumeCond and gFilter and bearishSig[1], title 
 alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or candleBearishBoOnVolumeCond and bearishSig[1]), title = 'DRE ALL pattern BO sig', message = 'all patterns BO')
 
 //only for general market turnaround (as William O'Neil)
-iTurnaroundGo = input.bool(defval = true, title = "O'Neail big index turnaround GO", display = display.none, group = "William O'Neil turnaround and GO")
-iTurnaroundExtremeAgo = input.int(defval = 50, title = "max. peak/bottom ago", minval = 20, maxval = 100, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
+iTurnaroundGo = input.bool(defval = false, title = "O'Neail big index turnaround GO", display = display.none, group = "William O'Neil turnaround and GO")
+iTurnaroundExtremeAgo = input.int(defval = 50, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
 iTurnaroundGoMinRange = input.float(defval = 1.7, title = "min. day range", minval = 0.1, maxval = 5.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO")
-iTurnaroundGoMinDays = input.int(defval = 5, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
+iTurnaroundGoMinDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
 
-dailyClose = request.security(syminfo.tickerid, "1D", close)
-dailyHigh = request.security(syminfo.tickerid, "1D", high)
-dailyLow = request.security(syminfo.tickerid, "1D", low)
-dailyVol = request.security(syminfo.tickerid, "1D", volume)
-vol50sma = ta.sma(dailyVol, 50)
-commonCond = dailyVol > dailyVol[1] and dailyVol > vol50sma
+vol50sma = ta.sma(volume, 50)
+volumeCond = volume > volume[1] and volume > vol50sma
 
-bottom = ta.lowest(dailyLow, iTurnaroundExtremeAgo)
-bottomNotFarAway = ta.barssince(dailyLow == bottom) > 10
-bullCondCount = math.sum(commonCond and dailyClose >= iTurnaroundGoMinRange / 100 * dailyClose[1]  ? 1 : 0, 20)
+bottom = ta.lowest(iTurnaroundExtremeAgo)
+bottomAgo = ta.barssince(low == bottom)
+bottomNotFarAway = bottomAgo >= 4 and bottomAgo < 20
+bullMainCond = volumeCond and close / close[1] >= 1.0 + iTurnaroundGoMinRange / 100.0
+bullCondCount = math.sum(bullMainCond ? 1 : 0, 20)
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
-bullGoSig2 = ta.barssince(bullGoSig[1]) > 20 and bullGoSig
+bullGoSig2 = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
 plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
-peak = ta.highest(dailyHigh, iTurnaroundExtremeAgo)
-peakNotFarAway = ta.barssince(dailyHigh == peak) > 10
-bearCondCount = math.sum(commonCond and dailyClose <= (1.0 - iTurnaroundGoMinRange / 100) * dailyClose[1]  ? 1 : 0, 20)
+peak = ta.highest(iTurnaroundExtremeAgo)
+peakAgo = ta.barssince(high == peak)
+peakNotFarAway = peakAgo >= 4 and peakAgo < 20
+bearMainCond = volumeCond and close / close[1] <= 1.0 - iTurnaroundGoMinRange / 100.0
+bearCondCount = math.sum(bearMainCond ? 1 : 0, 20)
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
-bearGoSig2 = ta.barssince(bearGoSig[1]) > 20 and bearGoSig
+bearGoSig2 = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
 plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
 
 //check performance
