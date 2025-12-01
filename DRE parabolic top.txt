@@ -397,13 +397,14 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 //only for general market turnaround (as William O'Neil)
 iTurnaroundGo = input.bool(defval = false, title = "O'Neail big index turnaround GO", display = display.none, group = "William O'Neil turnaround and GO")
 iTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
-iTurnaroundGoMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 1.7% value 1.7 will be used,\nfor adr >= 1.7: 1.7 + (adr - 1.7)^0.7")
+iTurnaroundGoMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
 iTurnaroundGoMinDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
 
 vol50sma = ta.sma(volume, 50)
 volumeCond = volume > volume[1] and volume > vol50sma
 
-turnaroundGoMinRange = iTurnaroundGoMinRange > 0.0 ? iTurnaroundGoMinRange / 100 : (adrPct < 1.7 ? 0.017 : 0.017 + math.pow(adrPct/100 - 0.017, 0.7))
+adr = adrPct / 100
+turnaroundGoMinRange = iTurnaroundGoMinRange > 0.0 ? iTurnaroundGoMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
 
 bottom = ta.lowest(iTurnaroundExtremeAgo)
 bottomAgo = nz(ta.barssince(low == bottom), 200) 
