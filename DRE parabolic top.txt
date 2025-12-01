@@ -28,6 +28,7 @@ longMa = ta.sma(close, iLongMaLength)
 gVShortMa1 = ta.ema(close, iVShortMaLength1)
 gVShortMa2 = ta.ema(close, iVShortMaLength2)
 gVolMa = ta.sma(volume, 30)
+adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
 
 //filters (min. iShortMaLength candles)
 gTurnoverMa = ta.sma(close * volume, iShortMaLength) / 1000000.0
@@ -395,17 +396,19 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 
 //only for general market turnaround (as William O'Neil)
 iTurnaroundGo = input.bool(defval = false, title = "O'Neail big index turnaround GO", display = display.none, group = "William O'Neil turnaround and GO")
-iTurnaroundExtremeAgo = input.int(defval = 50, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
-iTurnaroundGoMinRange = input.float(defval = 1.7, title = "min. day range", minval = 0.1, maxval = 5.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO")
+iTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
+iTurnaroundGoMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 1.7% value 1.7 will be used,\nfor adr >= 1.7: 1.7 + (adr - 1.7)^0.7")
 iTurnaroundGoMinDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
 
 vol50sma = ta.sma(volume, 50)
 volumeCond = volume > volume[1] and volume > vol50sma
 
+turnaroundGoMinRange = iTurnaroundGoMinRange > 0.0 ? iTurnaroundGoMinRange / 100 : (adrPct < 1.7 ? 0.017 : 0.017 + math.pow(adrPct/100 - 0.017, 0.7))
+
 bottom = ta.lowest(iTurnaroundExtremeAgo)
 bottomAgo = nz(ta.barssince(low == bottom), 200) 
 bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < mainMa[20]
-bullMainCond = volumeCond and close / close[1] >= 1.0 + iTurnaroundGoMinRange / 100.0
+bullMainCond = volumeCond and close / close[1] >= 1.0 + turnaroundGoMinRange
 bullCondCount = math.sum(bullMainCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
 bullGoSig2 = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
@@ -414,7 +417,7 @@ plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = locatio
 peak = ta.highest(iTurnaroundExtremeAgo)
 peakAgo = nz(ta.barssince(high == peak), 200)
 peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > mainMa[20]
-bearMainCond = volumeCond and close / close[1] <= 1.0 - iTurnaroundGoMinRange / 100.0
+bearMainCond = volumeCond and close / close[1] <= 1.0 - turnaroundGoMinRange
 bearCondCount = math.sum(bearMainCond ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
 bearGoSig2 = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
@@ -425,7 +428,6 @@ plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = locatio
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
-adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
 // iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
