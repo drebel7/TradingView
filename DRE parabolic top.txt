@@ -403,19 +403,19 @@ vol50sma = ta.sma(volume, 50)
 volumeCond = volume > volume[1] and volume > vol50sma
 
 bottom = ta.lowest(iTurnaroundExtremeAgo)
-bottomAgo = ta.barssince(low == bottom)
-bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < mainMa[bottomAgo]
+bottomAgo = nz(ta.barssince(low == bottom), 200) 
+bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < mainMa[20]
 bullMainCond = volumeCond and close / close[1] >= 1.0 + iTurnaroundGoMinRange / 100.0
-bullCondCount = math.sum(bullMainCond ? 1 : 0, 20)
+bullCondCount = math.sum(bullMainCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
 bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
 bullGoSig2 = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
 plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
 peak = ta.highest(iTurnaroundExtremeAgo)
-peakAgo = ta.barssince(high == peak)
-peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > mainMa[peakAgo]
+peakAgo = nz(ta.barssince(high == peak), 200)
+peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > mainMa[20]
 bearMainCond = volumeCond and close / close[1] <= 1.0 - iTurnaroundGoMinRange / 100.0
-bearCondCount = math.sum(bearMainCond ? 1 : 0,  20)
+bearCondCount = math.sum(bearMainCond ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
 bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
 bearGoSig2 = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
 plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
