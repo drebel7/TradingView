@@ -5,7 +5,7 @@
 //@version=6
 indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252)
 
-import drebel/DRELib/37 as drelib
+import drebel/DRELib/38 as drelib
 import drebel/DREPerf/22 as dreperf
 
 //common filters inputs
@@ -45,7 +45,7 @@ bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
-benchIdx = drelib.getDefaultBenchmarkClose()
+var series float benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
 rsMa = ta.sma(rs, 100)
 rsCondRaw = rs > rsMa
@@ -159,7 +159,7 @@ mtc2sb = minevriniTrendCond and (rmv2Cond or lowRmv2) and strongBreakout
 mtc3sb = minevriniTrendCond and (rmv3Cond or lowRmv3) and strongBreakout
 
 //RunAwayGap-pullback
-iBullishRagPbMaxTimeSinceRag = input.int(defval = 30, title = 'Max. pullback time', minval = 2, maxval = 50, display = display.none, group = 'Signal: RunAwayGap - pullback')
+iBullishRagPbMaxTimeSinceRag = input.int(defval = 35, title = 'Max. pullback time', minval = 2, maxval = 60, display = display.none, group = 'Signal: RunAwayGap - pullback')
 iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, display = display.none, group = 'Signal: RunAwayGap - pullback')
 runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1]
 runAwayGapAgo = ta.barssince(runAwayGap)
