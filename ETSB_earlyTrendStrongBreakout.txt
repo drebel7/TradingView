@@ -159,7 +159,7 @@ mtc3sb = minevriniTrendCond and (rmv3Cond or lowRmv3) and strongBreakout
 //RunAwayGap-pullback
 iBullishRagPbMaxTimeSinceRag = input.int(defval = 35, title = 'Max. pullback time', minval = 2, maxval = 60, display = display.none, group = 'Signal: RunAwayGap - pullback')
 iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, display = display.none, group = 'Signal: RunAwayGap - pullback')
-runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1]
+runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1] and volume > gVolMa
 runAwayGapAgo = ta.barssince(runAwayGap)
 ragPb = not runAwayGap and runAwayGapAgo < iBullishRagPbMaxTimeSinceRag and drelib.crossover(low[runAwayGapAgo]) and shortMa > shortMa[1]
 
