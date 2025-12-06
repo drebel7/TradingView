@@ -77,8 +77,12 @@ et3sb = et3 and strongBreakout
 et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
 
-//additionali signal if there is an OpeningRangeBrakeout the next day after main signal
-orb = drelib.openingRangeBreakout(5, true, true)
+//Qullamaggie inspired - additionali signal if there is an OpeningRangeBrakeout the next day after main signal
+//for low turnover 60 minute orb, for mid-high turnover 5 minute orb
+minTurnoverForOrb5 = drelib.minTurnoverOk(10 * iMinTurnover, 30)
+orb5 = drelib.openingRangeBreakout(5, true, true)
+orb60 = drelib.openingRangeBreakout(60, true, true)
+orb = minTurnoverForOrb5 ? orb5 : orb60
 
 //pct time since session beggining 
 dttTime = drelib.dttTimePct()
@@ -157,7 +161,7 @@ mtc2sb = minevriniTrendCond and (rmv2Cond or lowRmv2) and strongBreakout
 mtc3sb = minevriniTrendCond and (rmv3Cond or lowRmv3) and strongBreakout
 
 //RunAwayGap-pullback
-iBullishRagPbMaxTimeSinceRag = input.int(defval = 35, title = 'Max. pullback time', minval = 2, maxval = 60, display = display.none, group = 'Signal: RunAwayGap - pullback')
+iBullishRagPbMaxTimeSinceRag = input.int(defval = 50, title = 'Max. pullback time', minval = 2, maxval = 60, display = display.none, group = 'Signal: RunAwayGap - pullback')
 iBullishRagPbAdrMultiple = input.float(defval = 1.5, title = 'Gap Min. Adr Multiple', minval = 0.5, maxval = 3.0, step = 0.1, display = display.none, group = 'Signal: RunAwayGap - pullback')
 runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1] and volume > gVolMa
 runAwayGapAgo = ta.barssince(runAwayGap)
