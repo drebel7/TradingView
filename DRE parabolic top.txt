@@ -433,6 +433,13 @@ wonTurnaroundDn() =>
 bearGoSig2 = wonTurnaroundDn()
 plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
 
+//firestarter - GO - sma200crossover
+iFStarterGoSmaCrossover = input.bool(defval = false, title = "F.starter - GO - sma200crossover", display = display.none, group = "F.starter - GO - sma200crossover")
+fstarterNotLongAgo = ta.barssince(bullishFireStarterSig) < 150
+bollGoNotLongAgo = ta.barssince(bullGoSig2) < 150
+fstarterGoSmaCrossover = drelib.crossover(mainMa) and fstarterNotLongAgo and bollGoNotLongAgo
+plotshape(fstarterGoSmaCrossover and iFStarterGoSmaCrossover, title = 'bullish fstarter-GO-CO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'FS-GO-CO', textcolor = color.new(color.green, 0))
+
 //check performance
 //sig stats table
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
@@ -470,10 +477,11 @@ lowestFew = ta.lowest(iGoSigsExtremeLen)
 highestFew = ta.highest(iGoSigsExtremeLen)
 [s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(bullGoSig2, bullGoSig2 ? lowestFew : na, iMinSigSuccessRate, adrCond)
 [s20SuccRate, s20SuccCount, s20SigCount, s20AvgReturn, s20SuccRateOk, s20SuccRateStr, s20Score] = dreperf.successRateAllTimeStatsFull(bearGoSig2, bearGoSig2 ? highestFew : na, false, iMinSigSuccessRate, adrCond)
+[s21SuccRate, s21SuccCount, s21SigCount, s21AvgReturn, s21SuccRateOk, s21SuccRateStr, s21Score] = dreperf.successRateAllTimeStatsFull(fstarterGoSmaCrossover, fstarterGoSmaCrossover ? low : na, iMinSigSuccessRate, adrCond)
 
 
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 22)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 23)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -540,3 +548,6 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, s20SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 21, text = "bearGoSig2", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 21, text = s20SuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, s21SuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 22, text = "FS-GO-CO", text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 22, text = s21SuccRateStr, text_size = txtSize)
