@@ -5,7 +5,7 @@
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/38 as drelib
-import drebel/DREPerf/22 as dreperf
+import drebel/DREPerf/23 as dreperf
 
 //common filters
 iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', display = display.none, group = 'Common signal filters', inline = 'trn')
@@ -438,7 +438,10 @@ iFStarterGoSmaCrossover = input.bool(defval = false, title = "F.starter - GO - s
 fstarterNotLongAgo = ta.barssince(bullishFireStarterSig) < 150
 bollGoNotLongAgo = ta.barssince(bullGoSig2) < 150
 fstarterGoSmaCrossover = drelib.crossover(mainMa) and fstarterNotLongAgo and bollGoNotLongAgo
+sma175 = ta.sma(close, 175)
+fstarterGoSma175Crossover = drelib.crossover(sma175) and fstarterNotLongAgo and bollGoNotLongAgo
 plotshape(fstarterGoSmaCrossover and iFStarterGoSmaCrossover, title = 'bullish fstarter-GO-CO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'FS-GO-CO', textcolor = color.new(color.green, 0))
+plotshape(fstarterGoSma175Crossover and iFStarterGoSmaCrossover, title = 'bullish fstarter-GO-CO175', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'FS-GO-CO2', textcolor = color.new(color.green, 0))
 
 //check performance
 //sig stats table
@@ -455,6 +458,9 @@ iGoSigsExtremeLen = input.int(defval = 2, title = 'lowest, highest len. for GO s
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
 
+lowestFew = ta.lowest(iGoSigsExtremeLen)
+highestFew = ta.highest(iGoSigsExtremeLen)
+
 [s1SuccRate, s1SuccCount, s1SigCount, s1AvgReturn, s1SuccRateOk, s1SuccRateStr, s1Score] = dreperf.successRateAllTimeStatsFull(juniorSig, juniorSig ? low : na, iMinSigSuccessRate, adrCond)
 [s2SuccRate, s2SuccCount, s2SigCount, s2AvgReturn, s2SuccRateOk, s2SuccRateStr, s2Score] = dreperf.successRateAllTimeStatsFull(junior2Sig, junior2Sig ? low : na, iMinSigSuccessRate, adrCond)
 [s3SuccRate, s3SuccCount, s3SigCount, s3AvgReturn, s3SuccRateOk, s3SuccRateStr, s3Score] = dreperf.successRateAllTimeStatsFull(juniorLateSig, juniorLateSig ? low : na, iMinSigSuccessRate, adrCond)
@@ -467,17 +473,15 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 [s10SuccRate, s10SuccCount, s10SigCount, s10AvgReturn, s10SuccRateOk, s10SuccRateStr, s10Score] = dreperf.successRateAllTimeStatsFull(bullishSLongerStepperSig, bullishSLongerStepperSig ? low : na, iMinSigSuccessRate, adrCond)
 [s11SuccRate, s11SuccCount, s11SigCount, s11AvgReturn, s11SuccRateOk, s11SuccRateStr, s11Score] = dreperf.successRateAllTimeStatsFull(bullishObvSig, bullishObvSig ? low : na, iMinSigSuccessRate, adrCond)
 [s12SuccRate, s12SuccCount, s12SigCount, s12AvgReturn, s12SuccRateOk, s12SuccRateStr, s12Score] = dreperf.successRateAllTimeStatsFull(bullishRmvSig, bullishRmvSig ? low : na, iMinSigSuccessRate, adrCond)
-[s13SuccRate, s13SuccCount, s13SigCount, s13AvgReturn, s13SuccRateOk, s13SuccRateStr, s13Score] = dreperf.successRateAllTimeStatsFull(bullishRmvPbSig, bullishRmvPbSig ? low : na, iMinSigSuccessRate, adrCond)
+[s13SuccRate, s13SuccCount, s13SigCount, s13AvgReturn, s13SuccRateOk, s13SuccRateStr, s13Score] = dreperf.successRateAllTimeStatsFull(fstarterGoSma175Crossover, fstarterGoSma175Crossover ? lowestFew : na, iMinSigSuccessRate, adrCond)
 [s14SuccRate, s14SuccCount, s14SigCount, s14AvgReturn, s14SuccRateOk, s14SuccRateStr, s14Score] = dreperf.successRateAllTimeStatsFull(mtbSig, mtbSig ? low : na, iMinSigSuccessRate, adrCond)
 [s15SuccRate, s15SuccCount, s15SigCount, s15AvgReturn, s15SuccRateOk, s15SuccRateStr, s15Score] = dreperf.successRateAllTimeStatsFull(pvc, pvc ? low : na, iMinSigSuccessRate, adrCond)
 [s16SuccRate, s16SuccCount, s16SigCount, s16AvgReturn, s16SuccRateOk, s16SuccRateStr, s16Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, iMinSigSuccessRate, adrCond)
 [s17SuccRate, s17SuccCount, s17SigCount, s17AvgReturn, s17SuccRateOk, s17SuccRateStr, s17Score] = dreperf.successRateAllTimeStatsFull(bullishHunterSig, bullishHunterSig ? low : na, iMinSigSuccessRate, adrCond)
 [s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, iMinSigSuccessRate, adrCond)
-lowestFew = ta.lowest(iGoSigsExtremeLen)
-highestFew = ta.highest(iGoSigsExtremeLen)
 [s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(bullGoSig2, bullGoSig2 ? lowestFew : na, iMinSigSuccessRate, adrCond)
 [s20SuccRate, s20SuccCount, s20SigCount, s20AvgReturn, s20SuccRateOk, s20SuccRateStr, s20Score] = dreperf.successRateAllTimeStatsFull(bearGoSig2, bearGoSig2 ? highestFew : na, false, iMinSigSuccessRate, adrCond)
-[s21SuccRate, s21SuccCount, s21SigCount, s21AvgReturn, s21SuccRateOk, s21SuccRateStr, s21Score] = dreperf.successRateAllTimeStatsFull(fstarterGoSmaCrossover, fstarterGoSmaCrossover ? low : na, iMinSigSuccessRate, adrCond)
+[s21SuccRate, s21SuccCount, s21SigCount, s21AvgReturn, s21SuccRateOk, s21SuccRateStr, s21Score] = dreperf.successRateAllTimeStatsFull(fstarterGoSmaCrossover, fstarterGoSmaCrossover ? lowestFew : na, iMinSigSuccessRate, adrCond)
 
 
 if barstate.islast and iShowSigPerfTable
@@ -525,7 +529,7 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 13, text = "rmv", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 13, text = s12SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s13SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 14, text = "rmv-pb", text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 14, text = "FS-GO-CO2", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 14, text = s13SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s14SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 15, text = "mtb", text_size = txtSize)

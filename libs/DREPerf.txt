@@ -7,6 +7,7 @@
 library('DREPerf')
 
 const int DEFAULT_SIG_CHECK_TIME = 15
+const int SIG_CHECK_TIME_LONG = 100
 const int DEFAULT_STOCK_TRADING_DAYS_IN_A_YEAR = 252
 const string SUCC_RATE_SHORT_FORMAT = "{0,number,#.#}% ({1}/{2})"
 const string SUCC_RATE_LONG_FORMAT = "{0,number,#.#}% ({1}/{2}) {3,number,#.#}%"
@@ -27,17 +28,17 @@ export sigScore(float _succRatePct, int _succCount, float _retAvgPct, float _min
 	succRateOk ? sigScore(_succRatePct, _succCount, _retAvgPct) : 0.0
 
 export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
-	str.format(SUCC_RATE_LONG_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+	sigAllCount == 0 ? "-" : str.format(SUCC_RATE_LONG_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
 
 export formatSuccessRateStr(bool _longFormat, float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct) =>
-	str.format(_longFormat ? SUCC_RATE_LONG_FORMAT : SUCC_RATE_SHORT_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
+	sigAllCount == 0 ? "-" : str.format(_longFormat ? SUCC_RATE_LONG_FORMAT : SUCC_RATE_SHORT_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct)
 
 export formatSuccessRateFullStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float score) =>
-	formatted = str.format(SUCC_RATE_FULL_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
+	sigAllCount == 0 ? "-" : str.format(SUCC_RATE_FULL_FORMAT, sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 
 export formatSuccessRateStr(float sigSuccRatePct, int sigSuccCount, int sigAllCount, float retAvgPct, float _minSuccRatePct, float _minRetAvgPct) =>
 	score = sigScore(sigSuccRatePct, sigSuccCount, retAvgPct, _minSuccRatePct, _minRetAvgPct)
-	formatted = formatSuccessRateFullStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
+	formatSuccessRateFullStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 
 // @function This simple function checks a success rate for given signal (bool series) against a given stop loss level (float series). A success is a situation when after a signal candle price does not go below or equal given stop loss level. The counts and rates are checked for a given _lookback period.
 // @param _sig A bool series indicationg signal was triggered on given candle or not.
