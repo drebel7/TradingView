@@ -4,24 +4,24 @@
 //@version=6
 indicator(title = 'DRE When-Sell', overlay = true)
 
-import drebel/DRELib/35 as drelib
-import drebel/DREPerf/21 as dreperf
+import drebel/DRELib/38 as drelib
+import drebel/DREPerf/23 as dreperf
 
-iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Moving averages', inline = 'sma1')
-iSmaLen1 = input.int(defval = 10, title = 'len', minval = 1, group = 'Moving averages', inline = 'sma1')
-iShowCloseBelowSma2 = input.bool(defval = false, title = 'Show close below sma2', group = 'Moving averages', inline = 'sma2')
-iSmaLen2 = input.int(defval = 20, title = 'len', minval = 1, group = 'Moving averages', inline = 'sma2')
-iShowCloseBelowSma3 = input.bool(defval = false, title = 'Show close below sma3', group = 'Moving averages', inline = 'sma3')
-iSmaLen3 = input.int(defval = 50, title = 'len', minval = 1, group = 'Moving averages', inline = 'sma3')
+iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Signals', inline = 'sma')
+iShowCloseBelowSma2 = input.bool(defval = false, title = 'sma2', group = 'Signals', inline = 'sma')
+iShowCloseBelowSma3 = input.bool(defval = false, title = 'sma3', group = 'Signals', inline = 'sma')
+iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top', group = 'Signals')
+iShowParabolicRiseStop = input.bool(defval = true, title = 'Show Parabolic rise LOD break', group = 'Signals')
+iShowParabolicTipTop = input.bool(defval = true, title = 'Show Parabolic tip-top (by @Braczyy)', group = 'Signals')
 
-iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top', group = 'parabolic top')
+iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, group = 'Moving averages')
+iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, group = 'Moving averages')
+iSmaLen3 = input.int(defval = 50, title = 'SMA3 len', minval = 1, group = 'Moving averages')
 
-iShowParabolicRiseStop = input.bool(defval = true, title = 'Show break of LOD', group = 'Parabolic rise - LOD break')
 iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise - LOD break')
 iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, group = 'Parabolic rise - LOD break')
 iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', group = 'Parabolic rise - LOD break')
 
-iShowParabolicTipTop = input.bool(defval = true, title = 'Show tip top', group = 'Parabolic tip-top (by @Braczyy)')
 iParabolicTipTopConditions = input.int(defval = 5, title = 'Min. conditions', minval = 3, maxval = 8, group = 'Parabolic tip-top (by @Braczyy)')
 
 sma1 = ta.sma(close, iSmaLen1)
@@ -83,9 +83,9 @@ parabolicRiseLodBreak = (parabolicRiseCond[1] or parabolicRiseCond) and low < lo
 parabolicRiseLodBreakCond = parabolicRiseLodBreak and not parabolicRiseLodBreak[1] and not parabolicRiseLodBreak[2] and not parabolicRiseLodBreak[3] and volumeCond
 
 //parabolic top
-top1Sig = drelib.sig_parabolic_top(volMa, 2, 100, 8, atr200)
-top2Sig = drelib.sig_parabolic_top(volMa, 3, 100, 8, atr200)
-top3Sig = drelib.sig_parabolic_top(volMa, 4, 100, 8, atr200)
+top1Sig = drelib.sigParabolicTop(volMa, 2, 100, 8, atr200)
+top2Sig = drelib.sigParabolicTop(volMa, 3, 100, 8, atr200)
+top3Sig = drelib.sigParabolicTop(volMa, 4, 100, 8, atr200)
 topSig = top1Sig or top2Sig or top3Sig
 
 
@@ -132,7 +132,7 @@ alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
 
 
 //check performance
-adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = 0.8 * adrPct
 
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
