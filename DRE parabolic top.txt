@@ -397,40 +397,41 @@ alertcondition(gFilter and (candleBullishBoOnVolumeCond and bullishSig[1] or can
 //only for general market turnaround (as William O'Neil)
 iTurnaroundGo = input.bool(defval = false, title = "O'Neail big index turnaround GO", display = display.none, group = "William O'Neil turnaround and GO")
 iTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
-iTurnaroundGoMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
-iTurnaroundGoMinDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
+iturnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
+iTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
 
 vol50sma = ta.sma(volume, 50)
-volumeCond = volume > volume[1] and volume > vol50sma
 
 adr = adrPct / 100
-turnaroundGoMinRange = iTurnaroundGoMinRange > 0.0 ? iTurnaroundGoMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
+turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
 
 //try to use ta.lowestbars()
-wonTurnaroundUp() =>
-    bottom = ta.lowest(iTurnaroundExtremeAgo)
-    bottomSame = ta.lowest(int(1.15 * iTurnaroundExtremeAgo))
+wonTurnaroundUp(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
+    bottom = ta.lowest(_turnaroundAgo)
+    bottomSame = ta.lowest(int(1.15 * _turnaroundAgo))
     bottomAgo = bottom == bottomSame ? nz(ta.barssince(low == bottom), 200) : 200
-    bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < mainMa[20]
-    bullMainCond = volumeCond and close / close[1] >= 1.0 + turnaroundGoMinRange
-    bullCondCount = math.sum(bullMainCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
-    bullGoSig = bullCondCount >= iTurnaroundGoMinDays and bottomNotFarAway
+    bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < _mainMa[20]
+    volumeCond = volume > volume[1] and volume > _volMa
+    bullGoDayCond = volumeCond and close / close[1] >= 1.0 + _goDayMinRange
+    bullCondCount = math.sum(bullGoDayCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
+    bullGoSig = bullCondCount >= _minGoDays and bottomNotFarAway
     bullGoSig2 = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
 
-bullGoSig2 = wonTurnaroundUp()
+bullGoSig2 = wonTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
 plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
-wonTurnaroundDn() =>
-    peak = ta.highest(iTurnaroundExtremeAgo)
-    peakSame = ta.highest(int(1.15 * iTurnaroundExtremeAgo))
+wonTurnaroundDn(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
+    peak = ta.highest(_turnaroundAgo)
+    peakSame = ta.highest(int(1.15 * _turnaroundAgo))
     peakAgo = peak == peakSame ? nz(ta.barssince(high == peak), 200) : 200
-    peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > mainMa[20]
-    bearMainCond = volumeCond and close / close[1] <= 1.0 - turnaroundGoMinRange
-    bearCondCount = math.sum(bearMainCond ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
-    bearGoSig = bearCondCount >= iTurnaroundGoMinDays and peakNotFarAway
+    peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > _mainMa[20]
+    volumeCond = volume > volume[1] and volume > _volMa
+    bearGoDay = volumeCond and close / close[1] <= 1.0 - _goDayMinRange
+    bearCondCount = math.sum(bearGoDay ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
+    bearGoSig = bearCondCount >= _minGoDays and peakNotFarAway
     bearGoSig2 = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
 
-bearGoSig2 = wonTurnaroundDn()
+bearGoSig2 = wonTurnaroundDn(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
 plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
 
 //firestarter - GO - sma200crossover
