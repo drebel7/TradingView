@@ -136,7 +136,7 @@ adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = 0.8 * adrPct
 
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', group = 'Sig. performnce check')
+iShowOnlyGoodSigs = input.bool(defval = false, title = 'show only good sigs.', group = 'Sig. performnce check')
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
@@ -146,7 +146,7 @@ parabolicRiseLodBreakSigColor = color.new(color.maroon, 0)
 tiptopSigColor = color.new(color.red, 0)
 
 //sig stats table
-float minSuccRate = 39.0
+float minSuccRate = 41.0
 [topSuccRate, topSuccCount, topSigCount, topAvgReturn, topSuccRateOk, topSuccRateStr, topScore] = dreperf.successRateAllTimeStatsFull(topSig, topSig ? high : na, false, minSuccRate, adrCond)
 [parabolicRiseLodBreakSuccRate, parabolicRiseLodBreakSuccCount, parabolicRiseLodBreakSigCount, parabolicRiseLodBreakAvgReturn, parabolicRiseLodBreakSuccRateOk, parabolicRiseLodBreakSuccRateStr, parabolicRiseLodBreakScore] = dreperf.successRateAllTimeStatsFull(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false, minSuccRate, adrCond)
 [tiptop4SuccRate, tiptop4SuccCount, tiptop4SigCount, tiptop4AvgReturn, tiptop4SuccRateOk, tiptop4SuccRateStr, tiptop4Score] = dreperf.successRateAllTimeStatsFull(parabolic4TipTop, parabolic4TipTop ? high : na, false, minSuccRate, adrCond)
