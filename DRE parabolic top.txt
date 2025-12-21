@@ -415,10 +415,10 @@ wonTurnaroundUp(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series
     bullGoDayCond = volumeCond and close / close[1] >= 1.0 + _goDayMinRange
     bullCondCount = math.sum(bullGoDayCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
     bullGoSig = bullCondCount >= _minGoDays and bottomNotFarAway
-    bullGoSig2 = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
+    bullGoSigNew = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
 
-bullGoSig2 = wonTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
-plotshape(bullGoSig2 and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
+bullGoSig = wonTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
+plotshape(bullGoSig and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
 wonTurnaroundDn(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
     peak = ta.highest(_turnaroundAgo)
@@ -429,15 +429,15 @@ wonTurnaroundDn(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series
     bearGoDay = volumeCond and close / close[1] <= 1.0 - _goDayMinRange
     bearCondCount = math.sum(bearGoDay ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
     bearGoSig = bearCondCount >= _minGoDays and peakNotFarAway
-    bearGoSig2 = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
+    bearGoSigNew = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
 
-bearGoSig2 = wonTurnaroundDn(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
-plotshape(bearGoSig2 and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
+bearGoSig = wonTurnaroundDn(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
+plotshape(bearGoSig and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
 
 //firestarter - GO - sma200crossover
 iFStarterGoSmaCrossover = input.bool(defval = false, title = "F.starter - GO - sma200crossover", display = display.none, group = "F.starter - GO - sma200crossover")
 fstarterNotLongAgo = ta.barssince(bullishFireStarterSig) < 150
-bollGoNotLongAgo = ta.barssince(bullGoSig2) < 150
+bollGoNotLongAgo = ta.barssince(bullGoSig) < 150
 fstarterGoSmaCrossover = drelib.crossover(mainMa) and fstarterNotLongAgo and bollGoNotLongAgo
 sma175 = ta.sma(close, 175)
 fstarterGoSma175Crossover = drelib.crossover(sma175) and fstarterNotLongAgo and bollGoNotLongAgo
@@ -480,8 +480,8 @@ highestFew = ta.highest(iGoSigsExtremeLen)
 [s16SuccRate, s16SuccCount, s16SigCount, s16AvgReturn, s16SuccRateOk, s16SuccRateStr, s16Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, iMinSigSuccessRate, adrCond)
 [s17SuccRate, s17SuccCount, s17SigCount, s17AvgReturn, s17SuccRateOk, s17SuccRateStr, s17Score] = dreperf.successRateAllTimeStatsFull(bullishHunterSig, bullishHunterSig ? low : na, iMinSigSuccessRate, adrCond)
 [s18SuccRate, s18SuccCount, s18SigCount, s18AvgReturn, s18SuccRateOk, s18SuccRateStr, s18Score] = dreperf.successRateAllTimeStatsFull(bearishHunterSig, bearishHunterSig ? high : na, false, iMinSigSuccessRate, adrCond)
-[s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(bullGoSig2, bullGoSig2 ? lowestFew : na, iMinSigSuccessRate, adrCond)
-[s20SuccRate, s20SuccCount, s20SigCount, s20AvgReturn, s20SuccRateOk, s20SuccRateStr, s20Score] = dreperf.successRateAllTimeStatsFull(bearGoSig2, bearGoSig2 ? highestFew : na, false, iMinSigSuccessRate, adrCond)
+[s19SuccRate, s19SuccCount, s19SigCount, s19AvgReturn, s19SuccRateOk, s19SuccRateStr, s19Score] = dreperf.successRateAllTimeStatsFull(bullGoSig, bullGoSig ? lowestFew : na, iMinSigSuccessRate, adrCond)
+[s20SuccRate, s20SuccCount, s20SigCount, s20AvgReturn, s20SuccRateOk, s20SuccRateStr, s20Score] = dreperf.successRateAllTimeStatsFull(bearGoSig, bearGoSig ? highestFew : na, false, iMinSigSuccessRate, adrCond)
 [s21SuccRate, s21SuccCount, s21SigCount, s21AvgReturn, s21SuccRateOk, s21SuccRateStr, s21Score] = dreperf.successRateAllTimeStatsFull(fstarterGoSmaCrossover, fstarterGoSmaCrossover ? lowestFew : na, iMinSigSuccessRate, adrCond)
 
 
@@ -548,10 +548,10 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 19, text = "bearishHunter", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 19, text = s18SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s19SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 20, text = "bullGoSig2", text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 20, text = "WON-bullGO", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 20, text = s19SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s20SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 21, text = "bearGoSig2", text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 21, text = "WON-bearGO", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 21, text = s20SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, s21SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 22, text = "FS-GO-CO", text_size = txtSize)
