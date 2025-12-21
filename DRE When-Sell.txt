@@ -2,7 +2,7 @@
 // © drebel
 
 //@version=6
-indicator(title = 'DRE When-Sell', overlay = true)
+indicator(title = 'DRE When-Sell', overlay = true, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/39 as drelib
 import drebel/DREPerf/23 as dreperf
@@ -15,15 +15,15 @@ iShowParabolicRiseStop = input.bool(defval = true, title = 'Show Parabolic rise 
 iShowParabolicTipTop = input.bool(defval = true, title = 'Show Parabolic tip-top (by @Braczyy)', group = 'Signals')
 iShowWONTurnaroundGo = input.bool(defval = true, title = "Show W. O'Neail turnaround GO", group = "Signals")
 
-iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, group = 'Moving averages')
-iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, group = 'Moving averages')
-iSmaLen3 = input.int(defval = 50, title = 'SMA3 len', minval = 1, group = 'Moving averages')
+iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, display = display.none, group = 'Moving averages')
+iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, display = display.none, group = 'Moving averages')
+iSmaLen3 = input.int(defval = 50, title = 'SMA3 len', minval = 1, display = display.none, group = 'Moving averages')
 
-iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, group = 'Parabolic rise - LOD break')
-iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, group = 'Parabolic rise - LOD break')
-iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', group = 'Parabolic rise - LOD break')
+iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, display = display.none, group = 'Parabolic rise - LOD break')
+iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, display = display.none, group = 'Parabolic rise - LOD break')
+iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', display = display.none, group = 'Parabolic rise - LOD break')
 
-iParabolicTipTopConditions = input.int(defval = 5, title = 'Min. conditions', minval = 3, maxval = 8, group = 'Parabolic tip-top (by @Braczyy)')
+iParabolicTipTopConditions = input.int(defval = 5, title = 'Min. conditions', minval = 3, maxval = 8, display = display.none, group = 'Parabolic tip-top (by @Braczyy)')
 
 sma1 = ta.sma(close, iSmaLen1)
 sma2 = ta.sma(close, iSmaLen2)
