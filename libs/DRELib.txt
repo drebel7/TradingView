@@ -708,3 +708,49 @@ export sigBullStepper(float _atr, series float _mainMa, int _lookback, float _ma
     maDist = localHighVwap - _mainMa
     sig = _mainMa > _mainMa[1] and localHigh[localHighCandlesAgo] > _mainMa[localHighCandlesAgo] + 1.5 * math.log(localHighCandlesAgo) * _atr and maDist > 0 and maDist < _maxMaDist * _atr and crossover(localHighVwap)
     sig
+
+// @function William O'Neal turnaround Up signal invented for use on big indexes like SPX, Nasdaq, DOW etc. but works also for some (big(?)) stocks
+// @param _turnaroundAgo <int> how many days from down-extreme to look for GO days (default: 45)
+// @param _minGoDays <int> how many GO days before triggering signal (default: 3)
+// @param _goDayMinRange <int> minimum range for GO days, should base on average adr
+// @param _mainMa <series float> price moving average used to filter out signals where recent extreme is above this ma (default: sma200)
+// @param _volMa <series float> volume moving average used to check volume conditions (default: sma50)
+// @returns <series bool> true when source is crossed by a candle
+export sigWONTurnaroundUp(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
+    bottom = ta.lowest(_turnaroundAgo)
+    bottomSame = ta.lowest(int(1.15 * _turnaroundAgo))
+    bottomAgo = bottom == bottomSame ? nz(ta.barssince(low == bottom), 200) : 200
+    bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < _mainMa[20]
+    volumeCond = volume > volume[1] and volume > _volMa
+    bullGoDayCond = volumeCond and close / close[1] >= 1.0 + _goDayMinRange
+    bullCondCount = math.sum(bullGoDayCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
+    bullGoSig = bullCondCount >= _minGoDays and bottomNotFarAway
+    bullGoSigNew = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
+
+export sigWONTurnaroundUp(int _turnaroundAgo, int _minGoDays, float _goDayMinRange) =>
+    mainMa = ta.sma(close, 200)
+    volMa = ta.sma(volume, 50)
+    sigWONTurnaroundUp(_turnaroundAgo, _minGoDays, _goDayMinRange, mainMa, volMa)
+
+// @function William O'Neal turnaround Down signal invented for use on big indexes like SPX, Nasdaq, DOW etc. but works also for some (big(?)) stocks
+// @param _turnaroundAgo <int> how many days from down-extreme to look for GO days (default: 45)
+// @param _minGoDays <int> how many GO days before triggering signal (default: 3)
+// @param _goDayMinRange <int> minimum range for GO days, should base on average adr
+// @param _mainMa <series float> price moving average used to filter out signals where recent extreme is above this ma (default: sma200)
+// @param _volMa <series float> volume moving average used to check volume conditions (default: sma50)
+// @returns <series bool> true when source is crossed by a candle
+export sigWONTurnaroundDn(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
+    peak = ta.highest(_turnaroundAgo)
+    peakSame = ta.highest(int(1.15 * _turnaroundAgo))
+    peakAgo = peak == peakSame ? nz(ta.barssince(high == peak), 200) : 200
+    peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > _mainMa[20]
+    volumeCond = volume > volume[1] and volume > _volMa
+    bearGoDay = volumeCond and close / close[1] <= 1.0 - _goDayMinRange
+    bearCondCount = math.sum(bearGoDay ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
+    bearGoSig = bearCondCount >= _minGoDays and peakNotFarAway
+    bearGoSigNew = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
+
+export sigWONTurnaroundDn(int _turnaroundAgo, int _minGoDays, float _goDayMinRange) =>
+    mainMa = ta.sma(close, 200)
+    volMa = ta.sma(volume, 50)
+    sigWONTurnaroundDn(_turnaroundAgo, _minGoDays, _goDayMinRange, mainMa, volMa)

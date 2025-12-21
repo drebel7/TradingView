@@ -4,7 +4,7 @@
 //@version=6
 indicator(title = 'DRE parabolic top', overlay = true, max_bars_back = 2200, calc_bars_count = 12 * 252)
 
-import drebel/DRELib/38 as drelib
+import drebel/DRELib/39 as drelib
 import drebel/DREPerf/23 as dreperf
 
 //common filters
@@ -405,33 +405,10 @@ vol50sma = ta.sma(volume, 50)
 adr = adrPct / 100
 turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
 
-//try to use ta.lowestbars()
-wonTurnaroundUp(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
-    bottom = ta.lowest(_turnaroundAgo)
-    bottomSame = ta.lowest(int(1.15 * _turnaroundAgo))
-    bottomAgo = bottom == bottomSame ? nz(ta.barssince(low == bottom), 200) : 200
-    bottomNotFarAway = bottomAgo >= 3 and bottomAgo < 20 and bottom < _mainMa[20]
-    volumeCond = volume > volume[1] and volume > _volMa
-    bullGoDayCond = volumeCond and close / close[1] >= 1.0 + _goDayMinRange
-    bullCondCount = math.sum(bullGoDayCond ? 1 : 0, math.max(3, math.min(bottomAgo, 20)))
-    bullGoSig = bullCondCount >= _minGoDays and bottomNotFarAway
-    bullGoSigNew = ta.barssince(bullGoSig[1]) > 10 and bullGoSig
-
-bullGoSig = wonTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
+bullGoSig = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
 plotshape(bullGoSig and iTurnaroundGo, title = 'bullish GO', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'GO', textcolor = color.new(color.green, 0))
 
-wonTurnaroundDn(int _turnaroundAgo, int _minGoDays, float _goDayMinRange, series float _mainMa, series float _volMa) =>
-    peak = ta.highest(_turnaroundAgo)
-    peakSame = ta.highest(int(1.15 * _turnaroundAgo))
-    peakAgo = peak == peakSame ? nz(ta.barssince(high == peak), 200) : 200
-    peakNotFarAway = peakAgo >= 3 and peakAgo < 20 and peak > _mainMa[20]
-    volumeCond = volume > volume[1] and volume > _volMa
-    bearGoDay = volumeCond and close / close[1] <= 1.0 - _goDayMinRange
-    bearCondCount = math.sum(bearGoDay ? 1 : 0,  math.max(3, math.min(peakAgo, 20)))
-    bearGoSig = bearCondCount >= _minGoDays and peakNotFarAway
-    bearGoSigNew = ta.barssince(bearGoSig[1]) > 10 and bearGoSig
-
-bearGoSig = wonTurnaroundDn(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
+bearGoSig = drelib.sigWONTurnaroundDn(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
 plotshape(bearGoSig and iTurnaroundGo, title = 'bearish GO', location = location.abovebar, color = color.new(color.red, 0), style = shape.triangledown, text = 'GO', textcolor = color.new(color.red, 0))
 
 //firestarter - GO - sma200crossover
