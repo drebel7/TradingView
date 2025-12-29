@@ -5,7 +5,7 @@
 //@version=6
 indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252)
 
-import drebel/DRELib/38 as drelib
+import drebel/DRELib/39 as drelib
 import drebel/DREPerf/23 as dreperf
 
 //common filters inputs
@@ -32,7 +32,7 @@ iShowMinevriniTrendC1Sig = input.bool(defval = true, title = 'c1', display = dis
 iShowMinevriniTrendC2Sig = input.bool(defval = true, title = 'c2', display = display.none, group = 'Signals', inline = "mtsb")
 iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', display = display.none, group = 'Signals', inline = "mtsb")
 iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', display = display.none, group = 'Signals')
-iShowOi = input.bool(defval = true, title = 'Show ONeil Inspired', display = display.none, group = 'Signals')
+iShowWONHP = input.bool(defval = true, title = "Show O'Neil Inspired: hi-percentiles", display = display.none, group = 'Signals')
 
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
@@ -182,7 +182,7 @@ oiEpsPercentile = ta.percentrank(epsAct1M, iOneilEpsYearsCheck * 252)
 epsChanges = countChanges(epsAct1M, iOneilEpsYearsCheck * 252)
 oiPercentileAvg = math.avg(oiObvPercentile, oiRsPercentile, oiEpsPercentile)
 oiPercentilesOkAgo = ta.barssince(oiPercentileAvg > (100 + iOneilMinPercentileAvg) / 2)
-oiSb = oiPercentileAvg > iOneilMinPercentileAvg and oiPercentilesOkAgo < 50 and (rmv1Cond or rmv2Cond or rmv3Cond) and epsChanges > 3 * iOneilEpsYearsCheck and strongBreakout
+wonHpSb = oiPercentileAvg > iOneilMinPercentileAvg and oiPercentilesOkAgo < 50 and (rmv1Cond or rmv2Cond or rmv3Cond) and epsChanges > 3 * iOneilEpsYearsCheck and strongBreakout
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
@@ -206,7 +206,7 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 [mtc2sbSuccRate, mtc2sbSuccCount, mtc2sbSigCount, mtc2sbAvgReturn, mtc2sbSuccRateOk, mtc2sbSuccRateStr, mtc2sbScore] = dreperf.successRateAllTimeStatsFull(mtc2sb, mtc2sb ? low : na, iMinSigSuccessRate, adrCond)
 [mtc3sbSuccRate, mtc3sbSuccCount, mtc3sbSigCount, mtc3sbAvgReturn, mtc3sbSuccRateOk, mtc3sbSuccRateStr, mtc3sbScore] = dreperf.successRateAllTimeStatsFull(mtc3sb, mtc3sb ? low : na, iMinSigSuccessRate, adrCond)
 [ragPbSuccRate, ragPbSuccCount, ragPbSigCount, ragPbAvgReturn, ragPbSuccRateOk, ragPbSuccRateStr, ragPbScore] = dreperf.successRateAllTimeStatsFull(ragPb, ragPb ? low : na, iMinSigSuccessRate, adrCond)
-[oiSbSuccRate, oiSbSuccCount, oiSbSigCount, oiSbAvgReturn, oiSbSuccRateOk, oiSbSuccRateStr, oiSbScore] = dreperf.successRateAllTimeStatsFull(oiSb, oiSb ? low : na, iMinSigSuccessRate, adrCond)
+[wonHpSbSuccRate, wonHpSbSuccCount, wonHpSbSigCount, wonHpSbAvgReturn, wonHpSbSuccRateOk, wonHpSbSuccRateStr, wonHpSbScore] = dreperf.successRateAllTimeStatsFull(wonHpSb, wonHpSb ? low : na, iMinSigSuccessRate, adrCond)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -216,7 +216,7 @@ etcsbSigColor = color.new(color.fuchsia, 0)
 obvDivSigColor = color.new(color.navy, 0)
 mtsbSigColor = color.new(color.gray, 0)
 ragPbSigColor = color.new(color.olive, 0)
-oiSbSigColor = color.new(color.teal, 0)
+wonHpSbSigColor = color.new(color.teal, 0)
 
 plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
@@ -232,7 +232,7 @@ plot(series = iShowSigPerfPlots ? mtc1sbSuccRate : na, title = 'mtc1sb', color =
 plot(series = iShowSigPerfPlots ? mtc2sbSuccRate : na, title = 'mtc2sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? oiSbSuccRate : na, title = 'oiSb', color = oiSbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? wonHpSbSuccRate : na, title = 'WON-hp-sb', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
@@ -285,9 +285,9 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, ragPbSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 15, text = "rag-pb", text_color = ragPbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 15, text = ragPbSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, oiSbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 16, text = "oiSb", text_color = oiSbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 16, text = oiSbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 16, text = "WON-hp-sb", text_color = wonHpSbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 16, text = wonHpSbSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -304,7 +304,7 @@ plotshape(iShowMinevriniTrendC1Sig and mtc1sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowMinevriniTrendC2Sig and mtc2sb and showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk), title = 'mtc2sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc2sb', textcolor = mtsbSigColor)
 plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk), title = 'mtc3sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc3sb', textcolor = mtsbSigColor)
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
-plotshape(iShowOi and oiSb and showRow(iShowOnlyGoodSigs, oiSbSuccRateOk), title = 'oiSb', location = location.belowbar, color = oiSbSigColor, style = shape.triangleup, text = 'oiSb', textcolor = oiSbSigColor)
+plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON-hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'wonHpSb', textcolor = wonHpSbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -321,10 +321,10 @@ mtsbSig = (mtsb and mtsbSuccRateOk) or (mtc1sb and mtc1sbSuccRateOk) or (mtc2sb 
 mtsbSig_p1D = mtsbSig[1] and orb
 ragPbSig = ragPb and ragPbSuccRateOk
 ragPbSig_p1D = ragPbSig[1] and orb
-oiSbSig = oiSb and oiSbSuccRateOk
-oiSbSig_p1D = oiSbSig[1] and orb
+wonHpSbSig = wonHpSb and wonHpSbSuccRateOk
+wonHpSbSig_p1D = wonHpSbSig[1] and orb
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or oiSbSig or oiSbSig_p1D
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
@@ -335,4 +335,4 @@ alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', 
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
 alertcondition(gFilter and (mtsbSig or mtsbSig_p1D), title = 'bullish mtsb', message = 'mtsb')
 alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayGap-pb', message = 'rag-pb')
-alertcondition(gFilter and (oiSbSig or oiSbSig_p1D), title = 'bullish OneilInspired-sb', message = 'oiSb')
+alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = 'bullish OneilInspired-sb', message = 'wonHpSb')
