@@ -34,6 +34,7 @@ iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', display = dis
 iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', display = display.none, group = 'Signals')
 iShowWONHP = input.bool(defval = true, title = "Show O'Neil Inspired: hi-percentiles", display = display.none, group = 'Signals')
 iShowWONTurnaroundGo = input.bool(defval = true, title = "Show O'Neil Inspired: turnaround GO", display = display.none, group = 'Signals')
+iShowPePercBo = input.bool(defval = true, title = "Show PE Percentile - Breakout ", display = display.none, group = 'Signals')
 
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
@@ -197,6 +198,18 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
+//moje eps - 5 percentyl + jakis rodzaj breakout (sb lub rmv)
+iPePercentileBreakout = input.int(defval = 5, title = 'Percentile threshold', minval = 2, maxval = 20, display = display.none, group = 'Signal: PE Percentile - breakout')
+iPePercentileYearsLookback = input.int(defval = 6, title = 'Lookback (years)', minval = 2, maxval = 10, display = display.none, group = 'Signal: PE Percentile - breakout')
+eps = request.financial(syminfo.tickerid, "EARNINGS_PER_SHARE", "TTM")
+pe  = eps < 0 ? 9999.9 : close / eps
+dailyCandles = iPePercentileYearsLookback * 252
+pePercentile = ta.percentrank(pe, dailyCandles)
+epsPositive = eps > 0 ? 1 : 0
+epsPositiveRate = math.sum(epsPositive, dailyCandles) / dailyCandles
+pePercBo = epsPositiveRate > 0.5 and pePercentile < iPePercentileBreakout and (bullishRmv1 or bullishRmv2 or bullishRmv3)
+
+
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performnce check')
@@ -221,6 +234,7 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 [ragPbSuccRate, ragPbSuccCount, ragPbSigCount, ragPbAvgReturn, ragPbSuccRateOk, ragPbSuccRateStr, ragPbScore] = dreperf.successRateAllTimeStatsFull(ragPb, ragPb ? low : na, iMinSigSuccessRate, adrCond)
 [wonHpSbSuccRate, wonHpSbSuccCount, wonHpSbSigCount, wonHpSbAvgReturn, wonHpSbSuccRateOk, wonHpSbSuccRateStr, wonHpSbScore] = dreperf.successRateAllTimeStatsFull(wonHpSb, wonHpSb ? low : na, iMinSigSuccessRate, adrCond)
 [wonTurnGoUpSuccRate, wonTurnGoUpSuccCount, wonTurnGoUpSigCount, wonTurnGoUpAvgReturn, wonTurnGoUpSuccRateOk, wonTurnGoUpSuccRateStr, wonTurnGoUpScore] = dreperf.successRateAllTimeStatsFull(wonTurnGoUp, wonTurnGoUp ? low : na, iMinSigSuccessRate, adrCond)
+[pePercBoSuccRate, pePercBoSuccCount, pePercBoSigCount, pePercBoAvgReturn, pePercBoSuccRateOk, pePercBoSuccRateStr, pePercBoScore] = dreperf.successRateAllTimeStatsFull(pePercBo, pePercBo ? low : na, iMinSigSuccessRate, adrCond)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -248,10 +262,11 @@ plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color =
 plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? wonHpSbSuccRate : na, title = 'WON:hp-sb', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? wonTurnGoUpSuccRate : na, title = 'WON:turnUp', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? pePercBoSuccRate : na, title = 'pePercBo', color = ragPbSigColor, linestyle = plot.linestyle_solid)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 18)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 19)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -306,6 +321,9 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonHpSbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, pePercBoSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 18, text = "pePercBo", text_color = ragPbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 18, text = pePercBoSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -324,6 +342,7 @@ plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
 plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON:hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:hp-sb', textcolor = wonHpSbSigColor)
 plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
+plotshape(iShowPePercBo and pePercBo and showRow(iShowOnlyGoodSigs, pePercBoSuccRateOk), title = 'pePercBo', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'pePercBo', textcolor = ragPbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
