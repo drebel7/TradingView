@@ -103,12 +103,15 @@ export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss
 export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss) =>
 	successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, true)
 
-export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct) =>
-	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, _long)
+export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct, int _sigCheckTime) =>
+	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, _sigCheckTime, _long)
 	bool succRateOk = sigSuccRateOk(sigSuccRatePct, retAvgPct, _minSuccRatePct, _minRetAvgPct)
 	float score = sigScore(sigSuccRatePct, sigSuccCount, retAvgPct, succRateOk)
 	string succRateStr = formatSuccessRateFullStr(sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, score)
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct, succRateOk, succRateStr, score]
+
+export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct) =>
+	successRateAllTimeStatsFull(_sig, _sigCandleStopLoss, _long, _minSuccRatePct, _minRetAvgPct, DEFAULT_SIG_CHECK_TIME)
 
 export successRateAllTimeStatsFull(series bool _sig, series float _sigCandleStopLoss, float _minSuccRatePct, float _minRetAvgPct) =>
 	successRateAllTimeStatsFull(_sig, _sigCandleStopLoss, true, _minSuccRatePct, _minRetAvgPct)
