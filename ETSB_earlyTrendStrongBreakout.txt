@@ -34,7 +34,7 @@ iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', display = dis
 iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', display = display.none, group = 'Signals')
 iShowWONHP = input.bool(defval = true, title = "Show O'Neil Inspired: hi-percentiles", display = display.none, group = 'Signals')
 iShowWONTurnaroundGo = input.bool(defval = true, title = "Show O'Neil Inspired: turnaround GO", display = display.none, group = 'Signals')
-iShowPePercBo = input.bool(defval = true, title = "Show PE Percentile - Breakout ", display = display.none, group = 'Signals')
+iShowMinVwapTAG = input.bool(defval = true, title = "Show Min Vwap TouchAndGo", display = display.none, group = 'Signals')
 
 iSigCheckTime = input.int(defval = 15, title = 'Signal check time', minval = 5, maxval = 200, display = display.none, group = 'Signals')
 iSigStopLossDay = input.int(defval = 0, title = 'Stop loss (day of low)', minval = 0, maxval = 5, display = display.none, group = 'Signals')
@@ -200,17 +200,20 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
-//moje eps - 5 percentyl + jakis rodzaj breakout (sb lub rmv)
-iPePercentileBreakout = input.int(defval = 5, title = 'Percentile threshold', minval = 2, maxval = 20, display = display.none, group = 'Signal: PE Percentile - breakout')
-iPePercentileYearsLookback = input.int(defval = 6, title = 'Lookback (years)', minval = 2, maxval = 10, display = display.none, group = 'Signal: PE Percentile - breakout')
-eps = request.financial(syminfo.tickerid, "EARNINGS_PER_SHARE", "TTM")
-pe  = eps < 0 ? 9999.9 : close / eps
-dailyCandles = iPePercentileYearsLookback * 252
-pePercentile = ta.percentrank(pe, dailyCandles)
-epsPositive = eps > 0 ? 1 : 0
-epsPositiveRate = math.sum(epsPositive, dailyCandles) / dailyCandles
-pePercBo = epsPositiveRate > 0.5 and pePercentile < iPePercentileBreakout and strongBreakout
-
+// riding min AVWAP - touch and go
+iRidingMinVwapLag = input.int(defval = 1, title = "lag blabla", minval = 0, maxval = 2, display = display.none, group = "Signal: Min Vwap TouchAndGo")
+loweringMa = ta.barssince(mainMa < mainMa[1])
+lowest200 = ta.lowest(200)
+majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
+majorLowVwap = ta.vwap(low, majorLow)
+barsSinceMajorLow = ta.barssince(majorLow)
+lowsBelowMinVwap = math.sum(low < majorLowVwap ? 1 : 0, 10)
+vwapTouch = barsSinceMajorLow > 20 and barsSinceMajorLow < 300 and drelib.crossover(majorLowVwap) and mainMa > mainMa[1] and lowsBelowMinVwap <= 4
+lowest10 = ta.lowest(10)
+secondLow = vwapTouch and lowest10 == low
+secondLowVwap = ta.vwap(low, secondLow)
+vwapTouch2 = drelib.crossover(secondLowVwap) and mainMa > mainMa[1] and lowsBelowMinVwap <= 4
+minVwapTAG = (vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch2 or vwapTouch2[iRidingMinVwapLag]) and close > high[1]
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
@@ -237,7 +240,7 @@ sl = low[iSigStopLossDay]
 [ragPbSuccRate, ragPbSuccCount, ragPbSigCount, ragPbAvgReturn, ragPbSuccRateOk, ragPbSuccRateStr, ragPbScore] = dreperf.successRateAllTimeStatsFull(ragPb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [wonHpSbSuccRate, wonHpSbSuccCount, wonHpSbSigCount, wonHpSbAvgReturn, wonHpSbSuccRateOk, wonHpSbSuccRateStr, wonHpSbScore] = dreperf.successRateAllTimeStatsFull(wonHpSb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [wonTurnGoUpSuccRate, wonTurnGoUpSuccCount, wonTurnGoUpSigCount, wonTurnGoUpAvgReturn, wonTurnGoUpSuccRateOk, wonTurnGoUpSuccRateStr, wonTurnGoUpScore] = dreperf.successRateAllTimeStatsFull(wonTurnGoUp, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[pePercBoSuccRate, pePercBoSuccCount, pePercBoSigCount, pePercBoAvgReturn, pePercBoSuccRateOk, pePercBoSuccRateStr, pePercBoScore] = dreperf.successRateAllTimeStatsFull(pePercBo, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[minVwapTAGSuccRate, minVwapTAGSuccCount, minVwapTAGSigCount, minVwapTAGAvgReturn, minVwapTAGSuccRateOk, minVwapTAGSuccRateStr, minVwapTAGScore] = dreperf.successRateAllTimeStatsFull(minVwapTAG, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -265,7 +268,7 @@ plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color =
 plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? wonHpSbSuccRate : na, title = 'WON:hp-sb', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
 plot(series = iShowSigPerfPlots ? wonTurnGoUpSuccRate : na, title = 'WON:turnUp', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? pePercBoSuccRate : na, title = 'pePercBo', color = ragPbSigColor, linestyle = plot.linestyle_solid)
+plot(series = iShowSigPerfPlots ? minVwapTAGSuccRate : na, title = 'minVwapTAG', color = ragPbSigColor, linestyle = plot.linestyle_solid)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
@@ -324,9 +327,9 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonHpSbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, pePercBoSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 18, text = "pePercBo", text_color = ragPbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 18, text = pePercBoSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 18, text = "minVwapTAG", text_color = ragPbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 18, text = minVwapTAGSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -345,7 +348,7 @@ plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
 plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON:hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:hp-sb', textcolor = wonHpSbSigColor)
 plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
-plotshape(iShowPePercBo and pePercBo and showRow(iShowOnlyGoodSigs, pePercBoSuccRateOk), title = 'pePercBo', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'pePercBo', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'minVwapTAG', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'minVwapTAG', textcolor = ragPbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -366,8 +369,10 @@ wonHpSbSig = wonHpSb and wonHpSbSuccRateOk
 wonHpSbSig_p1D = wonHpSbSig[1] and orb
 wonTurnGoUpSig = wonTurnGoUp and wonTurnGoUpSuccRateOk
 wonTurnGoUp_p1D = wonTurnGoUpSig[1] and orb
+minVwapTAGSig = minVwapTAG and minVwapTAGSuccRateOk
+minVwapTAG_p1D = minVwapTAGSig[1] and orb
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUp_p1D
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUp_p1D or minVwapTAGSig or minVwapTAG_p1D
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
@@ -380,3 +385,4 @@ alertcondition(gFilter and (mtsbSig or mtsbSig_p1D), title = 'bullish mtsb', mes
 alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayGap-pb', message = 'rag-pb')
 alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = "bullish O'Neil inspired: hi-percentile sb", message = 'WON:hp-sb')
 alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUp_p1D), title = "bullish O'Neil inspired: turnaround GO Up", message = 'WON:turUp')
+alertcondition(gFilter and (minVwapTAGSig or minVwapTAG_p1D), title = "bullish min vwap TAG", message = 'minVwapTAG')
