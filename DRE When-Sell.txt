@@ -112,7 +112,7 @@ belowSma1 = close < sma1
 newBelowSma1 = belowSma1 and not belowSma1[1]
 alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
 if iShowCloseBelowSma1 and newBelowSma1
-    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.orange, 70), style = label.style_circle, size = size.tiny)
 //plotshape(iShowCloseBelowSma1 and newBelowSma1, title = 'close below sma1', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
 
 belowSma2 = close < sma2
@@ -156,7 +156,7 @@ if iShowCombiSig1 and combiSig1
 
 alertcondition(combiSig2, title = 'combi sig2 (paraLodBreak + sma1)', message = 'combi sig2')
 if iShowCombiSig2 and combiSig2
-    label.new(bar_index, close[1], tooltip = 'combi sig2', color = color.new(color.red, 35), style = label.style_circle, size = size.tiny)
+    label.new(bar_index, close[1], tooltip = 'combi sig2', color = color.new(color.orange, 35), style = label.style_circle, size = size.tiny)
 
 alertcondition(combiSig3, title = 'combi sig3 (paraLodBreak + sma2)', message = 'combi sig3')
 if iShowCombiSig3 and combiSig3
@@ -222,10 +222,10 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 7, text = "sma10", text_color = color.orange, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 7, text = sma1SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, sma2SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 8, text = "sma20", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 8, text = "sma20", text_color = color.red, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 8, text = sma2SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, sma3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 9, text = "sma50", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 9, text = "sma50", text_color = color.red, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 9, text = sma3SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, wonGoDnSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 10, text = "WON GO dn", text_color = color.purple, text_size = txtSize)
@@ -237,5 +237,5 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 12, text = "combi sig2", text_color = color.orange, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 12, text = combiSig2SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, combiSig3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 13, text = "combi sig3", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 13, text = "combi sig3", text_color = color.red, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 13, text = combiSig3SuccRateStr, text_size = txtSize)
