@@ -140,7 +140,7 @@ if iShowParabolicRiseStop and parabolicRiseLodBreakCond
 
 alertcondition(parabolicTipTop, title = 'parabolic tip top', message = 'parabolic tip tip')
 if iShowParabolicTipTop and parabolicTipTop
-    label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
+    label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 35), style = label.style_xcross, size = size.tiny)
 
 alertcondition(wonBearGoSig, title = 'WON: turnaround GO down', message = 'WON: GO down')
 if iShowWONTurnaroundGo and wonBearGoSig
