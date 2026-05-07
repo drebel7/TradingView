@@ -11,9 +11,10 @@ iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1'
 iShowCloseBelowSma2 = input.bool(defval = false, title = 'sma2', group = 'Signals', inline = 'sma')
 iShowCloseBelowSma3 = input.bool(defval = false, title = 'sma3', group = 'Signals', inline = 'sma')
 iShowParabolicTop = input.bool(defval = true, title = 'Show parabolic top', group = 'Signals')
-iShowParabolicRiseStop = input.bool(defval = true, title = 'Show Parabolic rise LOD break', group = 'Signals')
 iShowParabolicTipTop = input.bool(defval = true, title = 'Show Parabolic tip-top (by @Braczyy)', group = 'Signals')
-iShowWONTurnaroundGo = input.bool(defval = true, title = "Show W. O'Neail turnaround GO", group = "Signals")
+iShowParabolicRiseStop = input.bool(defval = true, title = 'Show Parabolic rise LOD break', group = 'Signals')
+iShowWONTurnaroundGo = input.bool(defval = true, title = "Show W. O'Neail (WON) turnaround GO", group = "Signals")
+iShowCombiSig1 = input.bool(defval = true, title = "Show ParaLodBreak + WON turnaround GO", group = "Signals")
 
 iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, display = display.none, group = 'Moving averages')
 iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, display = display.none, group = 'Moving averages')
@@ -92,13 +93,18 @@ top3Sig = drelib.sigParabolicTop(volMa, 4, 100, 8, atr200)
 topSig = top1Sig or top2Sig or top3Sig
 
 //William O'Neil (WON) turnaround GO - created to signal general market early turnarounds
-iWONTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "William O'Neil turnaround and GO")
-iWONTurnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "William O'Neil turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
-iWONTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "William O'Neil turnaround and GO")
+iWONTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "WON: turnaround and GO")
+iWONTurnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "WON: turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
+iWONTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "WON: turnaround and GO")
 
 adr = adrPct / 100
 turnaroundGoDayMinRange = iWONTurnaroundGoDayMinRange > 0.0 ? iWONTurnaroundGoDayMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
 wonBearGoSig = drelib.sigWONTurnaroundDn(iWONTurnaroundExtremeAgo, iWONTurnaroundMinGoDays, turnaroundGoDayMinRange, sma200, vol50Ma)
+
+//time combination of above signals
+iParabolicRiseLodBreak2WonBearGoTimeSpread = input.int(defval = 13, title = "parabolic rise LOD break -> WON Bear GO: time spread", minval = 5, maxval = 20, display = display.none, group = "Combination Signals")
+parabolicRiseLodBreakAgo = ta.barssince(parabolicRiseLodBreakCond)
+combiSig1 = wonBearGoSig and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
 
 
 belowSma1 = close < sma1
@@ -136,9 +142,13 @@ alertcondition(parabolicTipTop, title = 'parabolic tip top', message = 'paraboli
 if iShowParabolicTipTop and parabolicTipTop
     label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 70), style = label.style_xcross, size = size.tiny)
 
-alertcondition(wonBearGoSig, title = 'WON turnaround GO down', message = 'WON GO down')
+alertcondition(wonBearGoSig, title = 'WON: turnaround GO down', message = 'WON: GO down')
 if iShowWONTurnaroundGo and wonBearGoSig
-    label.new(bar_index, close[1], tooltip = 'WON turnaround GO down', color = color.new(color.red, 70), style = label.style_flag, size = size.tiny)
+    label.new(bar_index, close[1], tooltip = 'WON: turnaround GO down', color = color.new(color.red, 70), style = label.style_flag, size = size.tiny)
+
+alertcondition(combiSig1, title = 'combi sig1 (paraLodBreak + WON turnaround GP)', message = 'combi sig1')
+if iShowCombiSig1 and combiSig1
+    label.new(bar_index, close[1], tooltip = 'combi sig1', color = color.new(color.red, 35), style = label.style_flag, size = size.tiny)
 
 dttTimePct = drelib.dttTimePct()
 onSessionCloseConditions = dttTimePct == 1 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
@@ -170,8 +180,9 @@ float minSuccRate = 41.0
 [sma2SuccRate, sma2SuccCount, sma2SigCount, sma2AvgReturn, sma2SuccRateOk, sma2SuccRateStr, sma2Score] = dreperf.successRateAllTimeStatsFull(belowSma2, belowSma2 ? high : na, false, minSuccRate, adrCond)
 [sma3SuccRate, sma3SuccCount, sma3SigCount, sma3AvgReturn, sma3SuccRateOk, sma3SuccRateStr, sma3Score] = dreperf.successRateAllTimeStatsFull(belowSma3, belowSma3 ? high : na, false, minSuccRate, adrCond)
 [wonGoDnSuccRate, wonGoDnSuccCount, wonGoDnSigCount, wonGoDnAvgReturn, wonGoDnSuccRateOk, wonGoDnSuccRateStr, wonGoDnScore] = dreperf.successRateAllTimeStatsFull(wonBearGoSig, wonBearGoSig ? high : na, false, minSuccRate, adrCond)
+[combiSig1SuccRate, combiSig1SuccCount, combiSig1Count, combiSig1AvgReturn, combiSig1SuccRateOk, combiSig1SuccRateStr, combiSig1Score] = dreperf.successRateAllTimeStatsFull(combiSig1, combiSig1 ? high : na, false, minSuccRate, adrCond)
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 11)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 12)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -205,3 +216,6 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, wonGoDnSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 10, text = "WON GO dn", text_color = color.purple, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 10, text = wonGoDnSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, combiSig1SuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 11, text = "combi sig1", text_color = tiptopSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 11, text = combiSig1SuccRateStr, text_size = txtSize)
