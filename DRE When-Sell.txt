@@ -15,6 +15,8 @@ iShowParabolicTipTop = input.bool(defval = true, title = 'Show Parabolic tip-top
 iShowParabolicRiseStop = input.bool(defval = true, title = 'Show Parabolic rise LOD break', group = 'Signals')
 iShowWONTurnaroundGo = input.bool(defval = true, title = "Show W. O'Neail (WON) turnaround GO", group = "Signals")
 iShowCombiSig1 = input.bool(defval = true, title = "Show ParaLodBreak + WON turnaround GO", group = "Signals")
+iShowCombiSig2 = input.bool(defval = true, title = "Show ParaLodBreak + sma1", group = "Signals")
+iShowCombiSig3 = input.bool(defval = true, title = "Show ParaLodBreak + sma2", group = "Signals")
 
 iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, display = display.none, group = 'Moving averages')
 iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, display = display.none, group = 'Moving averages')
@@ -106,7 +108,6 @@ iParabolicRiseLodBreak2WonBearGoTimeSpread = input.int(defval = 13, title = "par
 parabolicRiseLodBreakAgo = ta.barssince(parabolicRiseLodBreakCond)
 combiSig1 = wonBearGoSig and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
 
-
 belowSma1 = close < sma1
 newBelowSma1 = belowSma1 and not belowSma1[1]
 alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
@@ -127,6 +128,9 @@ alertcondition(newBelowSma3, title = 'close below sma3', message = 'close < sma3
 if iShowCloseBelowSma3 and newBelowSma3
     label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
 //plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
+
+combiSig2 = newBelowSma1 and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
+combiSig3 = newBelowSma2 and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
 
 alertcondition(topSig, title = 'parabolic top', message = 'top')
 if iShowParabolicTop and topSig
@@ -149,6 +153,14 @@ if iShowWONTurnaroundGo and wonBearGoSig
 alertcondition(combiSig1, title = 'combi sig1 (paraLodBreak + WON turnaround GP)', message = 'combi sig1')
 if iShowCombiSig1 and combiSig1
     label.new(bar_index, close[1], tooltip = 'combi sig1', color = color.new(color.red, 35), style = label.style_flag, size = size.tiny)
+
+alertcondition(combiSig2, title = 'combi sig2 (paraLodBreak + sma1)', message = 'combi sig2')
+if iShowCombiSig2 and combiSig2
+    label.new(bar_index, close[1], tooltip = 'combi sig2', color = color.new(color.red, 35), style = label.style_circle, size = size.tiny)
+
+alertcondition(combiSig3, title = 'combi sig3 (paraLodBreak + sma2)', message = 'combi sig3')
+if iShowCombiSig3 and combiSig3
+    label.new(bar_index, close[1], tooltip = 'combi sig3', color = color.new(color.red, 35), style = label.style_circle, size = size.tiny)
 
 dttTimePct = drelib.dttTimePct()
 onSessionCloseConditions = dttTimePct == 1 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
@@ -181,8 +193,10 @@ float minSuccRate = 41.0
 [sma3SuccRate, sma3SuccCount, sma3SigCount, sma3AvgReturn, sma3SuccRateOk, sma3SuccRateStr, sma3Score] = dreperf.successRateAllTimeStatsFull(belowSma3, belowSma3 ? high : na, false, minSuccRate, adrCond)
 [wonGoDnSuccRate, wonGoDnSuccCount, wonGoDnSigCount, wonGoDnAvgReturn, wonGoDnSuccRateOk, wonGoDnSuccRateStr, wonGoDnScore] = dreperf.successRateAllTimeStatsFull(wonBearGoSig, wonBearGoSig ? high : na, false, minSuccRate, adrCond)
 [combiSig1SuccRate, combiSig1SuccCount, combiSig1Count, combiSig1AvgReturn, combiSig1SuccRateOk, combiSig1SuccRateStr, combiSig1Score] = dreperf.successRateAllTimeStatsFull(combiSig1, combiSig1 ? high : na, false, minSuccRate, adrCond)
+[combiSig2SuccRate, combiSig2SuccCount, combiSig2Count, combiSig2AvgReturn, combiSig2SuccRateOk, combiSig2SuccRateStr, combiSig2Score] = dreperf.successRateAllTimeStatsFull(combiSig2, combiSig2 ? high : na, false, minSuccRate, adrCond)
+[combiSig3SuccRate, combiSig3SuccCount, combiSig3Count, combiSig3AvgReturn, combiSig3SuccRateOk, combiSig3SuccRateStr, combiSig3Score] = dreperf.successRateAllTimeStatsFull(combiSig3, combiSig3 ? high : na, false, minSuccRate, adrCond)
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 12)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 14)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -219,3 +233,9 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, combiSig1SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 11, text = "combi sig1", text_color = tiptopSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 11, text = combiSig1SuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, combiSig2SuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 12, text = "combi sig2", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 12, text = combiSig2SuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, combiSig3SuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 13, text = "combi sig3", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 13, text = combiSig3SuccRateStr, text_size = txtSize)
