@@ -162,6 +162,9 @@ alertcondition(combiSig3, title = 'combi sig3 (paraLodBreak + sma2)', message = 
 if iShowCombiSig3 and combiSig3
     label.new(bar_index, close[1], tooltip = 'combi sig3', color = color.new(color.red, 35), style = label.style_circle, size = size.tiny)
 
+tipTopAndCombiCond = parabolicTipTop or combiSig1 or combiSig2 or combiSig3
+alertcondition(tipTopAndCombiCond, title = 'when-sell - tipTop and combi', message = 'when-sell - tipTop and combi')
+
 dttTimePct = drelib.dttTimePct()
 onSessionCloseConditions = dttTimePct == 1 and (newBelowSma1 or newBelowSma2 or newBelowSma3)
 allCond = parabolicTipTop or parabolicRiseLodBreakCond or topSig or onSessionCloseConditions or wonBearGoSig
