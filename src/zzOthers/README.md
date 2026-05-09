@@ -1,0 +1,1 @@
+Other peoples scripts - found on the internet, saved as "inspirations" for future development.
