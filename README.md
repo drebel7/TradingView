@@ -18,26 +18,30 @@ TradingView/
 │   └── zzOthers/                 ← Skrypty innych autorów / znalezione w internecie
 │
 ├── watchlist/                    ← Listy tickerów
-├── tickers/                      ← Listy tickerów (opcjonalnie)
 └── docs/                         ← Dokumentacja (opcjonalnie)
 
 
 ## Biblioteki (`src/libraries/`)
 
-- **DRELib** — główna biblioteka (wersja 31+)
-- **DRECandles** — formacje świecowe
-- **DREPerf** — analiza performance i statystyki
+- **DRELib** — główna biblioteka (wersja 31+)  
+  Najważniejsza. Zawiera filtry ogólne, silne breakouty, analizę non-broken ekstremów, benchmarki, opening range itp.
+
+- **DRECandles** — formacje świecowe  
+  Funkcje do analizy cieni, korpusu świec oraz popularnych formacji (hammer, engulfing itp.).
+
+- **DREPerf** — analiza performance  
+  Narzędzia do obliczania success rate, średnich zwrotów, statystyk sygnałów.
 
 ## Wskaźniki (`src/indicators/`)
 
-- `ETSB_earlyTrendStrongBreakout.pine` — główny wskaźnik Early Trend Strong Breakout + ETH
+- **ETSB_earlyTrendStrongBreakout.pine** — główny wskaźnik *Early Trend Strong Breakout* + warianty ETH (hammer)
 
-*(Pozostałe wskaźniki będą dodawane z krótkim opisem poniżej)*
+*(Kolejne wskaźniki będą dodawane z opisami)*
 
 ## Jak używać
 
-1. Skopiuj foldery z `src/libraries/` jako biblioteki na TradingView.
-2. Import: `import drebel/DRELib/31 as drelib`
+1. Skopiuj foldery z `src/libraries/` jako **biblioteki** na TradingView.
+2. Import w skryptach: `import drebel/DRELib/31 as drelib`
 3. Dodawaj skrypty z `src/indicators/`.
 
 ## Ważne
@@ -48,4 +52,4 @@ TradingView/
 
 ---
 
-**Ostatnia aktualizacja:** 2026-05
+**Ostatnia aktualizacja:** 2026-05-09
