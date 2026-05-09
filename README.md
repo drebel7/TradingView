@@ -6,18 +6,20 @@ Repozytorium moich wskaźników, bibliotek i narzędzi do TradingView w **Pine S
 
 TradingView/
 ├── README.md
-├── src/                    ← źródła
-│   ├── indicators/         ← Wskaźniki
-│   ├── libraries/          ← Biblioteki
-│   	├── DRELib/
-│   	├── DRECandles/
-│   	└── DREPerf/
-│   ├── strategies/         ← Strategie
-│   └── zzOthers/           ← źródła autorstwa innych użytkowników, znalezione w internecie
+├── .gitignore
 │
-├── tickers/                ← Listy tickerów (opcjonalnie)
+├── src/                          ← Główna zawartość
+│   ├── indicators/               ← Gotowe wskaźniki
+│   ├── libraries/                ← Biblioteki
+│   │   ├── DRELib/
+│   │   ├── DRECandles/
+│   │   └── DREPerf/
+│   ├── strategies/               ← Strategie (w przygotowaniu)
+│   └── zzOthers/                 ← Skrypty innych autorów / znalezione w internecie
 │
-└── docs/                   ← Dokumentacja (opcjonalnie)
+├── watchlist/                    ← Listy tickerów
+├── tickers/                      ← Listy tickerów (opcjonalnie)
+└── docs/                         ← Dokumentacja (opcjonalnie)
 
 
 ## Biblioteki (`src/libraries/`)
