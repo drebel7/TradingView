@@ -1,7 +1,7 @@
 //@version=5
 indicator(title='DRE Seasonality-Buschi year-week-day', shorttitle='DRE Seasonality-Buschi ywd', precision=2, max_bars_back=5000)
 
-iNumberOfPeriods = input.int(12, "Number of periods", maxval = 24)
+iNumberOfPeriods = input.int(12, "Number of periods", minval = 1, maxval = 24)
 iYear = input.bool(true, "year", group = "GRP1")
 iMnth = input.bool(false, "month", group = "GRP1")
 iWeek = input.bool(false, "week", group = "GRP1")

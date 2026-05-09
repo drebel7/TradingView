@@ -1,0 +1,49 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator("Minervini VCP Pattern v2", overlay=true, precision=2)
+
+// 1. PARAMETRY
+contractionBars   = input.int(10,  "Długość fazy kontrakcji", minval=5)
+minContractions   = input.int(2,   "Min. liczba kontrakcji", minval=2)
+smaLength         = input.int(50,  "SMA Trend")
+volumeThreshold   = input.float(1.5, "Próg wolumenu", step=0.1)
+
+// 2. FUNKCJE POMOCNICZE
+getVolContraction(_series) => 
+    _series < _series[1] * 0.8       // Wolumen spada >20%
+
+// 3. LOGIKA VCP
+var int contractionCount = 0
+var float prevRange = na
+var float prevVol = na
+
+currentRange = ta.atr(contractionBars)
+currentVol   = math.sum(volume, contractionBars)
+
+if bar_index > contractionBars * 2  // Unikaj false signals na starcie
+    isContraction = currentRange < currentRange[1] and getVolContraction(volume)
+    
+    if isContraction
+        contractionCount += 1
+    else
+        contractionCount := 0
+
+// 4. WARUNKI BREAKOUTU
+sma50       = ta.sma(close, smaLength)
+upperBound  = ta.highest(high, contractionBars)
+volumeSMA   = ta.sma(volume, 20)
+volumeSpike = volume > volumeSMA * volumeThreshold
+
+breakoutCondition = close > upperBound and volumeSpike
+trendCondition    = close > sma50 and close[1] > sma50[1]
+
+// 5. SYGNAŁ
+finalSignal = breakoutCondition and trendCondition and contractionCount >= minContractions
+plotshape(finalSignal, "VCP Buy", shape.triangleup, location.belowbar, color=color.green, size=size.small)
+alertcondition(finalSignal, "VCP Alert", "Breakout z kontrakcją wolumenu!")
+
+// 6. WIZUALIZACJE
+//plot(sma50, "SMA 50", color.blue)
+//hline(upperBound, "Resistance", color.orange, linestyle=hline.style_dotted)
