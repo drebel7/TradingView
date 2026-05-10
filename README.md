@@ -1,6 +1,7 @@
 # TradingView Pine Script v6 - drebel
 
 Repozytorium moich wskaźników, bibliotek i narzędzi do TradingView w **Pine Script v6**.
+Całość aktualna znajduje się na GitHubie pod adresem: https://github.com/drebel7/TradingView w branchu main.
 
 ## Struktura projektu
 
