@@ -5,6 +5,8 @@ Całość aktualna znajduje się na GitHubie pod adresem: https://github.com/dre
 
 Tu jest repozytorium z dokumentacją PineScript v6 w formacie markdown: https://github.com/codenamedevan/pinescriptv6. Pusługuj się tą dokumentacją, aby zrozumieć lepiej język i działanie PineScript aby uniknąć błędów.
 
+Nie zmieniaj i nie usuwaj linii komentarzy.
+
 ## Struktura projektu
 
 TradingView/
