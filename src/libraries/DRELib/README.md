@@ -1,13 +1,34 @@
-# DRELib (wersja 31)
+# DRELib (wersja 31+)
 
-Główna biblioteka – zawiera większość używanych funkcji.
+**Główna i najważniejsza biblioteka** projektu.
 
-**Główne grupy funkcji:**
-- Benchmark i sektorowe indeksy (`getDefaultBenchmark*`, `getSectorIndex`, `getWideIndexAndSectorSignalMod`)
-- Filtry ogólne (`generalFilter`)
-- Silne breakouty (`strongBreakout`)
-- Analiza ekstremów (`nonBrokenExtremesPct`)
-- Opening Range Breakout (`openingRangeBreakout`)
-- Pomocnicze: dni/tygodnie na giełdzie, sesja, turnover, ADR itp.
+Zawiera większość kluczowych funkcji używanych we wskaźnikach.
 
-Używana w prawie wszystkich moich wskaźnikach.
+## Główne grupy funkcji
+
+- **Benchmark i indeksy sektorowe**  
+  `getDefaultBenchmark*()`, `getSectorIndex()`, `getWideIndexAndSectorSignalMod()`
+
+- **Filtry ogólne**  
+  `generalFilter()`
+
+- **Silne breakouty**  
+  `strongBreakout()`
+
+- **Analiza ekstremów**  
+  `nonBrokenExtremesPct()`
+
+- **Opening Range Breakout**  
+  `openingRangeBreakout()`
+
+- **Funkcje pomocnicze**  
+  dni/tygodnie sesyjne, turnover, ADR, sesja rynkowa itp.
+
+## Główny plik
+- `DRELib.pine`
+
+Używana w prawie wszystkich moich wskaźnikach i skryptach.
+
+---
+
+**Ostatnia aktualizacja:** 2026-05-10

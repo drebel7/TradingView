@@ -1,9 +1,10 @@
 # TradingView Pine Script v6 - drebel
 
 Repozytorium moich wskaźników, bibliotek i narzędzi do TradingView w **Pine Script v6**.
-Całość aktualna znajduje się na GitHubie pod adresem: https://github.com/drebel7/TradingView/tree/main/.
 
-Tu jest repozytorium z dokumentacją PineScript v6 w formacie markdown: https://github.com/codenamedevan/pinescriptv6/tree/main/. Pusługuj się tą dokumentacją, aby zrozumieć lepiej język i działanie PineScript aby uniknąć błędów.
+Całość aktualna znajduje się na GitHubie pod adresem: https://github.com/drebel7/TradingView (branch `main`).
+
+**Dokumentacja Pine Script v6:** [codenamedevan/pinescriptv6](https://github.com/codenamedevan/pinescriptv6)
 
 Nie zmieniaj i nie usuwaj linii komentarzy.
 
@@ -14,47 +15,48 @@ TradingView/
 ├── .gitignore
 │
 ├── src/                          ← Główna zawartość
-│   ├── indicators/               ← Gotowe wskaźniki
-│   ├── libraries/                ← Biblioteki
-│   │   ├── DRELib/
-│   │   ├── DRECandles/
-│   │   └── DREPerf/
+│   ├── indicators/               ← Gotowe wskaźniki (+ README.md)
+│   ├── libraries/                ← Biblioteki (+ README.md)
+│   │   ├── DRELib/               ← Główna biblioteka (v31+)
+│   │   ├── DRECandles/           ← Formacje świecowe
+│   │   └── DREPerf/              ← Analiza performance
 │   ├── strategies/               ← Strategie (w przygotowaniu)
-│   └── zzOthers/                 ← Skrypty innych autorów / znalezione w internecie
+│   └── zzOthers/                 ← Skrypty innych autorów
 │
 ├── watchlist/                    ← Listy tickerów
 └── docs/                         ← Dokumentacja (opcjonalnie)
 
 
+Szczegółowe opisy znajdują się w plikach `README.md` w poszczególnych podkatalogach.
+
 ## Biblioteki (`src/libraries/`)
 
-- **DRELib** — główna biblioteka (wersja 31+)  
-  Najważniejsza. Zawiera filtry ogólne, silne breakouty, analizę non-broken ekstremów, benchmarki, opening range itp.
+- **DRELib** — główna i najważniejsza biblioteka (wersja 31+)
+- **DRECandles** — funkcje do analizy świec i formacji
+- **DREPerf** — narzędzia do statystyk i success rate
 
-- **DRECandles** — formacje świecowe  
-  Funkcje do analizy cieni, korpusu świec oraz popularnych formacji (hammer, engulfing itp.).
-
-- **DREPerf** — analiza performance  
-  Narzędzia do obliczania success rate, średnich zwrotów, statystyk sygnałów.
+Import przykład:  
+`import drebel/DRELib/31 as drelib`
 
 ## Wskaźniki (`src/indicators/`)
 
-- **ETSB_earlyTrendStrongBreakout.pine** — główny wskaźnik *Early Trend Strong Breakout* + warianty ETH (hammer)
+Główny wskaźnik:  
+**ETSB_earlyTrendStrongBreakout.pine** — Early Trend Strong Breakout + wariant ETH (hammer)
 
-*(Kolejne wskaźniki będą dodawane z opisami)*
+Pełna lista wskaźników w [`src/indicators/README.md`](src/indicators/README.md).
 
 ## Jak używać
 
 1. Skopiuj foldery z `src/libraries/` jako **biblioteki** na TradingView.
-2. Import w skryptach: `import drebel/DRELib/31 as drelib`
-3. Dodawaj skrypty z `src/indicators/`.
+2. Importuj biblioteki w skryptach.
+3. Dodawaj gotowe wskaźniki z `src/indicators/`.
 
 ## Ważne
 
 - Wszystkie pliki w wersji **v6**
 - Rozszerzenie `.pine`
-- Główna ramka: **1D**
+- Główna ramka czasowa: **1D**
 
 ---
 
-**Ostatnia aktualizacja:** 2026-05-09
+**Ostatnia aktualizacja:** 2026-05-10
