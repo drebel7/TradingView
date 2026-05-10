@@ -174,8 +174,8 @@ alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
 //check performance
 adrCond = 0.8 * adrPct
 
-iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performnce check')
-iShowOnlyGoodSigs = input.bool(defval = false, title = 'show only good sigs.', group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performance check')
+iShowOnlyGoodSigs = input.bool(defval = false, title = 'show only good sigs.', group = 'Sig. performance check')
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
