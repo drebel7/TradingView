@@ -150,7 +150,7 @@ alertcondition(wonBearGoSig, title = 'WON: turnaround GO down', message = 'WON: 
 if iShowWONTurnaroundGo and wonBearGoSig
     label.new(bar_index, close[1], tooltip = 'WON: turnaround GO down', color = color.new(color.red, 70), style = label.style_flag, size = size.tiny)
 
-alertcondition(combiSig1, title = 'combi sig1 (paraLodBreak + WON turnaround GP)', message = 'combi sig1')
+alertcondition(combiSig1, title = 'combi sig1 (paraLodBreak + WON turnaround GO)', message = 'combi sig1')
 if iShowCombiSig1 and combiSig1
     label.new(bar_index, close[1], tooltip = 'combi sig1', color = color.new(color.red, 35), style = label.style_flag, size = size.tiny)
 
@@ -218,7 +218,7 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, tiptop5SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 5, text = "tip-top5", text_color = tiptopSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 5, text = tiptop5SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, tiptop5SuccRateOk)
+    if showRow(iShowOnlyGoodSigs, tiptop6SuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 6, text = "tip-top6", text_color = tiptopSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 6, text = tiptop6SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, sma1SuccRateOk)
