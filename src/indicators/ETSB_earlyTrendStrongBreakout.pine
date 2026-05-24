@@ -32,9 +32,10 @@ iShowMinevriniTrendC1Sig = input.bool(defval = true, title = 'c1', display = dis
 iShowMinevriniTrendC2Sig = input.bool(defval = true, title = 'c2', display = display.none, group = 'Signals', inline = "mtsb")
 iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', display = display.none, group = 'Signals', inline = "mtsb")
 iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', display = display.none, group = 'Signals')
-iShowWONHP = input.bool(defval = true, title = "Show O'Neil Inspired: hi-percentiles", display = display.none, group = 'Signals')
-iShowWONTurnaroundGo = input.bool(defval = true, title = "Show O'Neil Inspired: turnaround GO", display = display.none, group = 'Signals')
+iShowWONHP = input.bool(defval = true, title = "Show O''Neil Inspired: hi-percentiles", display = display.none, group = 'Signals')
+iShowWONTurnaroundGo = input.bool(defval = true, title = "Show O''Neil Inspired: turnaround GO", display = display.none, group = 'Signals')
 iShowMinVwapTAG = input.bool(defval = true, title = "Show Min Vwap TouchAndGo", display = display.none, group = 'Signals')
+iShowMinVwapTAGDebug = input.bool(defval = true, title = "Show Min Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
 
 iSigCheckTime = input.int(defval = 15, title = 'Signal check time', minval = 5, maxval = 200, display = display.none, group = 'Signals')
 iSigStopLossDay = input.int(defval = 0, title = 'Stop loss (day of low)', minval = 0, maxval = 5, display = display.none, group = 'Signals')
@@ -173,13 +174,13 @@ runAwayGap = low > high[1] + iBullishRagPbAdrMultiple * adrPct / 100 * high[1] a
 runAwayGapAgo = ta.barssince(runAwayGap)
 ragPb = not runAwayGap and runAwayGapAgo < iBullishRagPbMaxTimeSinceRag and drelib.crossover(low[runAwayGapAgo]) and shortMa > shortMa[1]
 
-//William O'Neil Inspired: hi-percentile - strong breakout
+//William O''Neil Inspired: hi-percentile - strong breakout
 countChanges(series, length) =>
     math.sum(series != series[1] ? 1 : 0, length)
 
-iOneilPercentileLookback = input.int(200, title = 'Main percentile lookback', minval = 20, maxval = 756, display = display.none, group = "Signal: O'Neil Inspired: hi-percentile sb")
-iOneilEpsYearsCheck = input.int(3, title = 'Eps years check', minval = 1, maxval = 5, display = display.none, group = "Signal: O'Neil Inspired: hi-percentile sb")
-iOneilMinPercentileAvg = input.float(70, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = "Signal: O'Neil Inspired: hi-percentile sb")
+iOneilPercentileLookback = input.int(200, title = 'Main percentile lookback', minval = 20, maxval = 756, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
+iOneilEpsYearsCheck = input.int(3, title = 'Eps years check', minval = 1, maxval = 5, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
+iOneilMinPercentileAvg = input.float(70, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
 oiObvPercentile = ta.percentrank(ta.obv, iOneilPercentileLookback)
 oiRsPercentile = ta.percentrank(rs, iOneilPercentileLookback)
 totalShares1M = syminfo.shares_outstanding_total / 1000000.0
@@ -190,10 +191,10 @@ oiPercentileAvg = math.avg(oiObvPercentile, oiRsPercentile, oiEpsPercentile)
 oiPercentilesOkAgo = ta.barssince(oiPercentileAvg > (100 + iOneilMinPercentileAvg) / 2)
 wonHpSb = oiPercentileAvg > iOneilMinPercentileAvg and oiPercentilesOkAgo < 50 and (rmv1Cond or rmv2Cond or rmv3Cond) and epsChanges > 3 * iOneilEpsYearsCheck and strongBreakout
 
-//William O'Neil Inspired: turnaround GO: usually for general market turnaround
-iTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "Signal: O'Neil Inspired: turnaround and GO")
-iturnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "Signal: O'Neil Inspired: turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
-iTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "Signal: O'Neil Inspired: turnaround and GO")
+//William O''Neil Inspired: turnaround GO: usually for general market turnaround
+iTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "Signal: O''Neil Inspired: turnaround and GO")
+iturnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "Signal: O''Neil Inspired: turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
+iTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "Signal: O''Neil Inspired: turnaround and GO")
 
 adr = adrPct / 100
 turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
@@ -201,9 +202,10 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
 // riding min AVWAP - touch and go
+iMinVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Min Vwap TouchAndGo")
 iRidingMinVwapLag = input.int(defval = 1, title = "lag blabla", minval = 0, maxval = 2, display = display.none, group = "Signal: Min Vwap TouchAndGo")
 loweringMa = ta.barssince(mainMa < mainMa[1])
-lowest200 = ta.lowest(200)
+lowest200 = ta.lowest(iMinVwapTAGLMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
 majorLowVwap = ta.vwap(low, majorLow)
 barsSinceMajorLow = ta.barssince(majorLow)
@@ -349,6 +351,8 @@ plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), 
 plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON:hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:hp-sb', textcolor = wonHpSbSigColor)
 plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
 plotshape(iShowMinVwapTAG and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'minVwapTAG', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'minVwapTAG', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '1L', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and secondLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '2L', textcolor = ragPbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -383,6 +387,6 @@ alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', 
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
 alertcondition(gFilter and (mtsbSig or mtsbSig_p1D), title = 'bullish mtsb', message = 'mtsb')
 alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayGap-pb', message = 'rag-pb')
-alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = "bullish O'Neil inspired: hi-percentile sb", message = 'WON:hp-sb')
-alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUp_p1D), title = "bullish O'Neil inspired: turnaround GO Up", message = 'WON:turUp')
+alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = "bullish O''Neil inspired: hi-percentile sb", message = 'WON:hp-sb')
+alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUp_p1D), title = "bullish O''Neil inspired: turnaround GO Up", message = 'WON:turUp')
 alertcondition(gFilter and (minVwapTAGSig or minVwapTAG_p1D), title = "bullish min vwap TAG", message = 'minVwapTAG')
