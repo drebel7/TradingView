@@ -268,6 +268,7 @@ obvDivSigColor = color.new(color.navy, 0)
 mtsbSigColor = color.new(color.gray, 0)
 ragPbSigColor = color.new(color.olive, 0)
 wonHpSbSigColor = color.new(color.teal, 0)
+minVwapTagSigColor = color.new(color.aqua, 0)
 
 
 //plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
@@ -347,7 +348,7 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonHpSbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 18, text = "minVwapTAG", text_color = ragPbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 18, text = "minVwapTAG", text_color = minVwapTagSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 18, text = minVwapTAGSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
@@ -367,11 +368,11 @@ plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
 plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON:hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:hp-sb', textcolor = wonHpSbSigColor)
 plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
-plotshape(iShowMinVwapTAG and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'minVwapTAG', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'minVwapTAG', textcolor = ragPbSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '1L', textcolor = ragPbSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '2L', textcolor = ragPbSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '3L', textcolor = ragPbSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '4L', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'minVwapTAG', location = location.belowbar, color = minVwapTagSigColor, style = shape.triangleup, text = 'minVwapTAG', textcolor = minVwapTagSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = minVwapTagSigColor, style = shape.triangleup, text = '1L', textcolor = minVwapTagSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTagSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTagSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTagSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTagSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTagSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTagSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
