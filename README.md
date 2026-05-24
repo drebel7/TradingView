@@ -6,8 +6,6 @@ The latest version is available on GitHub at: https://github.com/drebel7/Trading
 
 **Pine Script v6 documentation:** [codenamedevan/pinescriptv6](https://github.com/codenamedevan/pinescriptv6)
 
-Do not modify or delete comment lines.
-
 ## Project structure
 
 TradingView/
