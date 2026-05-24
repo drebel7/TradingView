@@ -201,7 +201,7 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
-// riding min AVWAP - touch and go
+// riding min AVWAP - touch and go (relay: majorLow → minorLow1 → minorLow2 → minorLow3)
 iMinVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Min Vwap TouchAndGo")
 iRidingMinVwapLag = input.int(defval = 1, title = "lag blabla", minval = 0, maxval = 2, display = display.none, group = "Signal: Min Vwap TouchAndGo")
 loweringMa = ta.barssince(mainMa < mainMa[1])
@@ -209,13 +209,25 @@ lowest200 = ta.lowest(iMinVwapTAGLMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
 majorLowVwap = ta.vwap(low, majorLow)
 barsSinceMajorLow = ta.barssince(majorLow)
-lowsBelowMinVwap = math.sum(low < majorLowVwap ? 1 : 0, 10)
-vwapTouch = barsSinceMajorLow > 20 and barsSinceMajorLow < 300 and drelib.crossover(majorLowVwap) and mainMa > mainMa[1] and lowsBelowMinVwap <= 4
+lowsBelowMjVwap = math.sum(low < majorLowVwap ? 1 : 0, 10)
+vwapTouch = barsSinceMajorLow > 20 and barsSinceMajorLow < 300 and drelib.crossover(majorLowVwap) and mainMa > mainMa[1] and lowsBelowMjVwap <= 4
 lowest10 = ta.lowest(10)
-secondLow = vwapTouch and lowest10 == low
-secondLowVwap = ta.vwap(low, secondLow)
-vwapTouch2 = drelib.crossover(secondLowVwap) and mainMa > mainMa[1] and lowsBelowMinVwap <= 4
-minVwapTAG = (vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch2 or vwapTouch2[iRidingMinVwapLag]) and close > high[1]
+minorLow1 = vwapTouch and lowest10 == low
+minorLow1Vwap = ta.vwap(low, minorLow1)
+lowsBelowML1Vwap = math.sum(low < minorLow1Vwap ? 1 : 0, 10)
+vwapTouch2 = drelib.crossover(minorLow1Vwap) and mainMa > mainMa[1] and lowsBelowML1Vwap <= 4
+minorLow2 = vwapTouch2 and lowest10 == low
+minorLow2Vwap = ta.vwap(low, minorLow2)
+lowsBelowML2Vwap = math.sum(low < minorLow2Vwap ? 1 : 0, 10)
+vwapTouch3 = drelib.crossover(minorLow2Vwap) and mainMa > mainMa[1] and lowsBelowML2Vwap <= 4
+minorLow3 = vwapTouch3 and lowest10 == low
+minorLow3Vwap = ta.vwap(low, minorLow3)
+lowsBelowML3Vwap = math.sum(low < minorLow3Vwap ? 1 : 0, 10)
+vwapTouch4 = drelib.crossover(minorLow3Vwap) and mainMa > mainMa[1] and lowsBelowML3Vwap <= 4
+minVwapTAG = (vwapTouch or vwapTouch[iRidingMinVwapLag] 
+           or vwapTouch2 or vwapTouch2[iRidingMinVwapLag] 
+           or vwapTouch3 or vwapTouch3[iRidingMinVwapLag]
+           or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]) and close > high[1]
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
@@ -254,23 +266,25 @@ mtsbSigColor = color.new(color.gray, 0)
 ragPbSigColor = color.new(color.olive, 0)
 wonHpSbSigColor = color.new(color.teal, 0)
 
-plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? mtsbSuccRate : na, title = 'mtsb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? mtc1sbSuccRate : na, title = 'mtc1sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? mtc2sbSuccRate : na, title = 'mtc2sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? wonHpSbSuccRate : na, title = 'WON:hp-sb', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? wonTurnGoUpSuccRate : na, title = 'WON:turnUp', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
-plot(series = iShowSigPerfPlots ? minVwapTAGSuccRate : na, title = 'minVwapTAG', color = ragPbSigColor, linestyle = plot.linestyle_solid)
+
+//plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? mtsbSuccRate : na, title = 'mtsb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? mtc1sbSuccRate : na, title = 'mtc1sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? mtc2sbSuccRate : na, title = 'mtc2sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? wonHpSbSuccRate : na, title = 'WON:hp-sb', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? wonTurnGoUpSuccRate : na, title = 'WON:turnUp', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
+//plot(series = iShowSigPerfPlots ? minVwapTAGSuccRate : na, title = 'minVwapTAG', color = ragPbSigColor, linestyle = plot.linestyle_solid)
+
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
@@ -352,7 +366,9 @@ plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateO
 plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
 plotshape(iShowMinVwapTAG and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'minVwapTAG', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'minVwapTAG', textcolor = ragPbSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '1L', textcolor = ragPbSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and secondLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '2L', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '2L', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '3L', textcolor = ragPbSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = '4L', textcolor = ragPbSigColor)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
