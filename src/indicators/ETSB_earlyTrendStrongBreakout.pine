@@ -224,10 +224,9 @@ minorLow3 = vwapTouch3 and lowest10 == low
 minorLow3Vwap = ta.vwap(low, minorLow3)
 lowsBelowML3Vwap = math.sum(low < minorLow3Vwap ? 1 : 0, 10)
 vwapTouch4 = drelib.crossover(minorLow3Vwap) and mainMa > mainMa[1] and lowsBelowML3Vwap <= 4
-minVwapTAG = (vwapTouch or vwapTouch[iRidingMinVwapLag] 
-           or vwapTouch2 or vwapTouch2[iRidingMinVwapLag] 
-           or vwapTouch3 or vwapTouch3[iRidingMinVwapLag]
-           or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]) and close > high[1]
+minVwapTAG = (((vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch2 or vwapTouch2[iRidingMinVwapLag]) and not (vwapTouch3 or vwapTouch3[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]))
+or ((vwapTouch2 or vwapTouch2[iRidingMinVwapLag] or vwapTouch3 or vwapTouch3[iRidingMinVwapLag]) and not (vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]))
+or ((vwapTouch3 or vwapTouch3[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]) and not (vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch2 or vwapTouch2[iRidingMinVwapLag]))) and close > high[1]
 
 //check performance
 iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
