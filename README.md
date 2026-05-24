@@ -1,62 +1,61 @@
 # TradingView Pine Script v6 - drebel
 
-Repozytorium moich wskaźników, bibliotek i narzędzi do TradingView w **Pine Script v6**.
+Repository of my indicators, libraries and tools for TradingView in **Pine Script v6**.
 
-Całość aktualna znajduje się na GitHubie pod adresem: https://github.com/drebel7/TradingView (branch `main`).
+The latest version is available on GitHub at: https://github.com/drebel7/TradingView (branch `main`).
 
-**Dokumentacja Pine Script v6:** [codenamedevan/pinescriptv6](https://github.com/codenamedevan/pinescriptv6)
+**Pine Script v6 documentation:** [codenamedevan/pinescriptv6](https://github.com/codenamedevan/pinescriptv6)
 
-Nie zmieniaj i nie usuwaj linii komentarzy.
+Do not modify or delete comment lines.
 
-## Struktura projektu
+## Project structure
 
 TradingView/
 ├── README.md
 ├── .gitignore
 │
-├── src/                          ← Główna zawartość
-│   ├── indicators/               ← Gotowe wskaźniki (+ README.md)
-│   ├── libraries/                ← Biblioteki (+ README.md)
-│   │   ├── DRELib/               ← Główna biblioteka (v31+)
-│   │   ├── DRECandles/           ← Formacje świecowe
-│   │   └── DREPerf/              ← Analiza performance
-│   ├── strategies/               ← Strategie (w przygotowaniu)
-│   └── zzOthers/                 ← Skrypty innych autorów
+├── src/                          ← Main content
+│   ├── indicators/               ← Ready indicators (+ README.md)
+│   ├── libraries/                ← Libraries (+ README.md)
+│   │   ├── DRELib/               ← Main library (v31+)
+│   │   ├── DRECandles/           ← Candle patterns
+│   │   └── DREPerf/              ← Performance analysis
+│   ├── strategies/               ← Strategies (in preparation)
+│   └── zzOthers/                 ← Scripts by other authors
 │
-├── watchlist/                    ← Listy tickerów
-└── docs/                         ← Dokumentacja (opcjonalnie)
+├── watchlist/                    ← Ticker lists
+└── docs/                         ← Documentation (optional)
 
+Detailed descriptions are in the `README.md` files of the respective subdirectories.
 
-Szczegółowe opisy znajdują się w plikach `README.md` w poszczególnych podkatalogach.
+## Libraries (`src/libraries/`)
 
-## Biblioteki (`src/libraries/`)
+- **DRELib** — main and most important library (version 31+)
+- **DRECandles** — functions for candle analysis and patterns
+- **DREPerf** — tools for statistics and success rate
 
-- **DRELib** — główna i najważniejsza biblioteka (wersja 31+)
-- **DRECandles** — funkcje do analizy świec i formacji
-- **DREPerf** — narzędzia do statystyk i success rate
-
-Import przykład:  
+Import example:
 `import drebel/DRELib/31 as drelib`
 
-## Wskaźniki (`src/indicators/`)
+## Indicators (`src/indicators/`)
 
-Główny wskaźnik:  
-**ETSB_earlyTrendStrongBreakout.pine** — Early Trend Strong Breakout + wariant ETH (hammer)
+Main indicator:
+**ETSB_earlyTrendStrongBreakout.pine** — Early Trend Strong Breakout + ETH variant (hammer)
 
-Pełna lista wskaźników w [`src/indicators/README.md`](src/indicators/README.md).
+Full list of indicators in [`src/indicators/README.md`](src/indicators/README.md).
 
-## Jak używać
+## How to use
 
-1. Skopiuj foldery z `src/libraries/` jako **biblioteki** na TradingView.
-2. Importuj biblioteki w skryptach.
-3. Dodawaj gotowe wskaźniki z `src/indicators/`.
+1. Copy the folders from `src/libraries/` as **libraries** on TradingView.
+2. Import the libraries in your scripts.
+3. Add ready indicators from `src/indicators/`.
 
-## Ważne
+## Important
 
-- Wszystkie pliki w wersji **v6**
-- Rozszerzenie `.pine`
-- Główna ramka czasowa: **1D**
+- All files are **v6**
+- Extension `.pine`
+- Primary timeframe: **1D**
 
 ---
 
-**Ostatnia aktualizacja:** 2026-05-10
+**Last updated:** 2026-05-10
