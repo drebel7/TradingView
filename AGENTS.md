@@ -1,10 +1,24 @@
 // AGENTS.md – concise guidance for OpenCode agents
 
+### Top Recommended Repositories
+- **[trugurpala/pinescriptv6](https://github.com/trugurpala/pinescriptv6)** — Pine Script v6 optimized specifically for AI coding agents (best practices + lessons learned)
+- **[trsdn/meta-strategy](https://github.com/trsdn/meta-strategy)** — Converts TradingView indicators into backtestable Pine Script v6 strategies
+- **[LuxAlgo/PineTS](https://github.com/LuxAlgo/PineTS)** — Well-structured Pine Script project with detailed AI agent instructions
+- **[paulieb89/pinescript-mcp](https://github.com/paulieb89/pinescript-mcp)** — Pine Script v6 MCP server with validation tools
+
+### Official Documentation
+- [Pine Script v6 Reference](https://www.tradingview.com/pine-script-reference/v6/)
+- [Pine Script v6 Migration Guide](https://www.tradingview.com/pine-script-docs/migration-guides/to-pine-version-6/)
+
+**Rule:** Before proposing complex logic or new features, the agent should check the above resources when relevant.
+
 **Core principles**
 - **Simplicity first** - minimal code that solves the problem. Nothing speculative.
 - **No Laziness** - Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal impact** - Only touch what's necessary. No side effects. No new bugs.
 
+
+### This project specifics
 
 **Repository overview**
 - This repo is a collection of TradingView Pine Script indicators and supporting watch‑list text files.
