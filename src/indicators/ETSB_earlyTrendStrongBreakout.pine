@@ -215,15 +215,18 @@ lowsBelowMjVwap = math.sum(low < majorLowVwap ? 1 : 0, 10)
 vwapTouch = barsSinceMajorLow > 20 and barsSinceMajorLow < 300 and drelib.crossover(majorLowVwap) and mainMa > mainMa[1] and lowsBelowMjVwap <= iRidingMinVwapLowsBelow
 lowest10 = ta.lowest(10)
 minorLow1 = vwapTouch and lowest10 == low
-minorLow1Vwap = ta.vwap(low, minorLow1)
+minorL1Vwap = ta.vwap(low, minorLow1)
+minorLow1Vwap = ta.barssince(majorLow) < ta.barssince(minorLow1) ? na : minorL1Vwap
 lowsBelowML1Vwap = math.sum(low < minorLow1Vwap ? 1 : 0, 10)
 vwapTouch2 = drelib.crossover(minorLow1Vwap) and mainMa > mainMa[1] and lowsBelowML1Vwap <= iRidingMinVwapLowsBelow
 minorLow2 = vwapTouch2 and lowest10 == low
-minorLow2Vwap = ta.vwap(low, minorLow2)
+minorL2Vwap = ta.vwap(low, minorLow2)
+minorLow2Vwap = ta.barssince(majorLow) < ta.barssince(minorLow2) ? na : minorL2Vwap
 lowsBelowML2Vwap = math.sum(low < minorLow2Vwap ? 1 : 0, 10)
 vwapTouch3 = drelib.crossover(minorLow2Vwap) and mainMa > mainMa[1] and lowsBelowML2Vwap <= iRidingMinVwapLowsBelow
 minorLow3 = vwapTouch3 and lowest10 == low
-minorLow3Vwap = ta.vwap(low, minorLow3)
+minorL3Vwap = ta.vwap(low, minorLow3)
+minorLow3Vwap = ta.barssince(majorLow) < ta.barssince(minorLow3) ? na : minorL3Vwap
 lowsBelowML3Vwap = math.sum(low < minorLow3Vwap ? 1 : 0, 10)
 vwapTouch4 = drelib.crossover(minorLow3Vwap) and mainMa > mainMa[1] and lowsBelowML3Vwap <= iRidingMinVwapLowsBelow
 minVwapTAG = (
@@ -373,6 +376,10 @@ plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iSho
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
+plot(series = iShowMinVwapTAGDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor)
+plot(series = iShowMinVwapTAGDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plot(series = iShowMinVwapTAGDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plot(series = iShowMinVwapTAGDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
