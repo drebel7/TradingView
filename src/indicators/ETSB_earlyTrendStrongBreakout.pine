@@ -377,8 +377,8 @@ plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iSh
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
 plot(series = iShowMinVwapTAGDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor)
-plot(series = iShowMinVwapTAGDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
-plot(series = iShowMinVwapTAGDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plot(series = iShowMinVwapTAGDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
+plot(series = iShowMinVwapTAGDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
 
 //issuing alerts
