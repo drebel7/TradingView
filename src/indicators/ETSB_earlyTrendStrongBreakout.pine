@@ -236,7 +236,6 @@ or ((vwapTouch3 or vwapTouch3[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRi
 ) and close >= high[1] and (iRidingMinVwapObvCond and obvCondRaw or not iRidingMinVwapObvCond)
 
 //check performance
-iShowSigPerfPlots = input.bool(defval = false, title = 'show plots', display = display.none, group = 'Sig. performnce check')
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performnce check')
 iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performnce check')
 
@@ -272,25 +271,6 @@ mtsbSigColor = color.new(color.gray, 0)
 ragPbSigColor = color.new(color.olive, 0)
 wonHpSbSigColor = color.new(color.teal, 0)
 minVwapTAGSigColor = color.new(color.aqua, 0)
-
-
-//plot(series = iShowSigPerfPlots ? et3sbSuccRate : na, title = 'et3sb', color = et3sbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? et4sbSuccRate : na, title = 'et4sb', color = et4sbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? rmv1SuccRate : na, title = 'rmv1', color = rmvSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? rmv2SuccRate : na, title = 'rmv2', color = rmvSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? rmv3SuccRate : na, title = 'rmv3', color = rmvSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? etc1sbSuccRate : na, title = 'etc1sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? etc2sbSuccRate : na, title = 'etc2sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? etc3sbSuccRate : na, title = 'etc3sb', color = etcsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? obvDivSuccRate : na, title = 'obvDiv', color = obvDivSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? mtsbSuccRate : na, title = 'mtsb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? mtc1sbSuccRate : na, title = 'mtc1sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? mtc2sbSuccRate : na, title = 'mtc2sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? mtc3sbSuccRate : na, title = 'mtc3sb', color = mtsbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? ragPbSuccRate : na, title = 'rag-pb', color = ragPbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? wonHpSbSuccRate : na, title = 'WON:hp-sb', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? wonTurnGoUpSuccRate : na, title = 'WON:turnUp', color = wonHpSbSigColor, linestyle = plot.linestyle_solid)
-//plot(series = iShowSigPerfPlots ? minVwapTAGSuccRate : na, title = 'minVwapTAG', color = minVwapTAGSigColor, linestyle = plot.linestyle_solid)
 
 
 //print sig performance table
