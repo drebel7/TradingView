@@ -202,38 +202,41 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
 // riding min AVWAP - touch and go (relay: majorLow → minorLow1 → minorLow2 → minorLow3)
-iMinVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Min Vwap TouchAndGo")
-iRidingMinVwapLag = input.int(defval = 1, title = "lag blabla", minval = 0, maxval = 2, display = display.none, group = "Signal: Min Vwap TouchAndGo")
-iRidingMinVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Min Vwap TouchAndGo")
-iRidingMinVwapObvCond = input.bool(defval = true, title = 'Include above OBV cond.', display = display.none, group = "Signal: Min Vwap TouchAndGo")
+iRidingVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Min Vwap TouchAndGo")
+iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Min Vwap TouchAndGo")
+iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Min Vwap TouchAndGo")
+iRidingVwapObvCond = input.bool(defval = false, title = 'Include above OBV cond.', display = display.none, group = "Signal: Min Vwap TouchAndGo")
 loweringMa = ta.barssince(mainMa < mainMa[1])
-lowest200 = ta.lowest(iMinVwapTAGLMajorLowLookup)
+lowest200 = ta.lowest(iRidingVwapTAGLMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
 majorLowVwap = ta.vwap(low, majorLow)
 barsSinceMajorLow = ta.barssince(majorLow)
 lowsBelowMjVwap = math.sum(low < majorLowVwap ? 1 : 0, 10)
-vwapTouch = barsSinceMajorLow > 10 and barsSinceMajorLow < 300 and drelib.crossover(majorLowVwap) and lowsBelowMjVwap <= iRidingMinVwapLowsBelow //and mainMa > mainMa[1]
+vwapTouch = barsSinceMajorLow > 10 and barsSinceMajorLow < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLowVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
 minorLow1 = vwapTouch and lowest10 == low
 minorL1Vwap = ta.vwap(low, minorLow1)
-minorLow1Vwap = ta.barssince(majorLow) < ta.barssince(minorLow1) ? na : minorL1Vwap
+minorLow1Ago = ta.barssince(minorLow1)
+minorLow1Vwap = ta.barssince(majorLow) < minorLow1Ago or minorLow1Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL1Vwap
 lowsBelowML1Vwap = math.sum(low < minorLow1Vwap ? 1 : 0, 10)
-vwapTouch2 = drelib.crossover(minorLow1Vwap) and lowsBelowML1Vwap <= iRidingMinVwapLowsBelow //and mainMa > mainMa[1]
+vwapTouch2 = drelib.crossover(minorLow1Vwap) and lowsBelowML1Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
 minorLow2 = vwapTouch2 and lowest10 == low
 minorL2Vwap = ta.vwap(low, minorLow2)
-minorLow2Vwap = ta.barssince(majorLow) < ta.barssince(minorLow2) ? na : minorL2Vwap
+minorLow2Ago = ta.barssince(minorLow2)
+minorLow2Vwap = ta.barssince(majorLow) < minorLow2Ago or minorLow2Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL2Vwap
 lowsBelowML2Vwap = math.sum(low < minorLow2Vwap ? 1 : 0, 10)
-vwapTouch3 = drelib.crossover(minorLow2Vwap) and lowsBelowML2Vwap <= iRidingMinVwapLowsBelow //and mainMa > mainMa[1]
+vwapTouch3 = drelib.crossover(minorLow2Vwap) and lowsBelowML2Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
 minorLow3 = vwapTouch3 and lowest10 == low
 minorL3Vwap = ta.vwap(low, minorLow3)
-minorLow3Vwap = ta.barssince(majorLow) < ta.barssince(minorLow3) ? na : minorL3Vwap
+minorLow3Ago = ta.barssince(minorLow3)
+minorLow3Vwap = ta.barssince(majorLow) < minorLow3Ago or minorLow3Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL3Vwap
 lowsBelowML3Vwap = math.sum(low < minorLow3Vwap ? 1 : 0, 10)
-vwapTouch4 = drelib.crossover(minorLow3Vwap) and lowsBelowML3Vwap <= iRidingMinVwapLowsBelow //and mainMa > mainMa[1]
+vwapTouch4 = drelib.crossover(minorLow3Vwap) and lowsBelowML3Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
 minVwapTAG = (
-    ((vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch2 or vwapTouch2[iRidingMinVwapLag]) and not (vwapTouch3 or vwapTouch3[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]))
-or ((vwapTouch2 or vwapTouch2[iRidingMinVwapLag] or vwapTouch3 or vwapTouch3[iRidingMinVwapLag]) and not (vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]))
-or ((vwapTouch3 or vwapTouch3[iRidingMinVwapLag] or vwapTouch4 or vwapTouch4[iRidingMinVwapLag]) and not (vwapTouch or vwapTouch[iRidingMinVwapLag] or vwapTouch2 or vwapTouch2[iRidingMinVwapLag]))
-) and close >= high[1] and (iRidingMinVwapObvCond and obvCondRaw or not iRidingMinVwapObvCond)
+    ((vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]) and not (vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1]))
+or ((vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch4 or vwapTouch4[1]))
+or ((vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]))
+) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond)
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performnce check')
