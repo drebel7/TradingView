@@ -209,10 +209,11 @@ iRidingVwapObvCond = input.bool(defval = false, title = 'Include above OBV cond.
 loweringMa = ta.barssince(mainMa < mainMa[1])
 lowest200 = ta.lowest(iRidingVwapTAGLMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
-majorLowVwap = ta.vwap(low, majorLow)
-barsSinceMajorLow = ta.barssince(majorLow)
-lowsBelowMjVwap = math.sum(low < majorLowVwap ? 1 : 0, 10)
-vwapTouch = barsSinceMajorLow > 10 and barsSinceMajorLow < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLowVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
+majorLVwap = ta.vwap(low, majorLow)
+majorLAgo = ta.barssince(majorLow)
+majorLowVwap = majorLAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
+lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
+vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
 minorLow1 = vwapTouch and lowest10 == low
 minorL1Vwap = ta.vwap(low, minorLow1)
@@ -359,7 +360,7 @@ plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iSho
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
-plot(series = iShowMinVwapTAGDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor)
+plot(series = iShowMinVwapTAGDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
