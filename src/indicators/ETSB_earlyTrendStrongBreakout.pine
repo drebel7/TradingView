@@ -221,13 +221,13 @@ minorLow1Ago = ta.barssince(minorLow1)
 minorLow1Vwap = ta.barssince(majorLow) < minorLow1Ago or minorLow1Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL1Vwap
 lowsBelowML1Vwap = math.sum(low < minorLow1Vwap ? 1 : 0, 10)
 vwapTouch2 = drelib.crossover(minorLow1Vwap) and lowsBelowML1Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
-minorLow2 = vwapTouch2 and lowest10 == low
+minorLow2 = vwapTouch2 and lowest10 == low and not minorLow1
 minorL2Vwap = ta.vwap(low, minorLow2)
 minorLow2Ago = ta.barssince(minorLow2)
 minorLow2Vwap = ta.barssince(majorLow) < minorLow2Ago or minorLow2Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL2Vwap
 lowsBelowML2Vwap = math.sum(low < minorLow2Vwap ? 1 : 0, 10)
 vwapTouch3 = drelib.crossover(minorLow2Vwap) and lowsBelowML2Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
-minorLow3 = vwapTouch3 and lowest10 == low
+minorLow3 = vwapTouch3 and lowest10 == low and not minorLow1 and not minorLow2
 minorL3Vwap = ta.vwap(low, minorLow3)
 minorLow3Ago = ta.barssince(minorLow3)
 minorLow3Vwap = ta.barssince(majorLow) < minorLow3Ago or minorLow3Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL3Vwap
