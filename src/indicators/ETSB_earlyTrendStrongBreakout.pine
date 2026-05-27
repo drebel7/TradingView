@@ -201,11 +201,11 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
-// riding min AVWAP - touch and go (relay: majorLow → minorLow1 → minorLow2 → minorLow3)
-iRidingVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Min Vwap TouchAndGo")
-iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Min Vwap TouchAndGo")
-iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Min Vwap TouchAndGo")
-iRidingVwapObvCond = input.bool(defval = false, title = 'Include above OBV cond.', display = display.none, group = "Signal: Min Vwap TouchAndGo")
+// Riding AVWAP - touch and go (relay: majorLow → minorLow1 → minorLow2 → minorLow3)
+iRidingVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapObvCond = input.bool(defval = false, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 loweringMa = ta.barssince(mainMa < mainMa[1])
 lowest200 = ta.lowest(iRidingVwapTAGLMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
