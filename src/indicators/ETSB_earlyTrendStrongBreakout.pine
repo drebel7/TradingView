@@ -224,8 +224,8 @@ lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
 vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
 
-nextVwapTouch(_prevTouch, _ex1, _ex2, _ex3) =>
-    lowDet = _prevTouch and lowest10 == low and not _ex1 and not _ex2 and not _ex3
+nextVwapTouch(series float _prevVWap, bool _ex1, bool _ex2, bool _ex3) =>
+    lowDet = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3
     lVwap = ta.vwap(ridingVwapSrc, lowDet)
     ago = ta.barssince(lowDet)
     vwapLevel = ta.barssince(majorLow) < ago or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
@@ -233,10 +233,10 @@ nextVwapTouch(_prevTouch, _ex1, _ex2, _ex3) =>
     nextTouch = drelib.crossover(vwapLevel) and lowsBelow <= iRidingVwapLowsBelow and ridingVwapVolOk
     [lowDet, lVwap, ago, vwapLevel, lowsBelow, nextTouch]
 
-[minorLow1, minorL1Vwap, minorLow1Ago, minorLow1Vwap, lowsBelowML1Vwap, vwapTouch2] = nextVwapTouch(vwapTouch, false, false, false)
-[minorLow2, minorL2Vwap, minorLow2Ago, minorLow2Vwap, lowsBelowML2Vwap, vwapTouch3] = nextVwapTouch(vwapTouch2, minorLow1, false, false)
-[minorLow3, minorL3Vwap, minorLow3Ago, minorLow3Vwap, lowsBelowML3Vwap, vwapTouch4] = nextVwapTouch(vwapTouch3, minorLow1, minorLow2, false)
-[minorLow4, minorL4Vwap, minorLow4Ago, minorLow4Vwap, lowsBelowML4Vwap, vwapTouch5] = nextVwapTouch(vwapTouch4, minorLow1, minorLow2, minorLow3)
+[minorLow1, minorL1Vwap, minorLow1Ago, minorLow1Vwap, lowsBelowML1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, false, false, false)
+[minorLow2, minorL2Vwap, minorLow2Ago, minorLow2Vwap, lowsBelowML2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, minorLow1, false, false)
+[minorLow3, minorL3Vwap, minorLow3Ago, minorLow3Vwap, lowsBelowML3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, minorLow1, minorLow2, false)
+[minorLow4, minorL4Vwap, minorLow4Ago, minorLow4Vwap, lowsBelowML4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, minorLow1, minorLow2, minorLow3)
 minVwapTAG = (
     ((vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]) and not (vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]))
 or ((vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]))
