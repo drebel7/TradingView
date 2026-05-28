@@ -205,8 +205,8 @@ wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoD
 iRidingVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
-iRidingVwapObvCond = input.bool(defval = false, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
-iRidingVwapVolCond = input.bool(defval = false, title = 'Require volume > SMA(30) on touch', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapObvCond = input.bool(defval = true, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapVolCond = input.bool(defval = true, title = 'Require volume > SMA(30) on touch', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 ridingVwapSrc = switch iRidingVwapSrc
     "low"   => low
