@@ -238,10 +238,10 @@ nextVwapTouch(series float _prevVWap, bool _ex1, bool _ex2, bool _ex3) =>
 [minorLow3, minorL3Vwap, minorLow3Ago, minorLow3Vwap, lowsBelowML3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, minorLow1, minorLow2, false)
 [minorLow4, minorL4Vwap, minorLow4Ago, minorLow4Vwap, lowsBelowML4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, minorLow1, minorLow2, minorLow3)
 minVwapTAG = (
-    ((vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]) and not (vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]))
-or ((vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]))
-or ((vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1] or vwapTouch5 or vwapTouch5[1]))
-or ((vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]))
+    ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5))
+or ((vwapTouch2 or vwapTouch3) and not (vwapTouch or vwapTouch4 or vwapTouch5))
+or ((vwapTouch3 or vwapTouch4) and not (vwapTouch or vwapTouch2 or vwapTouch5))
+or ((vwapTouch4 or vwapTouch5) and not (vwapTouch or vwapTouch2 or vwapTouch3))
 ) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond)
 
 //check performance
