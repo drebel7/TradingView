@@ -215,28 +215,25 @@ majorLowVwap = majorLAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
 lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
 vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
-minorLow1 = vwapTouch and lowest10 == low
-minorL1Vwap = ta.vwap(low, minorLow1)
-minorLow1Ago = ta.barssince(minorLow1)
-minorLow1Vwap = ta.barssince(majorLow) < minorLow1Ago or minorLow1Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL1Vwap
-lowsBelowML1Vwap = math.sum(low < minorLow1Vwap ? 1 : 0, 10)
-vwapTouch2 = drelib.crossover(minorLow1Vwap) and lowsBelowML1Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
-minorLow2 = vwapTouch2 and lowest10 == low and not minorLow1
-minorL2Vwap = ta.vwap(low, minorLow2)
-minorLow2Ago = ta.barssince(minorLow2)
-minorLow2Vwap = ta.barssince(majorLow) < minorLow2Ago or minorLow2Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL2Vwap
-lowsBelowML2Vwap = math.sum(low < minorLow2Vwap ? 1 : 0, 10)
-vwapTouch3 = drelib.crossover(minorLow2Vwap) and lowsBelowML2Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
-minorLow3 = vwapTouch3 and lowest10 == low and not minorLow1 and not minorLow2
-minorL3Vwap = ta.vwap(low, minorLow3)
-minorLow3Ago = ta.barssince(minorLow3)
-minorLow3Vwap = ta.barssince(majorLow) < minorLow3Ago or minorLow3Ago > iRidingVwapNoTouchCancelThreshold ? na : minorL3Vwap
-lowsBelowML3Vwap = math.sum(low < minorLow3Vwap ? 1 : 0, 10)
-vwapTouch4 = drelib.crossover(minorLow3Vwap) and lowsBelowML3Vwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
+
+nextVwapTouch(_prevTouch, _ex1, _ex2, _ex3) =>
+    lowDet = _prevTouch and lowest10 == low and not _ex1 and not _ex2 and not _ex3
+    lVwap = ta.vwap(low, lowDet)
+    ago = ta.barssince(lowDet)
+    vwapLevel = ta.barssince(majorLow) < ago or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
+    lowsBelow = math.sum(low < vwapLevel ? 1 : 0, 10)
+    nextTouch = drelib.crossover(vwapLevel) and lowsBelow <= iRidingVwapLowsBelow
+    [lowDet, lVwap, ago, vwapLevel, lowsBelow, nextTouch]
+
+[minorLow1, minorL1Vwap, minorLow1Ago, minorLow1Vwap, lowsBelowML1Vwap, vwapTouch2] = nextVwapTouch(vwapTouch, false, false, false)
+[minorLow2, minorL2Vwap, minorLow2Ago, minorLow2Vwap, lowsBelowML2Vwap, vwapTouch3] = nextVwapTouch(vwapTouch2, minorLow1, false, false)
+[minorLow3, minorL3Vwap, minorLow3Ago, minorLow3Vwap, lowsBelowML3Vwap, vwapTouch4] = nextVwapTouch(vwapTouch3, minorLow1, minorLow2, false)
+[minorLow4, minorL4Vwap, minorLow4Ago, minorLow4Vwap, lowsBelowML4Vwap, vwapTouch5] = nextVwapTouch(vwapTouch4, minorLow1, minorLow2, minorLow3)
 minVwapTAG = (
-    ((vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]) and not (vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1]))
-or ((vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch4 or vwapTouch4[1]))
-or ((vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]))
+    ((vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1]) and not (vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]))
+or ((vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]))
+or ((vwapTouch3 or vwapTouch3[1] or vwapTouch4 or vwapTouch4[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1] or vwapTouch5 or vwapTouch5[1]))
+or ((vwapTouch4 or vwapTouch4[1] or vwapTouch5 or vwapTouch5[1]) and not (vwapTouch or vwapTouch[1] or vwapTouch2 or vwapTouch2[1] or vwapTouch3 or vwapTouch3[1]))
 ) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond)
 
 //check performance
@@ -360,10 +357,12 @@ plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iSho
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
 plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
+plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow4 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '5L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '5L', textcolor = minVwapTAGSigColor)
 plot(series = iShowMinVwapTAGDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowMinVwapTAGDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plot(series = iShowMinVwapTAGDebug ? minorLow4Vwap : na, title = "minorLow4Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
