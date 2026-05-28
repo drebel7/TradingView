@@ -206,12 +206,14 @@ iRidingVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low looku
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapObvCond = input.bool(defval = false, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapVolCond = input.bool(defval = false, title = 'Require volume > SMA(30) on touch', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 ridingVwapSrc = switch iRidingVwapSrc
     "low"   => low
     "high"  => high
     "close" => close
     "ohlc4" => ohlc4
+ridingVwapVolOk = not iRidingVwapVolCond or volume > gVolMa
 loweringMa = ta.barssince(mainMa < mainMa[1])
 lowest200 = ta.lowest(iRidingVwapTAGLMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
@@ -219,7 +221,7 @@ majorLVwap = ta.vwap(ridingVwapSrc, majorLow)
 majorLAgo = ta.barssince(majorLow)
 majorLowVwap = majorLAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
 lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
-vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow //and mainMa > mainMa[1]
+vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
 
 nextVwapTouch(_prevTouch, _ex1, _ex2, _ex3) =>
@@ -228,7 +230,7 @@ nextVwapTouch(_prevTouch, _ex1, _ex2, _ex3) =>
     ago = ta.barssince(lowDet)
     vwapLevel = ta.barssince(majorLow) < ago or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
     lowsBelow = math.sum(low < vwapLevel ? 1 : 0, 10)
-    nextTouch = drelib.crossover(vwapLevel) and lowsBelow <= iRidingVwapLowsBelow
+    nextTouch = drelib.crossover(vwapLevel) and lowsBelow <= iRidingVwapLowsBelow and ridingVwapVolOk
     [lowDet, lVwap, ago, vwapLevel, lowsBelow, nextTouch]
 
 [minorLow1, minorL1Vwap, minorLow1Ago, minorLow1Vwap, lowsBelowML1Vwap, vwapTouch2] = nextVwapTouch(vwapTouch, false, false, false)
