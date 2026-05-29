@@ -34,8 +34,8 @@ iShowMinevriniTrendC3Sig = input.bool(defval = true, title = 'c3', display = dis
 iShowRagPb = input.bool(defval = true, title = 'Show RAG-pb', display = display.none, group = 'Signals')
 iShowWONHP = input.bool(defval = true, title = "Show O''Neil Inspired: hi-percentiles", display = display.none, group = 'Signals')
 iShowWONTurnaroundGo = input.bool(defval = true, title = "Show O''Neil Inspired: turnaround GO", display = display.none, group = 'Signals')
-iShowMinVwapTAG = input.bool(defval = true, title = "Show Min Vwap TouchAndGo", display = display.none, group = 'Signals')
-iShowMinVwapTAGDebug = input.bool(defval = true, title = "Show Min Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
+iShowRidingVwap = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo", display = display.none, group = 'Signals')
+iShowRidingVwapDebug = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
 
 iSigCheckTime = input.int(defval = 15, title = 'Signal check time', minval = 5, maxval = 200, display = display.none, group = 'Signals')
 iSigStopLossDay = input.int(defval = 0, title = 'Stop loss (day of low)', minval = 0, maxval = 5, display = display.none, group = 'Signals')
@@ -202,7 +202,7 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, gVol50Ma)
 
 // Riding AVWAP - touch and go (relay: majorLow → minorLow1 → minorLow2 → minorLow3)
-iRidingVwapTAGLMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapObvCond = input.bool(defval = true, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
@@ -215,28 +215,29 @@ ridingVwapSrc = switch iRidingVwapSrc
     "ohlc4" => ohlc4
 ridingVwapVolOk = not iRidingVwapVolCond or volume > gVolMa
 loweringMa = ta.barssince(mainMa < mainMa[1])
-lowest200 = ta.lowest(iRidingVwapTAGLMajorLowLookup)
+lowest200 = ta.lowest(iRidingVwapMajorLowLookup)
 majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
 majorLVwap = ta.vwap(ridingVwapSrc, majorLow)
-majorLAgo = ta.barssince(majorLow)
-majorLowVwap = majorLAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
+majorLowAgo = ta.barssince(majorLow)
+majorLowVwap = majorLowAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
 lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
-vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk //and mainMa > mainMa[1]
+vwapTouch = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
 
-nextVwapTouch(series float _prevVWap, series float _src, bool _ex1, bool _ex2, bool _ex3, bool _ex4) =>
-    newLow = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3 and not _ex4
+nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo) =>
+    newLow = low < _prevVWap and lowest10 == low and _prevLowsMinAgo > 0
     lVwap = ta.vwap(_src, newLow)
     ago = ta.barssince(newLow)
-    agedNewLowVwap = ago > iRidingVwapNoTouchCancelThreshold and (_ex1 or _ex2 or _ex3 or _ex4) ? na : lVwap
+    agedNewLowVwap = ago > _prevLowsMinAgo and ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
     lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
-    prevVwapTouch = close >= _prevVWap and (drelib.crossover(_prevVWap) or drelib.crossover(high[ago])) and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk
-    [newLow, agedNewLowVwap, prevVwapTouch]
+    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk
+    [newLow, ago, agedNewLowVwap, prevVwapTouch]
 
-[minorLow1, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLow, false, false, false)
-[minorLow2, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, majorLow, minorLow1, false, false)
-[minorLow3, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, majorLow, minorLow1, minorLow2, false)
-[minorLow4, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, majorLow, minorLow1, minorLow2, minorLow3)
+[minorLow1, minorLow1Ago, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLowAgo)
+[minorLow2, minorLow2Ago, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago))
+[minorLow3, minorLow3Ago, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago))
+[minorLow4, minorLow4Ago, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago))
+
 minVwapTAG = (
     ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5))
 or ((vwapTouch2 or vwapTouch3) and not (vwapTouch or vwapTouch4 or vwapTouch5))
@@ -340,7 +341,7 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonHpSbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 18, text = "minVwapTAG", text_color = minVwapTAGSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 18, text = "ridingVwapTAG", text_color = minVwapTAGSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 18, text = minVwapTAGSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
@@ -360,17 +361,17 @@ plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
 plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON:hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:hp-sb', textcolor = wonHpSbSigColor)
 plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
-plotshape(iShowMinVwapTAG and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'minVwapTAG', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = 'minVwapTAG', textcolor = minVwapTAGSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '1L', textcolor = minVwapTAGSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
-plotshape(iShowMinVwapTAG and iShowMinVwapTAGDebug and minorLow4 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '5L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '5L', textcolor = minVwapTAGSigColor)
-plot(series = iShowMinVwapTAGDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
-plot(series = iShowMinVwapTAGDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
-plot(series = iShowMinVwapTAGDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
-plot(series = iShowMinVwapTAGDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
-plot(series = iShowMinVwapTAGDebug ? minorLow4Vwap : na, title = "minorLow4Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plotshape(iShowRidingVwap and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'ridingVwap', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = 'ridingVwap', textcolor = minVwapTAGSigColor)
+plotshape(iShowRidingVwap and iShowRidingVwapDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '1L', textcolor = minVwapTAGSigColor)
+plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
+plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
+plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
+plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow4 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '5L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '5L', textcolor = minVwapTAGSigColor)
+plot(series = iShowRidingVwapDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
+plot(series = iShowRidingVwapDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
+plot(series = iShowRidingVwapDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
+plot(series = iShowRidingVwapDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plot(series = iShowRidingVwapDebug ? minorLow4Vwap : na, title = "minorLow4Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
@@ -407,4 +408,4 @@ alertcondition(gFilter and (mtsbSig or mtsbSig_p1D), title = 'bullish mtsb', mes
 alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayGap-pb', message = 'rag-pb')
 alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = "bullish O''Neil inspired: hi-percentile sb", message = 'WON:hp-sb')
 alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUpSig_p1D), title = "bullish O''Neil inspired: turnaround GO Up", message = 'WON:turUp')
-alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullish min vwap TAG", message = 'minVwapTAG')
+alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullish riding vwap TAG", message = 'ridingVwapTAG')
