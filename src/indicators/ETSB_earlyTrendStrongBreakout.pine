@@ -225,13 +225,13 @@ vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and
 lowest10 = ta.lowest(10)
 
 nextVwapTouch(series float _prevVWap, series float _src, bool _ex1, bool _ex2, bool _ex3, bool _ex4) =>
-    lowDet = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3 and not _ex4
-    lVwap = ta.vwap(_src, lowDet)
-    ago = ta.barssince(lowDet)
-    agedLVwap = ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
-    lowsBelowLVwap = math.sum(low < agedLVwap ? 1 : 0, 10)
+    newLow = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3 and not _ex4
+    lVwap = ta.vwap(_src, newLow)
+    ago = ta.barssince(newLow)
+    agedNewLowVwap = ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
+    lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
     prevVwapTouch = close >= _prevVWap and close >= high[1] and close >= high[ago] and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk
-    [lowDet, agedLVwap, prevVwapTouch]
+    [newLow, agedNewLowVwap, prevVwapTouch]
 
 [minorLow1, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLow, false, false, false)
 [minorLow2, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, majorLow, minorLow1, false, false)
