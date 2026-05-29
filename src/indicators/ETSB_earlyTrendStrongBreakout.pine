@@ -228,7 +228,7 @@ nextVwapTouch(series float _prevVWap, series float _src, bool _ex1, bool _ex2, b
     newLow = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3 and not _ex4
     lVwap = ta.vwap(_src, newLow)
     ago = ta.barssince(newLow)
-    agedNewLowVwap = ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
+    agedNewLowVwap = ago > iRidingVwapNoTouchCancelThreshold and (_ex1 or _ex2 or _ex3 or _ex4) ? na : lVwap
     lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
     prevVwapTouch = close >= _prevVWap and (drelib.crossover(_prevVWap) or drelib.crossover(high[ago])) and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk
     [newLow, agedNewLowVwap, prevVwapTouch]
