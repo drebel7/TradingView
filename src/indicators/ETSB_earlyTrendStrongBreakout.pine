@@ -224,8 +224,8 @@ lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
 vwapTouch = majorLAgo > 10 and majorLAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk //and mainMa > mainMa[1]
 lowest10 = ta.lowest(10)
 
-nextVwapTouch(series float _prevVWap, series float _src, bool _ex1, bool _ex2, bool _ex3) =>
-    lowDet = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3
+nextVwapTouch(series float _prevVWap, series float _src, bool _ex1, bool _ex2, bool _ex3, bool _ex4) =>
+    lowDet = low < _prevVWap and lowest10 == low and not _ex1 and not _ex2 and not _ex3 and not _ex4
     lVwap = ta.vwap(_src, lowDet)
     ago = ta.barssince(lowDet)
     agedLVwap = ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
@@ -233,10 +233,10 @@ nextVwapTouch(series float _prevVWap, series float _src, bool _ex1, bool _ex2, b
     nextTouch = close >= _prevVWap and close >= high[1] and close >= high[ago] and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk
     [lowDet, agedLVwap, nextTouch]
 
-[minorLow1, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, false, false, false)
-[minorLow2, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, minorLow1, false, false)
-[minorLow3, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, minorLow1, minorLow2, false)
-[minorLow4, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, minorLow1, minorLow2, minorLow3)
+[minorLow1, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLow, false, false, false)
+[minorLow2, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, majorLow, minorLow1, false, false)
+[minorLow3, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, majorLow, minorLow1, minorLow2, false)
+[minorLow4, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, majorLow, minorLow1, minorLow2, minorLow3)
 minVwapTAG = (
     ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5))
 or ((vwapTouch2 or vwapTouch3) and not (vwapTouch or vwapTouch4 or vwapTouch5))
