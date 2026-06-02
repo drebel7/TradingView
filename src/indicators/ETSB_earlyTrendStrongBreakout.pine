@@ -82,14 +82,14 @@ et3sb = et3 and strongBreakout
 et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
 
-//Qullamaggie inspired - additionali signal if there is an OpeningRangeBrakeout the next day after main signal
+//Qullamaggie inspired - additional signal if there is an OpeningRangeBrakeout the next day after main signal
 //for low turnover 60 minute orb, for mid-high turnover 5 minute orb
 minTurnoverForOrb5 = drelib.minTurnoverOk(10 * iMinTurnover, 30)
 orb5 = drelib.openingRangeBreakout(5, true, true)
 orb60 = drelib.openingRangeBreakout(60, true, true)
 orb = minTurnoverForOrb5 ? orb5 : orb60
 
-//pct time since session beggining 
+//pct time since session beginning 
 dttTime = drelib.dttTimePct()
 
 //rmv sig (like in "DRE parabolic top" v444)
@@ -246,8 +246,8 @@ or ((vwapTouch4 or vwapTouch5) and not (vwapTouch or vwapTouch2 or vwapTouch3))
 ) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond)
 
 //check performance
-iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performnce check')
-iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performnce check')
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performance check')
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
@@ -280,6 +280,7 @@ obvDivSigColor = color.new(color.navy, 0)
 mtsbSigColor = color.new(color.gray, 0)
 ragPbSigColor = color.new(color.olive, 0)
 wonHpSbSigColor = color.new(color.teal, 0)
+wonTurnGoUpSigColor = color.new(color.purple, 0)
 minVwapTAGSigColor = color.new(color.aqua, 0)
 
 
@@ -338,7 +339,7 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 16, text = "WON:hp-sb", text_color = wonHpSbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 16, text = wonHpSbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonHpSbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonTurnGoUpSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 18, text = "ridingVwapTAG", text_color = minVwapTAGSigColor, text_size = txtSize)
@@ -360,7 +361,7 @@ plotshape(iShowMinevriniTrendC2Sig and mtc2sb and showRow(iShowOnlyGoodSigs, mtc
 plotshape(iShowMinevriniTrendC3Sig and mtc3sb and showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk), title = 'mtc3sb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'mtc3sb', textcolor = mtsbSigColor)
 plotshape(iShowRagPb and ragPb and showRow(iShowOnlyGoodSigs, ragPbSuccRateOk), title = 'rag-pb', location = location.belowbar, color = ragPbSigColor, style = shape.triangleup, text = 'rag-pb', textcolor = ragPbSigColor)
 plotshape(iShowWONHP and wonHpSb and showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk), title = 'WON:hp-sb', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:hp-sb', textcolor = wonHpSbSigColor)
-plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonHpSbSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonHpSbSigColor)
+plotshape(iShowWONTurnaroundGo and wonTurnGoUp and showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk), title = 'WON:turnUP', location = location.belowbar, color = wonTurnGoUpSigColor, style = shape.triangleup, text = 'WON:turnUp', textcolor = wonTurnGoUpSigColor)
 plotshape(iShowRidingVwap and minVwapTAG and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = 'ridingVwap', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = 'ridingVwap', textcolor = minVwapTAGSigColor)
 plotshape(iShowRidingVwap and iShowRidingVwapDebug and majorLow and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '1L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '1L', textcolor = minVwapTAGSigColor)
 plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
