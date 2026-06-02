@@ -1,0 +1,184 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator("Wyckoff accumulation", overlay = true, calc_bars_count = 12 * 252)
+
+// Wyckoff accumulation phases detection
+
+iShowSc = input.bool(defval = true, title = "Show SC", display = display.none, group = "Wyckoff signals")
+iShowAr = input.bool(defval = true, title = "Show AR", display = display.none, group = "Wyckoff signals")
+iShowSt = input.bool(defval = true, title = "Show ST", display = display.none, group = "Wyckoff signals")
+iShowSpring = input.bool(defval = true, title = "Show Spring", display = display.none, group = "Wyckoff signals")
+iShowSos = input.bool(defval = true, title = "Show SOS", display = display.none, group = "Wyckoff signals")
+iShowLps = input.bool(defval = true, title = "Show LPS", display = display.none, group = "Wyckoff signals")
+
+iLookback = input.int(defval = 50, title = "Lookback", minval = 20, maxval = 200, display = display.none, group = "Wyckoff params")
+iVolLookback = input.int(defval = 30, title = "Volume lookback", minval = 10, maxval = 100, display = display.none, group = "Wyckoff params")
+iVolThreshold = input.float(defval = 1.5, title = "Vol. threshold", minval = 1.0, maxval = 5.0, step = 0.1, display = display.none, group = "Wyckoff params")
+iRangeMultiplier = input.float(defval = 1.5, title = "Range multiplier", minval = 1.0, maxval = 5.0, step = 0.1, display = display.none, group = "Wyckoff params")
+
+//sig success rate filter
+iSigCheckTime = input.int(defval = 15, title = 'Signal check time', minval = 5, maxval = 200, display = display.none, group = 'Signals')
+iSigStopLossDay = input.int(defval = 0, title = 'Stop loss (day of low)', minval = 0, maxval = 5, display = display.none, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
+
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performance check')
+
+volMa = ta.sma(volume, iVolLookback)
+avgRange = ta.sma(high - low, iVolLookback)
+
+highVol = volume > iVolThreshold * volMa
+wideSpread = (high - low) > iRangeMultiplier * avgRange
+closeLow = close <= low + (high - low) * 0.3
+closeHigh = close >= high - (high - low) * 0.3
+closeMid = close > low + (high - low) * 0.3 and close < high - (high - low) * 0.3
+
+lowestLookback = ta.lowest(iLookback)
+highestLookback = ta.highest(iLookback)
+
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+
+var int scBar = 0
+
+// Selling Climax: high volume, wide spread down, closes near low
+sc = scBar == 0 and highVol and wideSpread and closeLow and close < close[1] and low <= lowestLookback
+if sc
+    scBar := bar_index
+
+scAgo = scBar > 0 ? bar_index - scBar : na
+
+// Automatic Rally: after SC, price rises, lower volume, narrower spread
+ar = na(scAgo) ? false : close > close[1] and high > high[1] and not highVol and not wideSpread and scAgo < 10
+
+// Secondary Test: price revisits SC low area, lower volume, smaller spread
+st = na(scAgo) ? false : closeLow and low <= low[scAgo] * 1.02 and not highVol and not wideSpread and scAgo > 1 and scAgo < 30
+
+// Spring: price breaks below prior low (shakeout) then reverses above
+lowestBefore = ta.lowest(iLookback / 2)
+springLow = low < lowestBefore[1] and close > low + (high - low) * 0.5 and close > close[1] and highVol
+spring = na(scAgo) ? false : springLow and scAgo < 30
+
+// Sign of Strength: price breaks above prior high on increased volume, wide spread
+sos = closeHigh and high > highestLookback[1] and highVol and wideSpread and close > close[1]
+
+// Last Point of Support: after SOS, pullback on low volume, holds above prior resistance
+sosAgo = ta.barssince(sos)
+highestThirdLookback = ta.highest(iLookback / 3)
+lps = na(sosAgo) ? false : close > close[1] and closeMid and not highVol and sosAgo > 1 and sosAgo < 15 and low >= highestThirdLookback[1] * 0.98 and close < highestLookback[1]
+
+//performance tracking
+type SigPerf
+    int entryBar = 0
+    float entryPrice = 0.0
+    bool inTrade = false
+    int total = 0
+    int wins = 0
+    float totalReturn = 0.0
+
+trackSigPerf(SigPerf perf, bool sig, float _sl, int checkBars, float targetPct) =>
+    if not perf.inTrade and sig
+        perf.entryBar := bar_index
+        perf.entryPrice := close
+        perf.inTrade := true
+        perf.total += 1
+    if perf.inTrade
+        if high >= perf.entryPrice * (1 + targetPct / 100)
+            perf.wins += 1
+            perf.inTrade := false
+        else if low <= _sl or low <= perf.entryPrice * (1 - targetPct / 200)
+            perf.inTrade := false
+        else if bar_index - perf.entryBar >= checkBars
+            perf.inTrade := false
+        if not perf.inTrade
+            ret = 100.0 * (close - perf.entryPrice) / perf.entryPrice
+            perf.totalReturn += ret
+
+sl = low[iSigStopLossDay]
+var scPerf = SigPerf.new()
+var arPerf = SigPerf.new()
+var stPerf = SigPerf.new()
+var springPerf = SigPerf.new()
+var sosPerf = SigPerf.new()
+var lpsPerf = SigPerf.new()
+
+trackSigPerf(scPerf, sc, sl, iSigCheckTime, adrCond)
+trackSigPerf(arPerf, ar, sl, iSigCheckTime, adrCond)
+trackSigPerf(stPerf, st, sl, iSigCheckTime, adrCond)
+trackSigPerf(springPerf, spring, sl, iSigCheckTime, adrCond)
+trackSigPerf(sosPerf, sos, sl, iSigCheckTime, adrCond)
+trackSigPerf(lpsPerf, lps, sl, iSigCheckTime, adrCond)
+
+calcPerf(SigPerf perf, float minRate, float minRet) =>
+    succRate = perf.total > 0 ? 100.0 * perf.wins / perf.total : 0.0
+    succCount = perf.wins
+    sigCount = perf.total
+    avgReturn = perf.total > 0 ? perf.totalReturn / perf.total : 0.0
+    rateOk = succRate >= minRate and avgReturn >= minRet
+    rateStr = str.tostring(succRate, "#.#") + "% " + str.tostring(succCount) + "/" + str.tostring(sigCount) + " r:" + str.tostring(avgReturn, "#.##")
+    score = succRate + avgReturn * 10
+    [succRate, succCount, sigCount, avgReturn, rateOk, rateStr, score]
+
+[scSuccRate, scSuccCount, scSigCount, scAvgReturn, scSuccRateOk, scSuccRateStr, scScore] = calcPerf(scPerf, iMinSigSuccessRate, adrCond)
+[arSuccRate, arSuccCount, arSigCount, arAvgReturn, arSuccRateOk, arSuccRateStr, arScore] = calcPerf(arPerf, iMinSigSuccessRate, adrCond)
+[stSuccRate, stSuccCount, stSigCount, stAvgReturn, stSuccRateOk, stSuccRateStr, stScore] = calcPerf(stPerf, iMinSigSuccessRate, adrCond)
+[springSuccRate, springSuccCount, springSigCount, springAvgReturn, springSuccRateOk, springSuccRateStr, springScore] = calcPerf(springPerf, iMinSigSuccessRate, adrCond)
+[sosSuccRate, sosSuccCount, sosSigCount, sosAvgReturn, sosSuccRateOk, sosSuccRateStr, sosScore] = calcPerf(sosPerf, iMinSigSuccessRate, adrCond)
+[lpsSuccRate, lpsSuccCount, lpsSigCount, lpsAvgReturn, lpsSuccRateOk, lpsSuccRateStr, lpsScore] = calcPerf(lpsPerf, iMinSigSuccessRate, adrCond)
+
+// colors
+scColor = color.new(color.red, 0)
+arColor = color.new(color.orange, 0)
+stColor = color.new(color.yellow, 0)
+springColor = color.new(color.navy, 0)
+sosColor = color.new(color.green, 0)
+lpsColor = color.new(color.blue, 0)
+
+//print sig performance table
+showRow(_iShowOnlyGoodSigs, sigOk) =>
+    _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
+
+if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 8)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 0, text = '')
+    table.cell(table_id = tbl, column = 1, row = 0, text = '')
+    table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
+
+    if showRow(iShowOnlyGoodSigs, scSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 2, text = "SC", text_color = scColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 2, text = scSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, arSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 3, text = "AR", text_color = arColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 3, text = arSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, stSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 4, text = "ST", text_color = stColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 4, text = stSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, springSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 5, text = "Spring", text_color = springColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 5, text = springSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, sosSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 6, text = "SOS", text_color = sosColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 6, text = sosSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, lpsSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 7, text = "LPS", text_color = lpsColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 7, text = lpsSuccRateStr, text_size = txtSize)
+
+//plot signals
+plotshape(iShowSc and sc and showRow(iShowOnlyGoodSigs, scSuccRateOk), title = "SC", location = location.abovebar, color = scColor, style = shape.triangledown, text = "SC", textcolor = scColor)
+plotshape(iShowAr and ar and showRow(iShowOnlyGoodSigs, arSuccRateOk), title = "AR", location = location.belowbar, color = arColor, style = shape.triangleup, text = "AR", textcolor = arColor)
+plotshape(iShowSt and st and showRow(iShowOnlyGoodSigs, stSuccRateOk), title = "ST", location = location.abovebar, color = stColor, style = shape.triangledown, text = "ST", textcolor = stColor)
+plotshape(iShowSpring and spring and showRow(iShowOnlyGoodSigs, springSuccRateOk), title = "Spring", location = location.belowbar, color = springColor, style = shape.triangleup, text = "Spring", textcolor = springColor)
+plotshape(iShowSos and sos and showRow(iShowOnlyGoodSigs, sosSuccRateOk), title = "SOS", location = location.belowbar, color = sosColor, style = shape.triangleup, text = "SOS", textcolor = sosColor)
+plotshape(iShowLps and lps and showRow(iShowOnlyGoodSigs, lpsSuccRateOk), title = "LPS", location = location.belowbar, color = lpsColor, style = shape.triangleup, text = "LPS", textcolor = lpsColor)
+
+alertcondition(sc and showRow(iShowOnlyGoodSigs, scSuccRateOk), title = "SC", message = "Selling Climax")
+alertcondition(ar and showRow(iShowOnlyGoodSigs, arSuccRateOk), title = "AR", message = "Automatic Rally")
+alertcondition(st and showRow(iShowOnlyGoodSigs, stSuccRateOk), title = "ST", message = "Secondary Test")
+alertcondition(spring and showRow(iShowOnlyGoodSigs, springSuccRateOk), title = "Spring", message = "Spring / Shakeout")
+alertcondition(sos and showRow(iShowOnlyGoodSigs, sosSuccRateOk), title = "SOS", message = "Sign of Strength")
+alertcondition(lps and showRow(iShowOnlyGoodSigs, lpsSuccRateOk), title = "LPS", message = "Last Point of Support")
