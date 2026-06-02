@@ -1,0 +1,52 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "lmstudio": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM Studio Remote (mini2)",
+      "options": {
+        "baseURL": "http://mini2:1234/v1",
+        "timeout": 3600000,      // 60 minutes (in ms)
+        "chunkTimeout": 3000000,    // 50 minutes (in ms)
+		"setCacheKey": true
+      },
+      "models": {
+        "qwopus3.6-27b-v2": {
+          "name": "qwopus3.6-27b-v2"
+        },
+        "qwen3.6-27b-obliterated": {
+          "name": "qwen3.6-27b-obliterated"
+        },
+        "qwen/qwen3.6-35b-a3b": {
+          "name": "qwen/qwen3.6-35b-a3b",
+          "capabilities": ["text_generation", "code_analysis", "tool_use"]
+        },
+        "deepseek-coder-v2-lite-instruct": {
+          "name": "deepseek-coder-v2-lite-instruct"
+        },
+        "nvidia/nemotron-3-annotated-omni": {
+          "name": "nvidia/nemotron-3-nano-omni"
+        },
+        "google/gemma-4-26b-a4b": {
+          "name": "google/gemma-4-26b-a4b"
+        },
+        "google/gemma-4-e4b": {
+          "name": "google/gemma-4-e4b"
+        },
+        "qwen/qwen2.5-27b": {
+          "name": "qwen/qwen2.5-27b"
+        },
+        "google/gemma-4-31b": {
+          "name": "google/gemma-4-31b"
+        },
+        "google/gemma-4-e2b": {
+          "name": "google/gemma-4-e2b"
+        },
+        "openai/gpt-oss-20b": {
+          "name": "openai/gpt-oss-20b"
+        }
+      }
+    }
+  },
+  "model": "opencode/deepseek-v4-flash-free"
+}
