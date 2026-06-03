@@ -38,7 +38,7 @@ iShowRidingVwap = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo
 iShowRidingVwapDebug = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
 
 iSigCheckTime = input.int(defval = 15, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
-iSigStopLossDay = input.int(defval = 0, title = 'Stop loss (day of low)', minval = 0, maxval = 20, display = display.none, group = 'Signals')
+iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval = 0, maxval = 20, display = display.none, group = 'Signals')
 iSigStopLossMaxPct = input.float(defval = 10.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Signals')
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
