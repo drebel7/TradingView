@@ -217,7 +217,9 @@ ridingVwapSrc = switch iRidingVwapSrc
 ridingVwapVolOk = not iRidingVwapVolCond or volume > gVolMa
 loweringMa = ta.barssince(mainMa < mainMa[1])
 lowest200 = ta.lowest(iRidingVwapMajorLowLookup)
-majorLow = low == lowest200 and loweringMa < 50 and low < mainMa
+lowestSinceInception = ta.lowest(bar_index + 1)
+newStockMajorLow = low == lowestSinceInception and bar_index + 1 < iRidingVwapMajorLowLookup and bar_index + 1 > 10
+majorLow = (low == lowest200 and loweringMa < 50 and low < mainMa) or newStockMajorLow
 majorLVwap = ta.vwap(ridingVwapSrc, majorLow)
 majorLowAgo = ta.barssince(majorLow)
 majorLowVwap = majorLowAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
