@@ -205,6 +205,7 @@ wonTurnGoUp = drelib.sigWONTurnaroundUp(iTurnaroundExtremeAgo, iTurnaroundMinGoD
 // Riding AVWAP - touch and go (relay: majorLow → minorLow1 → minorLow2 → minorLow3)
 iRidingVwapMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapObvCond = input.bool(defval = true, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapVolCond = input.bool(defval = true, title = 'Require volume > SMA(30) on touch', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
@@ -228,12 +229,14 @@ vwapTouch = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold
 lowest10 = ta.lowest(10)
 
 nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo) =>
+    var int touchCount = 0
     newLow = low < _prevVWap and lowest10 == low and _prevLowsMinAgo > 0
     lVwap = ta.vwap(_src, newLow)
     ago = ta.barssince(newLow)
     agedNewLowVwap = ago > _prevLowsMinAgo or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
     lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
-    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk
+    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk and touchCount <= iRidingVwapMaxTouchesPerVwap
+    touchCount := prevVwapTouch ? touchCount + 1 : touchCount
     [newLow, ago, agedNewLowVwap, prevVwapTouch]
 
 [minorLow1, minorLow1Ago, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLowAgo)
