@@ -38,7 +38,7 @@ iShowRidingVwap = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo
 iShowRidingVwapDebug = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
 
 iSigCheckTime = input.int(defval = 15, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
-iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval = 0, maxval = 20, display = display.none, group = 'Signals')
+iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Signals')
 iSigStopLossMaxPct = input.float(defval = 10.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Signals')
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
@@ -264,7 +264,7 @@ iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', di
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
 
-float sl = math.max(low[iSigStopLossDay], close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
+float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
 [et3sbSuccRate, et3sbSuccCount, et3sbSigCount, et3sbAvgReturn, et3sbSuccRateOk, et3sbSuccRateStr, et3sbScore] = dreperf.successRateAllTimeStatsFull(et3sb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [et4sbSuccRate, et4sbSuccCount, et4sbSigCount, et4sbAvgReturn, et4sbSuccRateOk, et4sbSuccRateStr, et4sbScore] = dreperf.successRateAllTimeStatsFull(et4sb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rmv1SuccRate, rmv1SuccCount, rmv1SigCount, rmv1AvgReturn, rmv1SuccRateOk, rmv1SuccRateStr, rmv1Score] = dreperf.successRateAllTimeStatsFull(bullishRmv1, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
