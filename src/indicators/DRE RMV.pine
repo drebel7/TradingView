@@ -1,0 +1,20 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator("Relative Measured Volatility", shorttitle="RMV", overlay=false)
+
+import drebel/DRELib/35 as drelib
+
+mainLookback = input.int(defval = 100, title = "Main Lookback", minval = 10, maxval = 500)
+shortLookback1 = input.int(defval = 5, title = "Short ATR Lookback 1", minval = 1, maxval = 100)
+shortLookback2 = input.int(defval = 8, title = "Short ATR Lookback 2", minval = 1, maxval = 100)
+shortLookback3 = input.int(defval = 13, title = "Short ATR Lookback 3", minval = 1, maxval = 100)
+contractionLvl = input.int(defval = 20, title = "Contraction Level", minval = 1, maxval = 100)
+
+rmvValue = drelib.rmv(mainLookback, shortLookback1, shortLookback2, shortLookback3)
+contraction = drelib.rmvContraction(mainLookback, shortLookback1, shortLookback2, shortLookback3, contractionLvl)
+
+hline(contractionLvl, "Contraction Level", color=color.gray, linestyle=hline.style_dashed)
+plot(rmvValue, "RMV", color=color.blue, linewidth=2)
+bgcolor(contraction ? color.new(color.green, 90) : na)

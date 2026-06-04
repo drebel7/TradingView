@@ -209,13 +209,16 @@ iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per V
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapObvCond = input.bool(defval = true, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapVolCond = input.bool(defval = true, title = 'Require volume > SMA(30) on touch', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapContractionCond = input.bool(defval = false, title = 'Require contraction (RMV)', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 ridingVwapSrc = switch iRidingVwapSrc
     "low"   => low
     "high"  => high
     "close" => close
     "ohlc4" => ohlc4
-ridingVwapVolOk = not iRidingVwapVolCond or volume > gVolMa
+ridingVwapVolOk = iRidingVwapVolCond and volume > gVolMa or not iRidingVwapVolCond
+contractionAgo = ta.barssince(lowRmv1 or lowRmv2 or lowRmv3)
+ridingVwapContractionCond = iRidingVwapContractionCond and contractionAgo <= 2 or not iRidingVwapContractionCond
 loweringMa = ta.barssince(mainMa < mainMa[1])
 lowest200 = ta.lowest(iRidingVwapMajorLowLookup)
 lowestSinceInception = ta.lowest(bar_index + 1)
@@ -235,7 +238,7 @@ nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo) =>
     ago = ta.barssince(newLow)
     agedNewLowVwap = ago > _prevLowsMinAgo or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
     lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
-    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and ridingVwapVolOk and touchCount <= iRidingVwapMaxTouchesPerVwap
+    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and touchCount <= iRidingVwapMaxTouchesPerVwap
     touchCount := prevVwapTouch ? touchCount + 1 : touchCount
     [newLow, ago, agedNewLowVwap, prevVwapTouch]
 
@@ -249,7 +252,7 @@ minVwapTAG = (
 or ((vwapTouch2 or vwapTouch3) and not (vwapTouch or vwapTouch4 or vwapTouch5))
 or ((vwapTouch3 or vwapTouch4) and not (vwapTouch or vwapTouch2 or vwapTouch5))
 or ((vwapTouch4 or vwapTouch5) and not (vwapTouch or vwapTouch2 or vwapTouch3))
-) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond)
+) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond) and ridingVwapVolOk and ridingVwapContractionCond
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
