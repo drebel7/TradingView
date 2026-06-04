@@ -224,7 +224,7 @@ ridngVwapLowFlush = volume > gVolMa and volume > volume[1] or volume > 2 * gVolM
 ridngVwapLowFlushCond = iRidingVwapLowFlushCond and ridngVwapLowFlush or not iRidingVwapLowFlushCond
 loweringMa = ta.barssince(mainMa < mainMa[1])
 lowest200 = ta.lowest(iRidingVwapMajorLowLookup)
-lowestSinceInception = ta.lowest(bar_index + 1)
+lowestSinceInception = ta.lowest(math.min(bar_index + 1, 500))
 newStockMajorLow = low == lowestSinceInception and bar_index + 1 < iRidingVwapMajorLowLookup and bar_index + 1 > 10
 majorLow = (low == lowest200 and loweringMa < 50 and low < mainMa) or newStockMajorLow
 majorLVwap = ta.vwap(ridingVwapSrc, majorLow)
