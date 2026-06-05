@@ -314,8 +314,8 @@ if barstate.islast
         bestScoreVal := score15
         bestVersionIdx := 15
 
-// Signal for the best version
-bestSignal = bestVersionIdx == 0 ? minVwapTAG_0 : bestVersionIdx == 1 ? minVwapTAG_1 : bestVersionIdx == 2 ? minVwapTAG_2 : bestVersionIdx == 3 ? minVwapTAG_3 : bestVersionIdx == 4 ? minVwapTAG_4 : bestVersionIdx == 5 ? minVwapTAG_5 : bestVersionIdx == 6 ? minVwapTAG_6 : bestVersionIdx == 7 ? minVwapTAG_7 : bestVersionIdx == 8 ? minVwapTAG_8 : bestVersionIdx == 9 ? minVwapTAG_9 : bestVersionIdx == 10 ? minVwapTAG_10 : bestVersionIdx == 11 ? minVwapTAG_11 : bestVersionIdx == 12 ? minVwapTAG_12 : bestVersionIdx == 13 ? minVwapTAG_13 : bestVersionIdx == 14 ? minVwapTAG_14 : bestVersionIdx == 15 ? minVwapTAG_15 : false
+// Signal for the best version (default to v15/all-on until best is determined)
+bestSignal = bestVersionIdx == -1 ? minVwapTAG_15 : bestVersionIdx == 0 ? minVwapTAG_0 : bestVersionIdx == 1 ? minVwapTAG_1 : bestVersionIdx == 2 ? minVwapTAG_2 : bestVersionIdx == 3 ? minVwapTAG_3 : bestVersionIdx == 4 ? minVwapTAG_4 : bestVersionIdx == 5 ? minVwapTAG_5 : bestVersionIdx == 6 ? minVwapTAG_6 : bestVersionIdx == 7 ? minVwapTAG_7 : bestVersionIdx == 8 ? minVwapTAG_8 : bestVersionIdx == 9 ? minVwapTAG_9 : bestVersionIdx == 10 ? minVwapTAG_10 : bestVersionIdx == 11 ? minVwapTAG_11 : bestVersionIdx == 12 ? minVwapTAG_12 : bestVersionIdx == 13 ? minVwapTAG_13 : bestVersionIdx == 14 ? minVwapTAG_14 : bestVersionIdx == 15 ? minVwapTAG_15 : false
 
 // === VERSION LABEL WITH CLUE (bit pattern OVCF) ===
 verLabel(i) =>
@@ -389,8 +389,8 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 17, text = verLabelBest(15), text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = str15, text_size = txtSize)
 
-// === PLOT ONLY THE BEST VERSION ===
-plotshape(bestVersionIdx >= 0 and bestSignal, title = "best ridingVwapTAG", location = location.belowbar, color = color.aqua, style = shape.triangleup, text = "bestV", textcolor = color.aqua)
+// === PLOT THE BEST VERSION (defaults to v15 all-on until best is determined on last bar) ===
+plotshape(bestSignal, title = "best ridingVwapTAG", location = location.belowbar, color = color.aqua, style = shape.triangleup, text = "bestV", textcolor = color.aqua)
 
 // === ALERT FROM THE BEST VERSION ===
 bestSigOk = bestVersionIdx == 0 ? ok0 : bestVersionIdx == 1 ? ok1 : bestVersionIdx == 2 ? ok2 : bestVersionIdx == 3 ? ok3 : bestVersionIdx == 4 ? ok4 : bestVersionIdx == 5 ? ok5 : bestVersionIdx == 6 ? ok6 : bestVersionIdx == 7 ? ok7 : bestVersionIdx == 8 ? ok8 : bestVersionIdx == 9 ? ok9 : bestVersionIdx == 10 ? ok10 : bestVersionIdx == 11 ? ok11 : bestVersionIdx == 12 ? ok12 : bestVersionIdx == 13 ? ok13 : bestVersionIdx == 14 ? ok14 : bestVersionIdx == 15 ? ok15 : false
