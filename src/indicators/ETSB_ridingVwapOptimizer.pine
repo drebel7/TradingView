@@ -2,7 +2,7 @@
 // © drebel
 
 //@version=6
-indicator("ETSB Riding Vwap Optimizer", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+indicator("Riding Vwap Optimizer", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
 
 import drebel/DRELib/39 as drelib
 import drebel/DREPerf/24 as dreperf
@@ -12,7 +12,7 @@ iRidingVwapMajorLowLookup = input.int(defval = 150, title = "major low lookup", 
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Riding Vwap TouchAndGo")
-iRidingVwapMinLowestCandle = input.int(defval = 10, title = 'Min. number of candles to check local low', minval = 3, maxval = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapMinLowestCandle = input.int(defval = 10, title = 'Min. number of candles to check local low', minval = 3, maxval = 20, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Riding Vwap TouchAndGo")
 
 // === RMV contraction inputs (for contraction condition) ===
@@ -391,7 +391,7 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 1, row = 17, text = str15, text_size = txtSize)
 
 // === PLOT THE BEST VERSION (defaults to v15 all-on until best is determined on last bar) ===
-plotshape(bestSignal, title = "best ridingVwapTAG", location = location.belowbar, color = color.aqua, style = shape.triangleup, text = "bestV", textcolor = color.aqua)
+//plotshape(bestSignal, title = "best ridingVwapTAG", location = location.belowbar, color = color.aqua, style = shape.triangleup, text = "bestV", textcolor = color.aqua)
 
 // === ALERT FROM THE BEST VERSION ===
 bestSigOk = bestVersionIdx == 0 ? ok0 : bestVersionIdx == 1 ? ok1 : bestVersionIdx == 2 ? ok2 : bestVersionIdx == 3 ? ok3 : bestVersionIdx == 4 ? ok4 : bestVersionIdx == 5 ? ok5 : bestVersionIdx == 6 ? ok6 : bestVersionIdx == 7 ? ok7 : bestVersionIdx == 8 ? ok8 : bestVersionIdx == 9 ? ok9 : bestVersionIdx == 10 ? ok10 : bestVersionIdx == 11 ? ok11 : bestVersionIdx == 12 ? ok12 : bestVersionIdx == 13 ? ok13 : bestVersionIdx == 14 ? ok14 : bestVersionIdx == 15 ? ok15 : false
