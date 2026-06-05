@@ -1,0 +1,398 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+
+//@version=6
+indicator("ETSB Riding Vwap Optimizer", overlay = true, calc_bars_count = 12 * 252)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/24 as dreperf
+
+// === Riding Vwap Inputs ===
+iRidingVwapMajorLowLookup = input.int(defval = 150, title = "major low lookup", minval = 50, maxval = 300, display = display.none, group = "Riding Vwap TouchAndGo")
+iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Riding Vwap TouchAndGo")
+iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Riding Vwap TouchAndGo")
+iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Riding Vwap TouchAndGo")
+iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Riding Vwap TouchAndGo")
+
+// === RMV contraction inputs (for contraction condition) ===
+iContr1RmvMainLookback = input.int(defval = 13, title = 'Contr1 lookbacks (main/s1/s2/s3)', minval = 8, maxval = 200, display = display.none, inline = 'contr1', group = 'Contraction params 1')
+iContr1RmvS1Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr1', group = 'Contraction params 1')
+iContr1RmvS2Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr1', group = 'Contraction params 1')
+iContr1RmvS3Lookback = input.int(defval = 2, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr1', group = 'Contraction params 1')
+
+iContr2RmvMainLookback = input.int(defval = 21, title = 'Contr2 lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, display = display.none, inline = 'contr2', group = 'Contraction params 2')
+iContr2RmvS1Lookback = input.int(defval = 8, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr2', group = 'Contraction params 2')
+iContr2RmvS2Lookback = input.int(defval = 5, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr2', group = 'Contraction params 2')
+iContr2RmvS3Lookback = input.int(defval = 3, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr2', group = 'Contraction params 2')
+
+iContr3RmvMainLookback = input.int(defval = 55, title = 'Contr3 lookbacks (main/s1/s2/s3)', minval = 10, maxval = 200, display = display.none, inline = 'contr3', group = 'Contraction params 3')
+iContr3RmvS1Lookback = input.int(defval = 34, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr3', group = 'Contraction params 3')
+iContr3RmvS2Lookback = input.int(defval = 21, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr3', group = 'Contraction params 3')
+iContr3RmvS3Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 50, display = display.none, inline = 'contr3', group = 'Contraction params 3')
+
+iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, display = display.none, group = 'Contraction params')
+
+// === Performance & Table Inputs ===
+iSigCheckTime = input.int(defval = 15, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Performance')
+iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Performance')
+iSigStopLossMaxPct = input.float(defval = 10.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Performance')
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Performance')
+iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Performance')
+iShowSigPerfTable = input.bool(defval = false, title = 'Show version perf table', display = display.none, group = 'Performance')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'Show only good versions', display = display.none, group = 'Performance')
+
+// === BASE CALCULATIONS ===
+ridingVwapSrc = switch iRidingVwapSrc
+    "low"   => low
+    "high"  => high
+    "close" => close
+    "ohlc4" => ohlc4
+
+gVolMa = ta.sma(volume, 30)
+mainMa = ta.sma(close, 200)
+gVShortMa1 = ta.ema(close, 10)
+
+obvCondRaw = drelib.isAboveObvSmaStddev(100, 0.35)
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+
+// RMV contractions (needed for contractionAgo)
+rmvLowLevel = 25
+rmvContraction1 = drelib.rmv(iContr1RmvMainLookback, iContr1RmvS1Lookback, iContr1RmvS2Lookback, iContr1RmvS3Lookback)
+lowRmv1 = rmvContraction1 <= rmvLowLevel
+rmvContraction2 = drelib.rmv(iContr2RmvMainLookback, iContr2RmvS1Lookback, iContr2RmvS2Lookback, iContr2RmvS3Lookback)
+lowRmv2 = rmvContraction2 <= rmvLowLevel
+rmvContraction3 = drelib.rmv(iContr3RmvMainLookback, iContr3RmvS1Lookback, iContr3RmvS2Lookback, iContr3RmvS3Lookback)
+lowRmv3 = rmvContraction3 <= rmvLowLevel
+contractionAgo = ta.barssince(lowRmv1 or lowRmv2 or lowRmv3)
+
+// Riding vwap base (flag-independent mechanics)
+loweringMa = ta.barssince(mainMa < mainMa[1])
+lowest200 = ta.lowest(iRidingVwapMajorLowLookup)
+lowestSinceInception = ta.lowest(math.min(bar_index + 1, 500))
+newStockMajorLow = low == lowestSinceInception and bar_index + 1 < iRidingVwapMajorLowLookup and bar_index + 1 > 10
+majorLow = (low == lowest200 and loweringMa < 50 and low < mainMa) or newStockMajorLow
+majorLVwap = ta.vwap(ridingVwapSrc, majorLow)
+majorLowAgo = ta.barssince(majorLow)
+majorLowVwap = majorLowAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
+lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
+lowest10 = ta.lowest(10)
+
+// Base flush condition (flag-independent)
+ridngVwapLowFlush = volume > gVolMa and volume > volume[1] or volume > 2 * gVolMa
+
+// Stop loss
+float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0))
+
+// Constant true series (for when a condition is off)
+trueSeries = true
+
+// === CHAIN STEP FUNCTION (stateless - touchCount is parameter, not var) ===
+chainStep(series float _pv, series float _src, int _pa, series bool _fc, int _tc) =>
+    nw = low < _pv and lowest10 == low and _pa > 0
+    lv = ta.vwap(_src, nw)
+    ag = ta.barssince(nw)
+    av = ag > _pa or ag > iRidingVwapNoTouchCancelThreshold ? na : lv
+    lb = math.sum(low < av ? 1 : 0, 10)
+    pt = drelib.crossover(_pv) and lb <= iRidingVwapLowsBelow and _tc <= iRidingVwapMaxTouchesPerVwap and _fc[_pa]
+    nt = pt ? _tc + 1 : _tc
+    [nw, ag, av, pt, nt]
+
+// === VWAP TOUCH CHAINS (separate for flush ON / flush OFF) ===
+
+// Flush OFF: condition always passes (true)
+var int tc2_f0 = 0
+var int tc3_f0 = 0
+var int tc4_f0 = 0
+var int tc5_f0 = 0
+[ml1_f0, ma1_f0, mv1_f0, vt2_f0, _t2f0] = chainStep(majorLowVwap, ridingVwapSrc, majorLowAgo, trueSeries, tc2_f0)
+tc2_f0 := _t2f0
+[ml2_f0, ma2_f0, mv2_f0, vt3_f0, _t3f0] = chainStep(mv1_f0, ridingVwapSrc, math.min(majorLowAgo, ma1_f0), trueSeries, tc3_f0)
+tc3_f0 := _t3f0
+[ml3_f0, ma3_f0, mv3_f0, vt4_f0, _t4f0] = chainStep(mv2_f0, ridingVwapSrc, math.min(majorLowAgo, ma1_f0, ma2_f0), trueSeries, tc4_f0)
+tc4_f0 := _t4f0
+[ml4_f0, ma4_f0, mv4_f0, vt5_f0, _t5f0] = chainStep(mv3_f0, ridingVwapSrc, math.min(majorLowAgo, ma1_f0, ma2_f0, ma3_f0), trueSeries, tc5_f0)
+tc5_f0 := _t5f0
+
+// Flush ON: uses ridngVwapLowFlush condition
+var int tc2_f1 = 0
+var int tc3_f1 = 0
+var int tc4_f1 = 0
+var int tc5_f1 = 0
+[ml1_f1, ma1_f1, mv1_f1, vt2_f1, _t2f1] = chainStep(majorLowVwap, ridingVwapSrc, majorLowAgo, ridngVwapLowFlush, tc2_f1)
+tc2_f1 := _t2f1
+[ml2_f1, ma2_f1, mv2_f1, vt3_f1, _t3f1] = chainStep(mv1_f1, ridingVwapSrc, math.min(majorLowAgo, ma1_f1), ridngVwapLowFlush, tc3_f1)
+tc3_f1 := _t3f1
+[ml3_f1, ma3_f1, mv3_f1, vt4_f1, _t4f1] = chainStep(mv2_f1, ridingVwapSrc, math.min(majorLowAgo, ma1_f1, ma2_f1), ridngVwapLowFlush, tc4_f1)
+tc4_f1 := _t4f1
+[ml4_f1, ma4_f1, mv4_f1, vt5_f1, _t5f1] = chainStep(mv3_f1, ridingVwapSrc, math.min(majorLowAgo, ma1_f1, ma2_f1, ma3_f1), ridngVwapLowFlush, tc5_f1)
+tc5_f1 := _t5f1
+
+// === VWAP TOUCH (step 1) FOR EACH (VOL, FLUSH) COMBINATION ===
+vt_volOff_flushOff = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and trueSeries and trueSeries[majorLowAgo]
+vt_volOn_flushOff  = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and (volume > gVolMa) and trueSeries[majorLowAgo]
+vt_volOff_flushOn  = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and trueSeries and ridngVwapLowFlush[majorLowAgo]
+vt_volOn_flushOn   = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and (volume > gVolMa) and ridngVwapLowFlush[majorLowAgo]
+
+// === HELPER: compute minVwapTAG for a given parameter set ===
+minVwapTAG_func(bool o, bool v, bool c, bool f, series bool vt, series bool vt2, series bool vt3, series bool vt4, series bool vt5) =>
+    ok = o ? obvCondRaw : true
+    vk = v ? (volume > gVolMa) : true
+    ck = c ? (contractionAgo <= 2) : true
+    (
+        ((vt or vt2) and not (vt3 or vt4 or vt5))
+    or ((vt2 or vt3) and not (vt or vt4 or vt5))
+    or ((vt3 or vt4) and not (vt or vt2 or vt5))
+    or ((vt4 or vt5) and not (vt or vt2 or vt3))
+    ) and close >= high[1] and ok and vk and ck
+
+// === HELPER MAPS: select touch signal by flag values ===
+vtMap(bool v, bool f) =>
+    not v and not f ? vt_volOff_flushOff : v and not f ? vt_volOn_flushOff : not v and f ? vt_volOff_flushOn : vt_volOn_flushOn
+
+vt2Map(bool f) => f ? vt2_f1 : vt2_f0
+vt3Map(bool f) => f ? vt3_f1 : vt3_f0
+vt4Map(bool f) => f ? vt4_f1 : vt4_f0
+vt5Map(bool f) => f ? vt5_f1 : vt5_f0
+
+// === ASSEMBLE ALL 16 VERSIONS ===
+// Bit encoding: bit0=Obv, bit1=Vol, bit2=Contr, bit3=Flush
+o0 = false
+v0 = false
+c0 = false
+f0 = false
+o1 = true
+v1 = false
+c1 = false
+f1 = false
+o2 = false
+v2 = true
+c2 = false
+f2 = false
+o3 = true
+v3 = true
+c3 = false
+f3 = false
+o4 = false
+v4 = false
+c4 = true
+f4 = false
+o5 = true
+v5 = false
+c5 = true
+f5 = false
+o6 = false
+v6 = true
+c6 = true
+f6 = false
+o7 = true
+v7 = true
+c7 = true
+f7 = false
+o8 = false
+v8 = false
+c8 = false
+f8 = true
+o9 = true
+v9 = false
+c9 = false
+f9 = true
+o10 = false
+v10 = true
+c10 = false
+f10 = true
+o11 = true
+v11 = true
+c11 = false
+f11 = true
+o12 = false
+v12 = false
+c12 = true
+f12 = true
+o13 = true
+v13 = false
+c13 = true
+f13 = true
+o14 = false
+v14 = true
+c14 = true
+f14 = true
+o15 = true
+v15 = true
+c15 = true
+f15 = true
+
+minVwapTAG_0  = minVwapTAG_func(o0,  v0,  c0,  f0,  vtMap(v0, f0),  vt2Map(f0),  vt3Map(f0),  vt4Map(f0),  vt5Map(f0))
+minVwapTAG_1  = minVwapTAG_func(o1,  v1,  c1,  f1,  vtMap(v1, f1),  vt2Map(f1),  vt3Map(f1),  vt4Map(f1),  vt5Map(f1))
+minVwapTAG_2  = minVwapTAG_func(o2,  v2,  c2,  f2,  vtMap(v2, f2),  vt2Map(f2),  vt3Map(f2),  vt4Map(f2),  vt5Map(f2))
+minVwapTAG_3  = minVwapTAG_func(o3,  v3,  c3,  f3,  vtMap(v3, f3),  vt2Map(f3),  vt3Map(f3),  vt4Map(f3),  vt5Map(f3))
+minVwapTAG_4  = minVwapTAG_func(o4,  v4,  c4,  f4,  vtMap(v4, f4),  vt2Map(f4),  vt3Map(f4),  vt4Map(f4),  vt5Map(f4))
+minVwapTAG_5  = minVwapTAG_func(o5,  v5,  c5,  f5,  vtMap(v5, f5),  vt2Map(f5),  vt3Map(f5),  vt4Map(f5),  vt5Map(f5))
+minVwapTAG_6  = minVwapTAG_func(o6,  v6,  c6,  f6,  vtMap(v6, f6),  vt2Map(f6),  vt3Map(f6),  vt4Map(f6),  vt5Map(f6))
+minVwapTAG_7  = minVwapTAG_func(o7,  v7,  c7,  f7,  vtMap(v7, f7),  vt2Map(f7),  vt3Map(f7),  vt4Map(f7),  vt5Map(f7))
+minVwapTAG_8  = minVwapTAG_func(o8,  v8,  c8,  f8,  vtMap(v8, f8),  vt2Map(f8),  vt3Map(f8),  vt4Map(f8),  vt5Map(f8))
+minVwapTAG_9  = minVwapTAG_func(o9,  v9,  c9,  f9,  vtMap(v9, f9),  vt2Map(f9),  vt3Map(f9),  vt4Map(f9),  vt5Map(f9))
+minVwapTAG_10 = minVwapTAG_func(o10, v10, c10, f10, vtMap(v10, f10), vt2Map(f10), vt3Map(f10), vt4Map(f10), vt5Map(f10))
+minVwapTAG_11 = minVwapTAG_func(o11, v11, c11, f11, vtMap(v11, f11), vt2Map(f11), vt3Map(f11), vt4Map(f11), vt5Map(f11))
+minVwapTAG_12 = minVwapTAG_func(o12, v12, c12, f12, vtMap(v12, f12), vt2Map(f12), vt3Map(f12), vt4Map(f12), vt5Map(f12))
+minVwapTAG_13 = minVwapTAG_func(o13, v13, c13, f13, vtMap(v13, f13), vt2Map(f13), vt3Map(f13), vt4Map(f13), vt5Map(f13))
+minVwapTAG_14 = minVwapTAG_func(o14, v14, c14, f14, vtMap(v14, f14), vt2Map(f14), vt3Map(f14), vt4Map(f14), vt5Map(f14))
+minVwapTAG_15 = minVwapTAG_func(o15, v15, c15, f15, vtMap(v15, f15), vt2Map(f15), vt3Map(f15), vt4Map(f15), vt5Map(f15))
+
+// === PERFORMANCE FOR ALL 16 VERSIONS ===
+[rate0,  cnt0,  sc0,  ar0,  ok0,  str0,  score0]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_0,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate1,  cnt1,  sc1,  ar1,  ok1,  str1,  score1]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_1,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate2,  cnt2,  sc2,  ar2,  ok2,  str2,  score2]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_2,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate3,  cnt3,  sc3,  ar3,  ok3,  str3,  score3]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_3,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate4,  cnt4,  sc4,  ar4,  ok4,  str4,  score4]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_4,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate5,  cnt5,  sc5,  ar5,  ok5,  str5,  score5]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_5,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate6,  cnt6,  sc6,  ar6,  ok6,  str6,  score6]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_6,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate7,  cnt7,  sc7,  ar7,  ok7,  str7,  score7]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_7,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate8,  cnt8,  sc8,  ar8,  ok8,  str8,  score8]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_8,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate9,  cnt9,  sc9,  ar9,  ok9,  str9,  score9]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_9,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate10, cnt10, sc10, ar10, ok10, str10, score10] = dreperf.successRateAllTimeStatsFull(minVwapTAG_10, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate11, cnt11, sc11, ar11, ok11, str11, score11] = dreperf.successRateAllTimeStatsFull(minVwapTAG_11, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate12, cnt12, sc12, ar12, ok12, str12, score12] = dreperf.successRateAllTimeStatsFull(minVwapTAG_12, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate13, cnt13, sc13, ar13, ok13, str13, score13] = dreperf.successRateAllTimeStatsFull(minVwapTAG_13, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate14, cnt14, sc14, ar14, ok14, str14, score14] = dreperf.successRateAllTimeStatsFull(minVwapTAG_14, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate15, cnt15, sc15, ar15, ok15, str15, score15] = dreperf.successRateAllTimeStatsFull(minVwapTAG_15, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+
+// === FIND BEST VERSION ON LAST BAR ===
+var int bestVersionIdx = -1
+var float bestScoreVal = -1.0
+
+if barstate.islast
+    bestScoreVal := -1.0
+    bestVersionIdx := -1
+
+    if ok0 and score0 > bestScoreVal
+        bestScoreVal := score0
+        bestVersionIdx := 0
+    if ok1 and score1 > bestScoreVal
+        bestScoreVal := score1
+        bestVersionIdx := 1
+    if ok2 and score2 > bestScoreVal
+        bestScoreVal := score2
+        bestVersionIdx := 2
+    if ok3 and score3 > bestScoreVal
+        bestScoreVal := score3
+        bestVersionIdx := 3
+    if ok4 and score4 > bestScoreVal
+        bestScoreVal := score4
+        bestVersionIdx := 4
+    if ok5 and score5 > bestScoreVal
+        bestScoreVal := score5
+        bestVersionIdx := 5
+    if ok6 and score6 > bestScoreVal
+        bestScoreVal := score6
+        bestVersionIdx := 6
+    if ok7 and score7 > bestScoreVal
+        bestScoreVal := score7
+        bestVersionIdx := 7
+    if ok8 and score8 > bestScoreVal
+        bestScoreVal := score8
+        bestVersionIdx := 8
+    if ok9 and score9 > bestScoreVal
+        bestScoreVal := score9
+        bestVersionIdx := 9
+    if ok10 and score10 > bestScoreVal
+        bestScoreVal := score10
+        bestVersionIdx := 10
+    if ok11 and score11 > bestScoreVal
+        bestScoreVal := score11
+        bestVersionIdx := 11
+    if ok12 and score12 > bestScoreVal
+        bestScoreVal := score12
+        bestVersionIdx := 12
+    if ok13 and score13 > bestScoreVal
+        bestScoreVal := score13
+        bestVersionIdx := 13
+    if ok14 and score14 > bestScoreVal
+        bestScoreVal := score14
+        bestVersionIdx := 14
+    if ok15 and score15 > bestScoreVal
+        bestScoreVal := score15
+        bestVersionIdx := 15
+
+// Signal for the best version
+bestSignal = bestVersionIdx == 0 ? minVwapTAG_0 : bestVersionIdx == 1 ? minVwapTAG_1 : bestVersionIdx == 2 ? minVwapTAG_2 : bestVersionIdx == 3 ? minVwapTAG_3 : bestVersionIdx == 4 ? minVwapTAG_4 : bestVersionIdx == 5 ? minVwapTAG_5 : bestVersionIdx == 6 ? minVwapTAG_6 : bestVersionIdx == 7 ? minVwapTAG_7 : bestVersionIdx == 8 ? minVwapTAG_8 : bestVersionIdx == 9 ? minVwapTAG_9 : bestVersionIdx == 10 ? minVwapTAG_10 : bestVersionIdx == 11 ? minVwapTAG_11 : bestVersionIdx == 12 ? minVwapTAG_12 : bestVersionIdx == 13 ? minVwapTAG_13 : bestVersionIdx == 14 ? minVwapTAG_14 : bestVersionIdx == 15 ? minVwapTAG_15 : false
+
+// === VERSION LABEL WITH CLUE (bit pattern OVCF) ===
+verLabel(i) =>
+    o = i % 2 == 1
+    v = int(i / 2) % 2 == 1
+    c = int(i / 4) % 2 == 1
+    f = int(i / 8) % 2 == 1
+    "v" + str.tostring(i) + "(" + (o ? "1" : "0") + (v ? "1" : "0") + (c ? "1" : "0") + (f ? "1" : "0") + ")"
+
+verLabelBest(i) =>
+    i == bestVersionIdx ? verLabel(i) + "*" : verLabel(i)
+
+showRow(_iShowOnlyGoodSigs, sigOk) =>
+    _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
+
+// === TABLE OF PERFORMANCE ===
+if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 18)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 0, text = "")
+    table.cell(table_id = tbl, column = 1, row = 0, text = "")
+    table.cell(table_id = tbl, column = 0, row = 1, text = "v(OVCF)", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
+
+    if showRow(iShowOnlyGoodSigs, ok0)
+        table.cell(table_id = tbl, column = 0, row = 2, text = verLabelBest(0), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 2, text = str0, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok1)
+        table.cell(table_id = tbl, column = 0, row = 3, text = verLabelBest(1), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 3, text = str1, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok2)
+        table.cell(table_id = tbl, column = 0, row = 4, text = verLabelBest(2), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 4, text = str2, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok3)
+        table.cell(table_id = tbl, column = 0, row = 5, text = verLabelBest(3), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 5, text = str3, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok4)
+        table.cell(table_id = tbl, column = 0, row = 6, text = verLabelBest(4), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 6, text = str4, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok5)
+        table.cell(table_id = tbl, column = 0, row = 7, text = verLabelBest(5), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 7, text = str5, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok6)
+        table.cell(table_id = tbl, column = 0, row = 8, text = verLabelBest(6), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 8, text = str6, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok7)
+        table.cell(table_id = tbl, column = 0, row = 9, text = verLabelBest(7), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 9, text = str7, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok8)
+        table.cell(table_id = tbl, column = 0, row = 10, text = verLabelBest(8), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 10, text = str8, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok9)
+        table.cell(table_id = tbl, column = 0, row = 11, text = verLabelBest(9), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 11, text = str9, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok10)
+        table.cell(table_id = tbl, column = 0, row = 12, text = verLabelBest(10), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 12, text = str10, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok11)
+        table.cell(table_id = tbl, column = 0, row = 13, text = verLabelBest(11), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 13, text = str11, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok12)
+        table.cell(table_id = tbl, column = 0, row = 14, text = verLabelBest(12), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 14, text = str12, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok13)
+        table.cell(table_id = tbl, column = 0, row = 15, text = verLabelBest(13), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 15, text = str13, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok14)
+        table.cell(table_id = tbl, column = 0, row = 16, text = verLabelBest(14), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 16, text = str14, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok15)
+        table.cell(table_id = tbl, column = 0, row = 17, text = verLabelBest(15), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 17, text = str15, text_size = txtSize)
+
+// === PLOT ONLY THE BEST VERSION ===
+plotshape(bestVersionIdx >= 0 and bestSignal, title = "best ridingVwapTAG", location = location.belowbar, color = color.aqua, style = shape.triangleup, text = "bestV", textcolor = color.aqua)
+
+// === ALERT FROM THE BEST VERSION ===
+bestSigOk = bestVersionIdx == 0 ? ok0 : bestVersionIdx == 1 ? ok1 : bestVersionIdx == 2 ? ok2 : bestVersionIdx == 3 ? ok3 : bestVersionIdx == 4 ? ok4 : bestVersionIdx == 5 ? ok5 : bestVersionIdx == 6 ? ok6 : bestVersionIdx == 7 ? ok7 : bestVersionIdx == 8 ? ok8 : bestVersionIdx == 9 ? ok9 : bestVersionIdx == 10 ? ok10 : bestVersionIdx == 11 ? ok11 : bestVersionIdx == 12 ? ok12 : bestVersionIdx == 13 ? ok13 : bestVersionIdx == 14 ? ok14 : bestVersionIdx == 15 ? ok15 : false
+
+alertcondition(bestSignal and bestSigOk, title = "best ridingVwapTAG", message = "bestVwapTAG")
