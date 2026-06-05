@@ -207,6 +207,7 @@ iRidingVwapMajorLowLookup = input.int(defval = 150, title = "major low lookup", 
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
+iRidingVwapMinLowestCandle = input.int(defval = 10, title = 'Min. number of candles to check local low', minval = 3, maxval = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapObvCond = input.bool(defval = true, title = 'Include above OBV cond.', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapVolCond = input.bool(defval = true, title = 'Require volume > SMA(30) on touch', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapContractionCond = input.bool(defval = false, title = 'Require contraction (RMV)', display = display.none, group = "Signal: Riding Vwap TouchAndGo")
@@ -232,11 +233,11 @@ majorLowAgo = ta.barssince(majorLow)
 majorLowVwap = majorLowAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
 lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
 vwapTouch = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk and ridngVwapLowFlushCond[majorLowAgo]//and mainMa > mainMa[1]
-lowest10 = ta.lowest(10)
+lowestRecent = ta.lowest(iRidingVwapMinLowestCandle)
 
 nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo) =>
     var int touchCount = 0
-    newLow = low < _prevVWap and lowest10 == low and _prevLowsMinAgo > 0
+    newLow = low < _prevVWap and lowestRecent == low and _prevLowsMinAgo > 0
     lVwap = ta.vwap(_src, newLow)
     ago = ta.barssince(newLow)
     agedNewLowVwap = ago > _prevLowsMinAgo or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap

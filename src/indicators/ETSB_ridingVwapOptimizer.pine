@@ -12,6 +12,7 @@ iRidingVwapMajorLowLookup = input.int(defval = 150, title = "major low lookup", 
 iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", minval = 1, maxval = 10, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Riding Vwap TouchAndGo")
+iRidingVwapMinLowestCandle = input.int(defval = 10, title = 'Min. number of candles to check local low', minval = 3, maxval = 20, display = display.none, group = "Signal: Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Riding Vwap TouchAndGo")
 
 // === RMV contraction inputs (for contraction condition) ===
@@ -76,7 +77,7 @@ majorLVwap = ta.vwap(ridingVwapSrc, majorLow)
 majorLowAgo = ta.barssince(majorLow)
 majorLowVwap = majorLowAgo > iRidingVwapNoTouchCancelThreshold ? na : majorLVwap
 lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
-lowest10 = ta.lowest(10)
+lowestRecent = ta.lowest(iRidingVwapMinLowestCandle)
 
 // Base flush condition (flag-independent)
 ridngVwapLowFlush = volume > gVolMa and volume > volume[1] or volume > 2 * gVolMa
@@ -89,7 +90,7 @@ trueSeries = true
 
 // === CHAIN STEP FUNCTION (stateless - touchCount is parameter, not var) ===
 chainStep(series float _pv, series float _src, int _pa, series bool _fc, int _tc) =>
-    nw = low < _pv and lowest10 == low and _pa > 0
+    nw = low < _pv and lowestRecent == low and _pa > 0
     lv = ta.vwap(_src, nw)
     ag = ta.barssince(nw)
     av = ag > _pa or ag > iRidingVwapNoTouchCancelThreshold ? na : lv
