@@ -2,7 +2,7 @@
 // © drebel
 
 //@version=6
-indicator("ETSB Riding Vwap Optimizer", overlay = true, calc_bars_count = 12 * 252)
+indicator("ETSB Riding Vwap Optimizer", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
 
 import drebel/DRELib/39 as drelib
 import drebel/DREPerf/24 as dreperf
