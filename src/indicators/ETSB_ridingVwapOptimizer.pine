@@ -34,9 +34,9 @@ iContr3RmvS3Lookback = input.int(defval = 13, title = '', minval = 1, maxval = 5
 iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, display = display.none, group = 'Contraction params')
 
 // === Performance & Table Inputs ===
-iSigCheckTime = input.int(defval = 15, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Performance')
-iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Performance')
-iSigStopLossMaxPct = input.float(defval = 10.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Performance')
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Performance')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Performance')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Performance')
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Performance')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Performance')
 iShowSigPerfTable = input.bool(defval = true, title = 'Show version perf table', display = display.none, group = 'Performance')

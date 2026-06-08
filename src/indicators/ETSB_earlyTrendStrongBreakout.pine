@@ -3,7 +3,7 @@
 //calc_bars_count = 3024 (12 years of 252 bars/year) - no need for more
 
 //@version=6
-indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252)
+indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
 
 import drebel/DRELib/39 as drelib
 import drebel/DREPerf/24 as dreperf
@@ -37,9 +37,9 @@ iShowWONTurnaroundGo = input.bool(defval = true, title = "Show O''Neil Inspired:
 iShowRidingVwap = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo", display = display.none, group = 'Signals')
 iShowRidingVwapDebug = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
 
-iSigCheckTime = input.int(defval = 15, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
-iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Signals')
-iSigStopLossMaxPct = input.float(defval = 10.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Signals')
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Signals')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Signals')
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
