@@ -39,7 +39,7 @@ iSigStopLossDay = input.int(defval = 1, title = 'Stop loss (day of low)', minval
 iSigStopLossMaxPct = input.float(defval = 10.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Performance')
 iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Performance')
 iMinSigReturnAdrMultiple = input.float(defval = 0.9, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Performance')
-iShowSigPerfTable = input.bool(defval = false, title = 'Show version perf table', display = display.none, group = 'Performance')
+iShowSigPerfTable = input.bool(defval = true, title = 'Show version perf table', display = display.none, group = 'Performance')
 iShowOnlyGoodSigs = input.bool(defval = true, title = 'Show only good versions', display = display.none, group = 'Performance')
 
 // === BASE CALCULATIONS ===
@@ -354,7 +354,7 @@ if barstate.islast and iShowSigPerfTable
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = "")
     table.cell(table_id = tbl, column = 1, row = 0, text = "")
-    table.cell(table_id = tbl, column = 0, row = 1, text = "v(OVCF)", text_size = txtSize)
+    table.cell(table_id = tbl, column = 0, row = 1, text = iRidingVwapSrc + ": v(OVCF)", text_size = txtSize)
     table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
 
     if showRow(iShowOnlyGoodSigs, ok0)
