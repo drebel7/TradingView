@@ -114,6 +114,12 @@ tc3_f0 := _t3f0
 tc4_f0 := _t4f0
 [ml4_f0, ma4_f0, mv4_f0, vt5_f0, _t5f0] = chainStep(mv3_f0, ridingVwapSrc, math.min(majorLowAgo, ma1_f0, ma2_f0, ma3_f0), trueSeries, tc5_f0)
 tc5_f0 := _t5f0
+var int tc6_f0 = 0
+var int tc7_f0 = 0
+[ml5_f0, ma5_f0, mv5_f0, vt6_f0, _t6f0] = chainStep(mv4_f0, ridingVwapSrc, math.min(majorLowAgo, ma1_f0, ma2_f0, ma3_f0, ma4_f0), trueSeries, tc6_f0)
+tc6_f0 := _t6f0
+[ml6_f0, ma6_f0, mv6_f0, vt7_f0, _t7f0] = chainStep(mv5_f0, ridingVwapSrc, math.min(majorLowAgo, ma1_f0, ma2_f0, ma3_f0, ma4_f0, ma5_f0), trueSeries, tc7_f0)
+tc7_f0 := _t7f0
 
 // Flush ON: uses ridngVwapLowFlush condition
 var int tc2_f1 = 0
@@ -128,6 +134,12 @@ tc3_f1 := _t3f1
 tc4_f1 := _t4f1
 [ml4_f1, ma4_f1, mv4_f1, vt5_f1, _t5f1] = chainStep(mv3_f1, ridingVwapSrc, math.min(majorLowAgo, ma1_f1, ma2_f1, ma3_f1), ridngVwapLowFlush, tc5_f1)
 tc5_f1 := _t5f1
+var int tc6_f1 = 0
+var int tc7_f1 = 0
+[ml5_f1, ma5_f1, mv5_f1, vt6_f1, _t6f1] = chainStep(mv4_f1, ridingVwapSrc, math.min(majorLowAgo, ma1_f1, ma2_f1, ma3_f1, ma4_f1), ridngVwapLowFlush, tc6_f1)
+tc6_f1 := _t6f1
+[ml6_f1, ma6_f1, mv6_f1, vt7_f1, _t7f1] = chainStep(mv5_f1, ridingVwapSrc, math.min(majorLowAgo, ma1_f1, ma2_f1, ma3_f1, ma4_f1, ma5_f1), ridngVwapLowFlush, tc7_f1)
+tc7_f1 := _t7f1
 
 // === VWAP TOUCH (step 1) FOR EACH (VOL, FLUSH) COMBINATION ===
 vt_volOff_flushOff = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and trueSeries and trueSeries[majorLowAgo]
@@ -136,15 +148,17 @@ vt_volOff_flushOn  = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancel
 vt_volOn_flushOn   = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and (volume > gVolMa) and ridngVwapLowFlush[majorLowAgo]
 
 // === HELPER: compute minVwapTAG for a given parameter set ===
-minVwapTAG_func(bool o, bool v, bool c, bool f, series bool vt, series bool vt2, series bool vt3, series bool vt4, series bool vt5) =>
+minVwapTAG_func(bool o, bool v, bool c, bool f, series bool vt, series bool vt2, series bool vt3, series bool vt4, series bool vt5, series bool vt6, series bool vt7) =>
     ok = o ? obvCondRaw : true
     vk = v ? (volume > gVolMa) : true
     ck = c ? (contractionAgo <= 2) : true
     (
-        ((vt or vt2) and not (vt3 or vt4 or vt5))
-    or ((vt2 or vt3) and not (vt or vt4 or vt5))
-    or ((vt3 or vt4) and not (vt or vt2 or vt5))
-    or ((vt4 or vt5) and not (vt or vt2 or vt3))
+        ((vt or vt2) and not (vt3 or vt4 or vt5 or vt6 or vt7))
+    or ((vt2 or vt3) and not (vt or vt4 or vt5 or vt6 or vt7))
+    or ((vt3 or vt4) and not (vt or vt2 or vt5 or vt6 or vt7))
+    or ((vt4 or vt5) and not (vt or vt2 or vt3 or vt6 or vt7))
+    or ((vt5 or vt6) and not (vt or vt2 or vt3 or vt4 or vt7))
+    or ((vt6 or vt7) and not (vt or vt2 or vt3 or vt4 or vt5))
     ) and close >= high[1] and ok and vk and ck
 
 // === HELPER MAPS: select touch signal by flag values ===
@@ -155,6 +169,8 @@ vt2Map(bool f) => f ? vt2_f1 : vt2_f0
 vt3Map(bool f) => f ? vt3_f1 : vt3_f0
 vt4Map(bool f) => f ? vt4_f1 : vt4_f0
 vt5Map(bool f) => f ? vt5_f1 : vt5_f0
+vt6Map(bool f) => f ? vt6_f1 : vt6_f0
+vt7Map(bool f) => f ? vt7_f1 : vt7_f0
 
 // === ASSEMBLE ALL 16 VERSIONS ===
 // Bit encoding: bit0=Obv, bit1=Vol, bit2=Contr, bit3=Flush
@@ -223,22 +239,22 @@ v15 = true
 c15 = true
 f15 = true
 
-minVwapTAG_0  = minVwapTAG_func(o0,  v0,  c0,  f0,  vtMap(v0, f0),  vt2Map(f0),  vt3Map(f0),  vt4Map(f0),  vt5Map(f0))
-minVwapTAG_1  = minVwapTAG_func(o1,  v1,  c1,  f1,  vtMap(v1, f1),  vt2Map(f1),  vt3Map(f1),  vt4Map(f1),  vt5Map(f1))
-minVwapTAG_2  = minVwapTAG_func(o2,  v2,  c2,  f2,  vtMap(v2, f2),  vt2Map(f2),  vt3Map(f2),  vt4Map(f2),  vt5Map(f2))
-minVwapTAG_3  = minVwapTAG_func(o3,  v3,  c3,  f3,  vtMap(v3, f3),  vt2Map(f3),  vt3Map(f3),  vt4Map(f3),  vt5Map(f3))
-minVwapTAG_4  = minVwapTAG_func(o4,  v4,  c4,  f4,  vtMap(v4, f4),  vt2Map(f4),  vt3Map(f4),  vt4Map(f4),  vt5Map(f4))
-minVwapTAG_5  = minVwapTAG_func(o5,  v5,  c5,  f5,  vtMap(v5, f5),  vt2Map(f5),  vt3Map(f5),  vt4Map(f5),  vt5Map(f5))
-minVwapTAG_6  = minVwapTAG_func(o6,  v6,  c6,  f6,  vtMap(v6, f6),  vt2Map(f6),  vt3Map(f6),  vt4Map(f6),  vt5Map(f6))
-minVwapTAG_7  = minVwapTAG_func(o7,  v7,  c7,  f7,  vtMap(v7, f7),  vt2Map(f7),  vt3Map(f7),  vt4Map(f7),  vt5Map(f7))
-minVwapTAG_8  = minVwapTAG_func(o8,  v8,  c8,  f8,  vtMap(v8, f8),  vt2Map(f8),  vt3Map(f8),  vt4Map(f8),  vt5Map(f8))
-minVwapTAG_9  = minVwapTAG_func(o9,  v9,  c9,  f9,  vtMap(v9, f9),  vt2Map(f9),  vt3Map(f9),  vt4Map(f9),  vt5Map(f9))
-minVwapTAG_10 = minVwapTAG_func(o10, v10, c10, f10, vtMap(v10, f10), vt2Map(f10), vt3Map(f10), vt4Map(f10), vt5Map(f10))
-minVwapTAG_11 = minVwapTAG_func(o11, v11, c11, f11, vtMap(v11, f11), vt2Map(f11), vt3Map(f11), vt4Map(f11), vt5Map(f11))
-minVwapTAG_12 = minVwapTAG_func(o12, v12, c12, f12, vtMap(v12, f12), vt2Map(f12), vt3Map(f12), vt4Map(f12), vt5Map(f12))
-minVwapTAG_13 = minVwapTAG_func(o13, v13, c13, f13, vtMap(v13, f13), vt2Map(f13), vt3Map(f13), vt4Map(f13), vt5Map(f13))
-minVwapTAG_14 = minVwapTAG_func(o14, v14, c14, f14, vtMap(v14, f14), vt2Map(f14), vt3Map(f14), vt4Map(f14), vt5Map(f14))
-minVwapTAG_15 = minVwapTAG_func(o15, v15, c15, f15, vtMap(v15, f15), vt2Map(f15), vt3Map(f15), vt4Map(f15), vt5Map(f15))
+minVwapTAG_0  = minVwapTAG_func(o0,  v0,  c0,  f0,  vtMap(v0, f0),  vt2Map(f0),  vt3Map(f0),  vt4Map(f0),  vt5Map(f0),  vt6Map(f0),  vt7Map(f0))
+minVwapTAG_1  = minVwapTAG_func(o1,  v1,  c1,  f1,  vtMap(v1, f1),  vt2Map(f1),  vt3Map(f1),  vt4Map(f1),  vt5Map(f1),  vt6Map(f1),  vt7Map(f1))
+minVwapTAG_2  = minVwapTAG_func(o2,  v2,  c2,  f2,  vtMap(v2, f2),  vt2Map(f2),  vt3Map(f2),  vt4Map(f2),  vt5Map(f2),  vt6Map(f2),  vt7Map(f2))
+minVwapTAG_3  = minVwapTAG_func(o3,  v3,  c3,  f3,  vtMap(v3, f3),  vt2Map(f3),  vt3Map(f3),  vt4Map(f3),  vt5Map(f3),  vt6Map(f3),  vt7Map(f3))
+minVwapTAG_4  = minVwapTAG_func(o4,  v4,  c4,  f4,  vtMap(v4, f4),  vt2Map(f4),  vt3Map(f4),  vt4Map(f4),  vt5Map(f4),  vt6Map(f4),  vt7Map(f4))
+minVwapTAG_5  = minVwapTAG_func(o5,  v5,  c5,  f5,  vtMap(v5, f5),  vt2Map(f5),  vt3Map(f5),  vt4Map(f5),  vt5Map(f5),  vt6Map(f5),  vt7Map(f5))
+minVwapTAG_6  = minVwapTAG_func(o6,  v6,  c6,  f6,  vtMap(v6, f6),  vt2Map(f6),  vt3Map(f6),  vt4Map(f6),  vt5Map(f6),  vt6Map(f6),  vt7Map(f6))
+minVwapTAG_7  = minVwapTAG_func(o7,  v7,  c7,  f7,  vtMap(v7, f7),  vt2Map(f7),  vt3Map(f7),  vt4Map(f7),  vt5Map(f7),  vt6Map(f7),  vt7Map(f7))
+minVwapTAG_8  = minVwapTAG_func(o8,  v8,  c8,  f8,  vtMap(v8, f8),  vt2Map(f8),  vt3Map(f8),  vt4Map(f8),  vt5Map(f8),  vt6Map(f8),  vt7Map(f8))
+minVwapTAG_9  = minVwapTAG_func(o9,  v9,  c9,  f9,  vtMap(v9, f9),  vt2Map(f9),  vt3Map(f9),  vt4Map(f9),  vt5Map(f9),  vt6Map(f9),  vt7Map(f9))
+minVwapTAG_10 = minVwapTAG_func(o10, v10, c10, f10, vtMap(v10, f10), vt2Map(f10), vt3Map(f10), vt4Map(f10), vt5Map(f10), vt6Map(f10), vt7Map(f10))
+minVwapTAG_11 = minVwapTAG_func(o11, v11, c11, f11, vtMap(v11, f11), vt2Map(f11), vt3Map(f11), vt4Map(f11), vt5Map(f11), vt6Map(f11), vt7Map(f11))
+minVwapTAG_12 = minVwapTAG_func(o12, v12, c12, f12, vtMap(v12, f12), vt2Map(f12), vt3Map(f12), vt4Map(f12), vt5Map(f12), vt6Map(f12), vt7Map(f12))
+minVwapTAG_13 = minVwapTAG_func(o13, v13, c13, f13, vtMap(v13, f13), vt2Map(f13), vt3Map(f13), vt4Map(f13), vt5Map(f13), vt6Map(f13), vt7Map(f13))
+minVwapTAG_14 = minVwapTAG_func(o14, v14, c14, f14, vtMap(v14, f14), vt2Map(f14), vt3Map(f14), vt4Map(f14), vt5Map(f14), vt6Map(f14), vt7Map(f14))
+minVwapTAG_15 = minVwapTAG_func(o15, v15, c15, f15, vtMap(v15, f15), vt2Map(f15), vt3Map(f15), vt4Map(f15), vt5Map(f15), vt6Map(f15), vt7Map(f15))
 
 // === PERFORMANCE FOR ALL 16 VERSIONS ===
 [rate0,  cnt0,  sc0,  ar0,  ok0,  str0,  score0]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_0,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)

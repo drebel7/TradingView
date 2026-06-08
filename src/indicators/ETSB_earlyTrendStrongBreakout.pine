@@ -250,12 +250,16 @@ nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo) =>
 [minorLow2, minorLow2Ago, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago))
 [minorLow3, minorLow3Ago, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago))
 [minorLow4, minorLow4Ago, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago))
+[minorLow5, minorLow5Ago, minorLow5Vwap, vwapTouch6] = nextVwapTouch(minorLow4Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago))
+[minorLow6, minorLow6Ago, minorLow6Vwap, vwapTouch7] = nextVwapTouch(minorLow5Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago, minorLow5Ago))
 
 minVwapTAG = (
-    ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5))
-or ((vwapTouch2 or vwapTouch3) and not (vwapTouch or vwapTouch4 or vwapTouch5))
-or ((vwapTouch3 or vwapTouch4) and not (vwapTouch or vwapTouch2 or vwapTouch5))
-or ((vwapTouch4 or vwapTouch5) and not (vwapTouch or vwapTouch2 or vwapTouch3))
+    ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5 or vwapTouch6 or vwapTouch7))
+or ((vwapTouch2 or vwapTouch3) and not (vwapTouch or vwapTouch4 or vwapTouch5 or vwapTouch6 or vwapTouch7))
+or ((vwapTouch3 or vwapTouch4) and not (vwapTouch or vwapTouch2 or vwapTouch5 or vwapTouch6 or vwapTouch7))
+or ((vwapTouch4 or vwapTouch5) and not (vwapTouch or vwapTouch2 or vwapTouch3 or vwapTouch6 or vwapTouch7))
+or ((vwapTouch5 or vwapTouch6) and not (vwapTouch or vwapTouch2 or vwapTouch3 or vwapTouch4 or vwapTouch7))
+or ((vwapTouch6 or vwapTouch7) and not (vwapTouch or vwapTouch2 or vwapTouch3 or vwapTouch4 or vwapTouch5))
 ) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond) and ridingVwapVolOk and ridingVwapContractionCond
 
 //check performance
@@ -380,12 +384,14 @@ plotshape(iShowRidingVwap and iShowRidingVwapDebug and majorLow and showRow(iSho
 plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow1 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '2L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '2L', textcolor = minVwapTAGSigColor)
 plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow2 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '3L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '3L', textcolor = minVwapTAGSigColor)
 plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow3 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '4L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '4L', textcolor = minVwapTAGSigColor)
-plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow4 and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '5L', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '5L', textcolor = minVwapTAGSigColor)
+plotshape(iShowRidingVwap and iShowRidingVwapDebug and (minorLow4 or minorLow5 or minorLow6) and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '5L+', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '5L+', textcolor = minVwapTAGSigColor)
 plot(series = iShowRidingVwapDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow3Vwap : na, title = "minorLow3Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow4Vwap : na, title = "minorLow4Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+plot(series = iShowRidingVwapDebug ? minorLow5Vwap : na, title = "minorLow5Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
+// plot(series = iShowRidingVwapDebug ? minorLow6Vwap : na, title = "minorLow6Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dotted, style = plot.style_linebr)
 
 //issuing alerts
 et3sbSig = et3sb and et3sbSuccRateOk
