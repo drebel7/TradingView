@@ -13,6 +13,7 @@ iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", min
 iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapMinLowestCandle = input.int(defval = 10, title = 'Min. number of candles to check local low', minval = 3, maxval = 20, display = display.none, group = "Riding Vwap TouchAndGo")
+iRidingVwapRisingMainMaCond = input.bool(defval = true, title = 'Rising main MA', display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Riding Vwap TouchAndGo")
 
 // === RMV contraction inputs (for contraction condition) ===
@@ -81,6 +82,7 @@ lowestRecent = ta.lowest(iRidingVwapMinLowestCandle)
 
 // Base flush condition (flag-independent)
 ridngVwapLowFlush = volume > gVolMa and volume > volume[1] or volume > 2 * gVolMa
+ridingVwapRisingMainMaCond = iRidingVwapRisingMainMaCond and mainMa > mainMa[1] or not iRidingVwapRisingMainMaCond
 
 // Stop loss
 float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0))
@@ -95,7 +97,7 @@ chainStep(series float _pv, series float _src, int _pa, series bool _fc, int _tc
     ag = ta.barssince(nw)
     av = ag > _pa or ag > iRidingVwapNoTouchCancelThreshold ? na : lv
     lb = math.sum(low < av ? 1 : 0, 10)
-    pt = drelib.crossover(_pv) and lb <= iRidingVwapLowsBelow and _tc <= iRidingVwapMaxTouchesPerVwap and _fc[_pa]
+    pt = drelib.crossover(_pv) and lb <= iRidingVwapLowsBelow and _tc <= iRidingVwapMaxTouchesPerVwap and _fc[_pa] and ridingVwapRisingMainMaCond
     nt = pt ? _tc + 1 : _tc
     [nw, ag, av, pt, nt]
 
