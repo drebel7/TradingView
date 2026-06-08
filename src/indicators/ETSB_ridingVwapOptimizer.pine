@@ -13,7 +13,6 @@ iRidingVwapLowsBelow = input.int(defval = 5, title = "Max. lows below vwap", min
 iRidingVwapMaxTouchesPerVwap = input.int(defval = 2, title = 'Max. touches per Vwap', minval = 1, maxval = 5, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapNoTouchCancelThreshold = input.int(defval = 300, title = 'Vwap no touch cancel threshold', minval = 20, maxval = 500, step = 20, display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapMinLowestCandle = input.int(defval = 10, title = 'Min. number of candles to check local low', minval = 3, maxval = 20, display = display.none, group = "Riding Vwap TouchAndGo")
-iRidingVwapRisingMainMaCond = input.bool(defval = true, title = 'Rising main MA', display = display.none, group = "Riding Vwap TouchAndGo")
 iRidingVwapSrc = input.string(defval = "low", title = "VWAP price source", options = ["low", "high", "close", "ohlc4"], display = display.none, group = "Riding Vwap TouchAndGo")
 
 // === RMV contraction inputs (for contraction condition) ===
@@ -82,7 +81,6 @@ lowestRecent = ta.lowest(iRidingVwapMinLowestCandle)
 
 // Base flush condition (flag-independent)
 ridngVwapLowFlush = volume > gVolMa and volume > volume[1] or volume > 2 * gVolMa
-ridingVwapRisingMainMaCond = iRidingVwapRisingMainMaCond and mainMa > mainMa[1] or not iRidingVwapRisingMainMaCond
 
 // Stop loss
 float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0))
@@ -97,7 +95,7 @@ chainStep(series float _pv, series float _src, int _pa, series bool _fc, int _tc
     ag = ta.barssince(nw)
     av = ag > _pa or ag > iRidingVwapNoTouchCancelThreshold ? na : lv
     lb = math.sum(low < av ? 1 : 0, 10)
-    pt = drelib.crossover(_pv) and lb <= iRidingVwapLowsBelow and _tc <= iRidingVwapMaxTouchesPerVwap and _fc[_pa] and ridingVwapRisingMainMaCond
+    pt = drelib.crossover(_pv) and lb <= iRidingVwapLowsBelow and _tc <= iRidingVwapMaxTouchesPerVwap and _fc[_pa]
     nt = pt ? _tc + 1 : _tc
     [nw, ag, av, pt, nt]
 
@@ -150,10 +148,11 @@ vt_volOff_flushOn  = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancel
 vt_volOn_flushOn   = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and (volume > gVolMa) and ridngVwapLowFlush[majorLowAgo]
 
 // === HELPER: compute minVwapTAG for a given parameter set ===
-minVwapTAG_func(bool o, bool v, bool c, bool f, series bool vt, series bool vt2, series bool vt3, series bool vt4, series bool vt5, series bool vt6, series bool vt7) =>
+minVwapTAG_func(bool o, bool v, bool c, bool f, bool r, series bool vt, series bool vt2, series bool vt3, series bool vt4, series bool vt5, series bool vt6, series bool vt7) =>
     ok = o ? obvCondRaw : true
     vk = v ? (volume > gVolMa) : true
     ck = c ? (contractionAgo <= 2) : true
+    rk = r ? (mainMa > mainMa[1]) : true
     (
         ((vt or vt2) and not (vt3 or vt4 or vt5 or vt6 or vt7))
     or ((vt2 or vt3) and not (vt or vt4 or vt5 or vt6 or vt7))
@@ -161,7 +160,7 @@ minVwapTAG_func(bool o, bool v, bool c, bool f, series bool vt, series bool vt2,
     or ((vt4 or vt5) and not (vt or vt2 or vt3 or vt6 or vt7))
     or ((vt5 or vt6) and not (vt or vt2 or vt3 or vt4 or vt7))
     or ((vt6 or vt7) and not (vt or vt2 or vt3 or vt4 or vt5))
-    ) and close >= high[1] and ok and vk and ck
+    ) and close >= high[1] and ok and vk and ck and rk
 
 // === HELPER MAPS: select touch signal by flag values ===
 vtMap(bool v, bool f) =>
@@ -174,91 +173,44 @@ vt5Map(bool f) => f ? vt5_f1 : vt5_f0
 vt6Map(bool f) => f ? vt6_f1 : vt6_f0
 vt7Map(bool f) => f ? vt7_f1 : vt7_f0
 
-// === ASSEMBLE ALL 16 VERSIONS ===
-// Bit encoding: bit0=Obv, bit1=Vol, bit2=Contr, bit3=Flush
-o0 = false
-v0 = false
-c0 = false
-f0 = false
-o1 = true
-v1 = false
-c1 = false
-f1 = false
-o2 = false
-v2 = true
-c2 = false
-f2 = false
-o3 = true
-v3 = true
-c3 = false
-f3 = false
-o4 = false
-v4 = false
-c4 = true
-f4 = false
-o5 = true
-v5 = false
-c5 = true
-f5 = false
-o6 = false
-v6 = true
-c6 = true
-f6 = false
-o7 = true
-v7 = true
-c7 = true
-f7 = false
-o8 = false
-v8 = false
-c8 = false
-f8 = true
-o9 = true
-v9 = false
-c9 = false
-f9 = true
-o10 = false
-v10 = true
-c10 = false
-f10 = true
-o11 = true
-v11 = true
-c11 = false
-f11 = true
-o12 = false
-v12 = false
-c12 = true
-f12 = true
-o13 = true
-v13 = false
-c13 = true
-f13 = true
-o14 = false
-v14 = true
-c14 = true
-f14 = true
-o15 = true
-v15 = true
-c15 = true
-f15 = true
+// === ASSEMBLE ALL 32 VERSIONS (OVCFR bits) ===
+ // bit0=O, bit1=V, bit2=C, bit3=F, bit4=R
+b(i, n) => int(i / n) % 2 == 1
 
-minVwapTAG_0  = minVwapTAG_func(o0,  v0,  c0,  f0,  vtMap(v0, f0),  vt2Map(f0),  vt3Map(f0),  vt4Map(f0),  vt5Map(f0),  vt6Map(f0),  vt7Map(f0))
-minVwapTAG_1  = minVwapTAG_func(o1,  v1,  c1,  f1,  vtMap(v1, f1),  vt2Map(f1),  vt3Map(f1),  vt4Map(f1),  vt5Map(f1),  vt6Map(f1),  vt7Map(f1))
-minVwapTAG_2  = minVwapTAG_func(o2,  v2,  c2,  f2,  vtMap(v2, f2),  vt2Map(f2),  vt3Map(f2),  vt4Map(f2),  vt5Map(f2),  vt6Map(f2),  vt7Map(f2))
-minVwapTAG_3  = minVwapTAG_func(o3,  v3,  c3,  f3,  vtMap(v3, f3),  vt2Map(f3),  vt3Map(f3),  vt4Map(f3),  vt5Map(f3),  vt6Map(f3),  vt7Map(f3))
-minVwapTAG_4  = minVwapTAG_func(o4,  v4,  c4,  f4,  vtMap(v4, f4),  vt2Map(f4),  vt3Map(f4),  vt4Map(f4),  vt5Map(f4),  vt6Map(f4),  vt7Map(f4))
-minVwapTAG_5  = minVwapTAG_func(o5,  v5,  c5,  f5,  vtMap(v5, f5),  vt2Map(f5),  vt3Map(f5),  vt4Map(f5),  vt5Map(f5),  vt6Map(f5),  vt7Map(f5))
-minVwapTAG_6  = minVwapTAG_func(o6,  v6,  c6,  f6,  vtMap(v6, f6),  vt2Map(f6),  vt3Map(f6),  vt4Map(f6),  vt5Map(f6),  vt6Map(f6),  vt7Map(f6))
-minVwapTAG_7  = minVwapTAG_func(o7,  v7,  c7,  f7,  vtMap(v7, f7),  vt2Map(f7),  vt3Map(f7),  vt4Map(f7),  vt5Map(f7),  vt6Map(f7),  vt7Map(f7))
-minVwapTAG_8  = minVwapTAG_func(o8,  v8,  c8,  f8,  vtMap(v8, f8),  vt2Map(f8),  vt3Map(f8),  vt4Map(f8),  vt5Map(f8),  vt6Map(f8),  vt7Map(f8))
-minVwapTAG_9  = minVwapTAG_func(o9,  v9,  c9,  f9,  vtMap(v9, f9),  vt2Map(f9),  vt3Map(f9),  vt4Map(f9),  vt5Map(f9),  vt6Map(f9),  vt7Map(f9))
-minVwapTAG_10 = minVwapTAG_func(o10, v10, c10, f10, vtMap(v10, f10), vt2Map(f10), vt3Map(f10), vt4Map(f10), vt5Map(f10), vt6Map(f10), vt7Map(f10))
-minVwapTAG_11 = minVwapTAG_func(o11, v11, c11, f11, vtMap(v11, f11), vt2Map(f11), vt3Map(f11), vt4Map(f11), vt5Map(f11), vt6Map(f11), vt7Map(f11))
-minVwapTAG_12 = minVwapTAG_func(o12, v12, c12, f12, vtMap(v12, f12), vt2Map(f12), vt3Map(f12), vt4Map(f12), vt5Map(f12), vt6Map(f12), vt7Map(f12))
-minVwapTAG_13 = minVwapTAG_func(o13, v13, c13, f13, vtMap(v13, f13), vt2Map(f13), vt3Map(f13), vt4Map(f13), vt5Map(f13), vt6Map(f13), vt7Map(f13))
-minVwapTAG_14 = minVwapTAG_func(o14, v14, c14, f14, vtMap(v14, f14), vt2Map(f14), vt3Map(f14), vt4Map(f14), vt5Map(f14), vt6Map(f14), vt7Map(f14))
-minVwapTAG_15 = minVwapTAG_func(o15, v15, c15, f15, vtMap(v15, f15), vt2Map(f15), vt3Map(f15), vt4Map(f15), vt5Map(f15), vt6Map(f15), vt7Map(f15))
+minVwapTAG_0  = minVwapTAG_func(b(0,1),  b(0,2),  b(0,4),  b(0,8),  b(0,16),  vtMap(b(0,2), b(0,8)),  vt2Map(b(0,8)),  vt3Map(b(0,8)),  vt4Map(b(0,8)),  vt5Map(b(0,8)),  vt6Map(b(0,8)),  vt7Map(b(0,8)))
+minVwapTAG_1  = minVwapTAG_func(b(1,1),  b(1,2),  b(1,4),  b(1,8),  b(1,16),  vtMap(b(1,2), b(1,8)),  vt2Map(b(1,8)),  vt3Map(b(1,8)),  vt4Map(b(1,8)),  vt5Map(b(1,8)),  vt6Map(b(1,8)),  vt7Map(b(1,8)))
+minVwapTAG_2  = minVwapTAG_func(b(2,1),  b(2,2),  b(2,4),  b(2,8),  b(2,16),  vtMap(b(2,2), b(2,8)),  vt2Map(b(2,8)),  vt3Map(b(2,8)),  vt4Map(b(2,8)),  vt5Map(b(2,8)),  vt6Map(b(2,8)),  vt7Map(b(2,8)))
+minVwapTAG_3  = minVwapTAG_func(b(3,1),  b(3,2),  b(3,4),  b(3,8),  b(3,16),  vtMap(b(3,2), b(3,8)),  vt2Map(b(3,8)),  vt3Map(b(3,8)),  vt4Map(b(3,8)),  vt5Map(b(3,8)),  vt6Map(b(3,8)),  vt7Map(b(3,8)))
+minVwapTAG_4  = minVwapTAG_func(b(4,1),  b(4,2),  b(4,4),  b(4,8),  b(4,16),  vtMap(b(4,2), b(4,8)),  vt2Map(b(4,8)),  vt3Map(b(4,8)),  vt4Map(b(4,8)),  vt5Map(b(4,8)),  vt6Map(b(4,8)),  vt7Map(b(4,8)))
+minVwapTAG_5  = minVwapTAG_func(b(5,1),  b(5,2),  b(5,4),  b(5,8),  b(5,16),  vtMap(b(5,2), b(5,8)),  vt2Map(b(5,8)),  vt3Map(b(5,8)),  vt4Map(b(5,8)),  vt5Map(b(5,8)),  vt6Map(b(5,8)),  vt7Map(b(5,8)))
+minVwapTAG_6  = minVwapTAG_func(b(6,1),  b(6,2),  b(6,4),  b(6,8),  b(6,16),  vtMap(b(6,2), b(6,8)),  vt2Map(b(6,8)),  vt3Map(b(6,8)),  vt4Map(b(6,8)),  vt5Map(b(6,8)),  vt6Map(b(6,8)),  vt7Map(b(6,8)))
+minVwapTAG_7  = minVwapTAG_func(b(7,1),  b(7,2),  b(7,4),  b(7,8),  b(7,16),  vtMap(b(7,2), b(7,8)),  vt2Map(b(7,8)),  vt3Map(b(7,8)),  vt4Map(b(7,8)),  vt5Map(b(7,8)),  vt6Map(b(7,8)),  vt7Map(b(7,8)))
+minVwapTAG_8  = minVwapTAG_func(b(8,1),  b(8,2),  b(8,4),  b(8,8),  b(8,16),  vtMap(b(8,2), b(8,8)),  vt2Map(b(8,8)),  vt3Map(b(8,8)),  vt4Map(b(8,8)),  vt5Map(b(8,8)),  vt6Map(b(8,8)),  vt7Map(b(8,8)))
+minVwapTAG_9  = minVwapTAG_func(b(9,1),  b(9,2),  b(9,4),  b(9,8),  b(9,16),  vtMap(b(9,2), b(9,8)),  vt2Map(b(9,8)),  vt3Map(b(9,8)),  vt4Map(b(9,8)),  vt5Map(b(9,8)),  vt6Map(b(9,8)),  vt7Map(b(9,8)))
+minVwapTAG_10 = minVwapTAG_func(b(10,1), b(10,2), b(10,4), b(10,8), b(10,16), vtMap(b(10,2), b(10,8)), vt2Map(b(10,8)), vt3Map(b(10,8)), vt4Map(b(10,8)), vt5Map(b(10,8)), vt6Map(b(10,8)), vt7Map(b(10,8)))
+minVwapTAG_11 = minVwapTAG_func(b(11,1), b(11,2), b(11,4), b(11,8), b(11,16), vtMap(b(11,2), b(11,8)), vt2Map(b(11,8)), vt3Map(b(11,8)), vt4Map(b(11,8)), vt5Map(b(11,8)), vt6Map(b(11,8)), vt7Map(b(11,8)))
+minVwapTAG_12 = minVwapTAG_func(b(12,1), b(12,2), b(12,4), b(12,8), b(12,16), vtMap(b(12,2), b(12,8)), vt2Map(b(12,8)), vt3Map(b(12,8)), vt4Map(b(12,8)), vt5Map(b(12,8)), vt6Map(b(12,8)), vt7Map(b(12,8)))
+minVwapTAG_13 = minVwapTAG_func(b(13,1), b(13,2), b(13,4), b(13,8), b(13,16), vtMap(b(13,2), b(13,8)), vt2Map(b(13,8)), vt3Map(b(13,8)), vt4Map(b(13,8)), vt5Map(b(13,8)), vt6Map(b(13,8)), vt7Map(b(13,8)))
+minVwapTAG_14 = minVwapTAG_func(b(14,1), b(14,2), b(14,4), b(14,8), b(14,16), vtMap(b(14,2), b(14,8)), vt2Map(b(14,8)), vt3Map(b(14,8)), vt4Map(b(14,8)), vt5Map(b(14,8)), vt6Map(b(14,8)), vt7Map(b(14,8)))
+minVwapTAG_15 = minVwapTAG_func(b(15,1), b(15,2), b(15,4), b(15,8), b(15,16), vtMap(b(15,2), b(15,8)), vt2Map(b(15,8)), vt3Map(b(15,8)), vt4Map(b(15,8)), vt5Map(b(15,8)), vt6Map(b(15,8)), vt7Map(b(15,8)))
+minVwapTAG_16 = minVwapTAG_func(b(16,1), b(16,2), b(16,4), b(16,8), b(16,16), vtMap(b(16,2), b(16,8)), vt2Map(b(16,8)), vt3Map(b(16,8)), vt4Map(b(16,8)), vt5Map(b(16,8)), vt6Map(b(16,8)), vt7Map(b(16,8)))
+minVwapTAG_17 = minVwapTAG_func(b(17,1), b(17,2), b(17,4), b(17,8), b(17,16), vtMap(b(17,2), b(17,8)), vt2Map(b(17,8)), vt3Map(b(17,8)), vt4Map(b(17,8)), vt5Map(b(17,8)), vt6Map(b(17,8)), vt7Map(b(17,8)))
+minVwapTAG_18 = minVwapTAG_func(b(18,1), b(18,2), b(18,4), b(18,8), b(18,16), vtMap(b(18,2), b(18,8)), vt2Map(b(18,8)), vt3Map(b(18,8)), vt4Map(b(18,8)), vt5Map(b(18,8)), vt6Map(b(18,8)), vt7Map(b(18,8)))
+minVwapTAG_19 = minVwapTAG_func(b(19,1), b(19,2), b(19,4), b(19,8), b(19,16), vtMap(b(19,2), b(19,8)), vt2Map(b(19,8)), vt3Map(b(19,8)), vt4Map(b(19,8)), vt5Map(b(19,8)), vt6Map(b(19,8)), vt7Map(b(19,8)))
+minVwapTAG_20 = minVwapTAG_func(b(20,1), b(20,2), b(20,4), b(20,8), b(20,16), vtMap(b(20,2), b(20,8)), vt2Map(b(20,8)), vt3Map(b(20,8)), vt4Map(b(20,8)), vt5Map(b(20,8)), vt6Map(b(20,8)), vt7Map(b(20,8)))
+minVwapTAG_21 = minVwapTAG_func(b(21,1), b(21,2), b(21,4), b(21,8), b(21,16), vtMap(b(21,2), b(21,8)), vt2Map(b(21,8)), vt3Map(b(21,8)), vt4Map(b(21,8)), vt5Map(b(21,8)), vt6Map(b(21,8)), vt7Map(b(21,8)))
+minVwapTAG_22 = minVwapTAG_func(b(22,1), b(22,2), b(22,4), b(22,8), b(22,16), vtMap(b(22,2), b(22,8)), vt2Map(b(22,8)), vt3Map(b(22,8)), vt4Map(b(22,8)), vt5Map(b(22,8)), vt6Map(b(22,8)), vt7Map(b(22,8)))
+minVwapTAG_23 = minVwapTAG_func(b(23,1), b(23,2), b(23,4), b(23,8), b(23,16), vtMap(b(23,2), b(23,8)), vt2Map(b(23,8)), vt3Map(b(23,8)), vt4Map(b(23,8)), vt5Map(b(23,8)), vt6Map(b(23,8)), vt7Map(b(23,8)))
+minVwapTAG_24 = minVwapTAG_func(b(24,1), b(24,2), b(24,4), b(24,8), b(24,16), vtMap(b(24,2), b(24,8)), vt2Map(b(24,8)), vt3Map(b(24,8)), vt4Map(b(24,8)), vt5Map(b(24,8)), vt6Map(b(24,8)), vt7Map(b(24,8)))
+minVwapTAG_25 = minVwapTAG_func(b(25,1), b(25,2), b(25,4), b(25,8), b(25,16), vtMap(b(25,2), b(25,8)), vt2Map(b(25,8)), vt3Map(b(25,8)), vt4Map(b(25,8)), vt5Map(b(25,8)), vt6Map(b(25,8)), vt7Map(b(25,8)))
+minVwapTAG_26 = minVwapTAG_func(b(26,1), b(26,2), b(26,4), b(26,8), b(26,16), vtMap(b(26,2), b(26,8)), vt2Map(b(26,8)), vt3Map(b(26,8)), vt4Map(b(26,8)), vt5Map(b(26,8)), vt6Map(b(26,8)), vt7Map(b(26,8)))
+minVwapTAG_27 = minVwapTAG_func(b(27,1), b(27,2), b(27,4), b(27,8), b(27,16), vtMap(b(27,2), b(27,8)), vt2Map(b(27,8)), vt3Map(b(27,8)), vt4Map(b(27,8)), vt5Map(b(27,8)), vt6Map(b(27,8)), vt7Map(b(27,8)))
+minVwapTAG_28 = minVwapTAG_func(b(28,1), b(28,2), b(28,4), b(28,8), b(28,16), vtMap(b(28,2), b(28,8)), vt2Map(b(28,8)), vt3Map(b(28,8)), vt4Map(b(28,8)), vt5Map(b(28,8)), vt6Map(b(28,8)), vt7Map(b(28,8)))
+minVwapTAG_29 = minVwapTAG_func(b(29,1), b(29,2), b(29,4), b(29,8), b(29,16), vtMap(b(29,2), b(29,8)), vt2Map(b(29,8)), vt3Map(b(29,8)), vt4Map(b(29,8)), vt5Map(b(29,8)), vt6Map(b(29,8)), vt7Map(b(29,8)))
+minVwapTAG_30 = minVwapTAG_func(b(30,1), b(30,2), b(30,4), b(30,8), b(30,16), vtMap(b(30,2), b(30,8)), vt2Map(b(30,8)), vt3Map(b(30,8)), vt4Map(b(30,8)), vt5Map(b(30,8)), vt6Map(b(30,8)), vt7Map(b(30,8)))
+minVwapTAG_31 = minVwapTAG_func(b(31,1), b(31,2), b(31,4), b(31,8), b(31,16), vtMap(b(31,2), b(31,8)), vt2Map(b(31,8)), vt3Map(b(31,8)), vt4Map(b(31,8)), vt5Map(b(31,8)), vt6Map(b(31,8)), vt7Map(b(31,8)))
 
-// === PERFORMANCE FOR ALL 16 VERSIONS ===
+// === PERFORMANCE FOR ALL 32 VERSIONS ===
 [rate0,  cnt0,  sc0,  ar0,  ok0,  str0,  score0]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_0,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rate1,  cnt1,  sc1,  ar1,  ok1,  str1,  score1]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_1,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rate2,  cnt2,  sc2,  ar2,  ok2,  str2,  score2]  = dreperf.successRateAllTimeStatsFull(minVwapTAG_2,  sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
@@ -275,6 +227,22 @@ minVwapTAG_15 = minVwapTAG_func(o15, v15, c15, f15, vtMap(v15, f15), vt2Map(f15)
 [rate13, cnt13, sc13, ar13, ok13, str13, score13] = dreperf.successRateAllTimeStatsFull(minVwapTAG_13, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rate14, cnt14, sc14, ar14, ok14, str14, score14] = dreperf.successRateAllTimeStatsFull(minVwapTAG_14, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rate15, cnt15, sc15, ar15, ok15, str15, score15] = dreperf.successRateAllTimeStatsFull(minVwapTAG_15, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate16, cnt16, sc16, ar16, ok16, str16, score16] = dreperf.successRateAllTimeStatsFull(minVwapTAG_16, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate17, cnt17, sc17, ar17, ok17, str17, score17] = dreperf.successRateAllTimeStatsFull(minVwapTAG_17, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate18, cnt18, sc18, ar18, ok18, str18, score18] = dreperf.successRateAllTimeStatsFull(minVwapTAG_18, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate19, cnt19, sc19, ar19, ok19, str19, score19] = dreperf.successRateAllTimeStatsFull(minVwapTAG_19, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate20, cnt20, sc20, ar20, ok20, str20, score20] = dreperf.successRateAllTimeStatsFull(minVwapTAG_20, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate21, cnt21, sc21, ar21, ok21, str21, score21] = dreperf.successRateAllTimeStatsFull(minVwapTAG_21, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate22, cnt22, sc22, ar22, ok22, str22, score22] = dreperf.successRateAllTimeStatsFull(minVwapTAG_22, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate23, cnt23, sc23, ar23, ok23, str23, score23] = dreperf.successRateAllTimeStatsFull(minVwapTAG_23, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate24, cnt24, sc24, ar24, ok24, str24, score24] = dreperf.successRateAllTimeStatsFull(minVwapTAG_24, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate25, cnt25, sc25, ar25, ok25, str25, score25] = dreperf.successRateAllTimeStatsFull(minVwapTAG_25, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate26, cnt26, sc26, ar26, ok26, str26, score26] = dreperf.successRateAllTimeStatsFull(minVwapTAG_26, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate27, cnt27, sc27, ar27, ok27, str27, score27] = dreperf.successRateAllTimeStatsFull(minVwapTAG_27, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate28, cnt28, sc28, ar28, ok28, str28, score28] = dreperf.successRateAllTimeStatsFull(minVwapTAG_28, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate29, cnt29, sc29, ar29, ok29, str29, score29] = dreperf.successRateAllTimeStatsFull(minVwapTAG_29, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate30, cnt30, sc30, ar30, ok30, str30, score30] = dreperf.successRateAllTimeStatsFull(minVwapTAG_30, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[rate31, cnt31, sc31, ar31, ok31, str31, score31] = dreperf.successRateAllTimeStatsFull(minVwapTAG_31, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 
 // === FIND BEST VERSION ON LAST BAR ===
 var int bestVersionIdx = -1
@@ -332,17 +300,66 @@ if barstate.islast
     if ok15 and score15 > bestScoreVal
         bestScoreVal := score15
         bestVersionIdx := 15
+    if ok16 and score16 > bestScoreVal
+        bestScoreVal := score16
+        bestVersionIdx := 16
+    if ok17 and score17 > bestScoreVal
+        bestScoreVal := score17
+        bestVersionIdx := 17
+    if ok18 and score18 > bestScoreVal
+        bestScoreVal := score18
+        bestVersionIdx := 18
+    if ok19 and score19 > bestScoreVal
+        bestScoreVal := score19
+        bestVersionIdx := 19
+    if ok20 and score20 > bestScoreVal
+        bestScoreVal := score20
+        bestVersionIdx := 20
+    if ok21 and score21 > bestScoreVal
+        bestScoreVal := score21
+        bestVersionIdx := 21
+    if ok22 and score22 > bestScoreVal
+        bestScoreVal := score22
+        bestVersionIdx := 22
+    if ok23 and score23 > bestScoreVal
+        bestScoreVal := score23
+        bestVersionIdx := 23
+    if ok24 and score24 > bestScoreVal
+        bestScoreVal := score24
+        bestVersionIdx := 24
+    if ok25 and score25 > bestScoreVal
+        bestScoreVal := score25
+        bestVersionIdx := 25
+    if ok26 and score26 > bestScoreVal
+        bestScoreVal := score26
+        bestVersionIdx := 26
+    if ok27 and score27 > bestScoreVal
+        bestScoreVal := score27
+        bestVersionIdx := 27
+    if ok28 and score28 > bestScoreVal
+        bestScoreVal := score28
+        bestVersionIdx := 28
+    if ok29 and score29 > bestScoreVal
+        bestScoreVal := score29
+        bestVersionIdx := 29
+    if ok30 and score30 > bestScoreVal
+        bestScoreVal := score30
+        bestVersionIdx := 30
+    if ok31 and score31 > bestScoreVal
+        bestScoreVal := score31
+        bestVersionIdx := 31
 
-// Signal for the best version (default to v15/all-on until best is determined)
-bestSignal = bestVersionIdx == -1 ? minVwapTAG_15 : bestVersionIdx == 0 ? minVwapTAG_0 : bestVersionIdx == 1 ? minVwapTAG_1 : bestVersionIdx == 2 ? minVwapTAG_2 : bestVersionIdx == 3 ? minVwapTAG_3 : bestVersionIdx == 4 ? minVwapTAG_4 : bestVersionIdx == 5 ? minVwapTAG_5 : bestVersionIdx == 6 ? minVwapTAG_6 : bestVersionIdx == 7 ? minVwapTAG_7 : bestVersionIdx == 8 ? minVwapTAG_8 : bestVersionIdx == 9 ? minVwapTAG_9 : bestVersionIdx == 10 ? minVwapTAG_10 : bestVersionIdx == 11 ? minVwapTAG_11 : bestVersionIdx == 12 ? minVwapTAG_12 : bestVersionIdx == 13 ? minVwapTAG_13 : bestVersionIdx == 14 ? minVwapTAG_14 : bestVersionIdx == 15 ? minVwapTAG_15 : false
+// Signal for the best version (default to v31/all-on until best is determined)
+bestSignal = bestVersionIdx == -1 ? minVwapTAG_31 : bestVersionIdx == 0 ? minVwapTAG_0 : bestVersionIdx == 1 ? minVwapTAG_1 : bestVersionIdx == 2 ? minVwapTAG_2 : bestVersionIdx == 3 ? minVwapTAG_3 : bestVersionIdx == 4 ? minVwapTAG_4 : bestVersionIdx == 5 ? minVwapTAG_5 : bestVersionIdx == 6 ? minVwapTAG_6 : bestVersionIdx == 7 ? minVwapTAG_7 : bestVersionIdx == 8 ? minVwapTAG_8 : bestVersionIdx == 9 ? minVwapTAG_9 : bestVersionIdx == 10 ? minVwapTAG_10 : bestVersionIdx == 11 ? minVwapTAG_11 : bestVersionIdx == 12 ? minVwapTAG_12 : bestVersionIdx == 13 ? minVwapTAG_13 : bestVersionIdx == 14 ? minVwapTAG_14 : bestVersionIdx == 15 ? minVwapTAG_15 : bestVersionIdx == 16 ? minVwapTAG_16 : bestVersionIdx == 17 ? minVwapTAG_17 : bestVersionIdx == 18 ? minVwapTAG_18 : bestVersionIdx == 19 ? minVwapTAG_19 : bestVersionIdx == 20 ? minVwapTAG_20 : bestVersionIdx == 21 ? minVwapTAG_21 : bestVersionIdx == 22 ? minVwapTAG_22 : bestVersionIdx == 23 ? minVwapTAG_23 : bestVersionIdx == 24 ? minVwapTAG_24 : bestVersionIdx == 25 ? minVwapTAG_25 : bestVersionIdx == 26 ? minVwapTAG_26 : bestVersionIdx == 27 ? minVwapTAG_27 : bestVersionIdx == 28 ? minVwapTAG_28 : bestVersionIdx == 29 ? minVwapTAG_29 : bestVersionIdx == 30 ? minVwapTAG_30 : bestVersionIdx == 31 ? minVwapTAG_31 : false
 
-// === VERSION LABEL WITH CLUE (bit pattern OVCF) ===
+// === VERSION LABEL WITH CLUE (bit pattern OVCFR) ===
 verLabel(i) =>
     o = i % 2 == 1
     v = int(i / 2) % 2 == 1
     c = int(i / 4) % 2 == 1
     f = int(i / 8) % 2 == 1
-    "v" + str.tostring(i) + "(" + (o ? "1" : "0") + (v ? "1" : "0") + (c ? "1" : "0") + (f ? "1" : "0") + ")"
+    r = int(i / 16) % 2 == 1
+    "v" + str.tostring(i) + "(" + (o ? "1" : "0") + (v ? "1" : "0") + (c ? "1" : "0") + (f ? "1" : "0") + (r ? "1" : "0") + ")"
 
 verLabelBest(i) =>
     i == bestVersionIdx ? verLabel(i) + "*" : verLabel(i)
@@ -352,11 +369,11 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 
 // === TABLE OF PERFORMANCE ===
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 18)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 34)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = "")
     table.cell(table_id = tbl, column = 1, row = 0, text = "")
-    table.cell(table_id = tbl, column = 0, row = 1, text = iRidingVwapSrc + ": v(OVCF)", text_size = txtSize)
+    table.cell(table_id = tbl, column = 0, row = 1, text = iRidingVwapSrc + ": v(OVCFR)", text_size = txtSize)
     table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
 
     if showRow(iShowOnlyGoodSigs, ok0)
@@ -407,11 +424,59 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, ok15)
         table.cell(table_id = tbl, column = 0, row = 17, text = verLabelBest(15), text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 17, text = str15, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok16)
+        table.cell(table_id = tbl, column = 0, row = 18, text = verLabelBest(16), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 18, text = str16, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok17)
+        table.cell(table_id = tbl, column = 0, row = 19, text = verLabelBest(17), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 19, text = str17, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok18)
+        table.cell(table_id = tbl, column = 0, row = 20, text = verLabelBest(18), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 20, text = str18, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok19)
+        table.cell(table_id = tbl, column = 0, row = 21, text = verLabelBest(19), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 21, text = str19, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok20)
+        table.cell(table_id = tbl, column = 0, row = 22, text = verLabelBest(20), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 22, text = str20, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok21)
+        table.cell(table_id = tbl, column = 0, row = 23, text = verLabelBest(21), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 23, text = str21, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok22)
+        table.cell(table_id = tbl, column = 0, row = 24, text = verLabelBest(22), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 24, text = str22, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok23)
+        table.cell(table_id = tbl, column = 0, row = 25, text = verLabelBest(23), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 25, text = str23, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok24)
+        table.cell(table_id = tbl, column = 0, row = 26, text = verLabelBest(24), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 26, text = str24, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok25)
+        table.cell(table_id = tbl, column = 0, row = 27, text = verLabelBest(25), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 27, text = str25, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok26)
+        table.cell(table_id = tbl, column = 0, row = 28, text = verLabelBest(26), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 28, text = str26, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok27)
+        table.cell(table_id = tbl, column = 0, row = 29, text = verLabelBest(27), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 29, text = str27, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok28)
+        table.cell(table_id = tbl, column = 0, row = 30, text = verLabelBest(28), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 30, text = str28, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok29)
+        table.cell(table_id = tbl, column = 0, row = 31, text = verLabelBest(29), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 31, text = str29, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok30)
+        table.cell(table_id = tbl, column = 0, row = 32, text = verLabelBest(30), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 32, text = str30, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, ok31)
+        table.cell(table_id = tbl, column = 0, row = 33, text = verLabelBest(31), text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 33, text = str31, text_size = txtSize)
 
 // === PLOT THE BEST VERSION (defaults to v15 all-on until best is determined on last bar) ===
 //plotshape(bestSignal, title = "best ridingVwapTAG", location = location.belowbar, color = color.aqua, style = shape.triangleup, text = "bestV", textcolor = color.aqua)
 
 // === ALERT FROM THE BEST VERSION ===
-bestSigOk = bestVersionIdx == 0 ? ok0 : bestVersionIdx == 1 ? ok1 : bestVersionIdx == 2 ? ok2 : bestVersionIdx == 3 ? ok3 : bestVersionIdx == 4 ? ok4 : bestVersionIdx == 5 ? ok5 : bestVersionIdx == 6 ? ok6 : bestVersionIdx == 7 ? ok7 : bestVersionIdx == 8 ? ok8 : bestVersionIdx == 9 ? ok9 : bestVersionIdx == 10 ? ok10 : bestVersionIdx == 11 ? ok11 : bestVersionIdx == 12 ? ok12 : bestVersionIdx == 13 ? ok13 : bestVersionIdx == 14 ? ok14 : bestVersionIdx == 15 ? ok15 : false
+bestSigOk = bestVersionIdx == -1 ? false : bestVersionIdx == 0 ? ok0 : bestVersionIdx == 1 ? ok1 : bestVersionIdx == 2 ? ok2 : bestVersionIdx == 3 ? ok3 : bestVersionIdx == 4 ? ok4 : bestVersionIdx == 5 ? ok5 : bestVersionIdx == 6 ? ok6 : bestVersionIdx == 7 ? ok7 : bestVersionIdx == 8 ? ok8 : bestVersionIdx == 9 ? ok9 : bestVersionIdx == 10 ? ok10 : bestVersionIdx == 11 ? ok11 : bestVersionIdx == 12 ? ok12 : bestVersionIdx == 13 ? ok13 : bestVersionIdx == 14 ? ok14 : bestVersionIdx == 15 ? ok15 : bestVersionIdx == 16 ? ok16 : bestVersionIdx == 17 ? ok17 : bestVersionIdx == 18 ? ok18 : bestVersionIdx == 19 ? ok19 : bestVersionIdx == 20 ? ok20 : bestVersionIdx == 21 ? ok21 : bestVersionIdx == 22 ? ok22 : bestVersionIdx == 23 ? ok23 : bestVersionIdx == 24 ? ok24 : bestVersionIdx == 25 ? ok25 : bestVersionIdx == 26 ? ok26 : bestVersionIdx == 27 ? ok27 : bestVersionIdx == 28 ? ok28 : bestVersionIdx == 29 ? ok29 : bestVersionIdx == 30 ? ok30 : bestVersionIdx == 31 ? ok31 : false
 
 alertcondition(bestSignal and bestSigOk, title = "best ridingVwapTAG", message = "bestVwapTAG")
