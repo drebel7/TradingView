@@ -20,6 +20,7 @@ iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from be
 //sig success rate filter
 iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', display = display.none, group = 'Signals')
 iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', display = display.none, group = 'Signals')
+iShowEt1YHsbSig = input.bool(defval = true, title = 'Show et1YHsb', display = display.none, group = 'Signals')
 iShowRmv1Sig = input.bool(defval = true, title = 'Show rmv', display = display.none, group = 'Signals', inline = "rmv")
 iShowRmv2Sig = input.bool(defval = true, title = '2', display = display.none, group = 'Signals', inline = "rmv")
 iShowRmv3Sig = input.bool(defval = true, title = '3', display = display.none, group = 'Signals', inline = "rmv")
@@ -53,11 +54,15 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 
 var series float benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
+rs1YHigh = rs == ta.highest(rs, drelib.getDefaultStockTradingDaysInAYear())
+rs1YHighLately = ta.barssince(rs1YHigh) < 10
 rsMa = ta.sma(rs, 100)
 rsCondRaw = rs > rsMa
 rsCond_10 = rsCondRaw ? 1 : 0
 
 obvCondRaw = drelib.isAboveObvSmaStddev(100, 0.35)
+obv1YHigh = ta.obv == ta.highest(ta.obv, drelib.getDefaultStockTradingDaysInAYear())
+obv1YHighLately = ta.barssince(obv1YHigh) < 10
 obvCond_10 = obvCondRaw ? 1 : 0
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
@@ -82,6 +87,7 @@ et4 = etCondSum == totalCond
 et3sb = et3 and strongBreakout
 et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
+et1YHsb = etsb and (obv1YHighLately or rs1YHigh)
 
 //Qullamaggie inspired - additional signal if there is an OpeningRangeBrakeout the next day after main signal
 //for low turnover 60 minute orb, for mid-high turnover 5 minute orb
@@ -274,6 +280,7 @@ showRow(_iShowOnlyGoodSigs, sigOk) =>
 float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
 [et3sbSuccRate, et3sbSuccCount, et3sbSigCount, et3sbAvgReturn, et3sbSuccRateOk, et3sbSuccRateStr, et3sbScore] = dreperf.successRateAllTimeStatsFull(et3sb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [et4sbSuccRate, et4sbSuccCount, et4sbSigCount, et4sbAvgReturn, et4sbSuccRateOk, et4sbSuccRateStr, et4sbScore] = dreperf.successRateAllTimeStatsFull(et4sb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[et1YHsbSuccRate, et1YHsbSuccCount, et1YHsbSigCount, et1YHsbAvgReturn, et1YHsbSuccRateOk, et1YHsbSuccRateStr, et1YHsbScore] = dreperf.successRateAllTimeStatsFull(et1YHsb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rmv1SuccRate, rmv1SuccCount, rmv1SigCount, rmv1AvgReturn, rmv1SuccRateOk, rmv1SuccRateStr, rmv1Score] = dreperf.successRateAllTimeStatsFull(bullishRmv1, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rmv2SuccRate, rmv2SuccCount, rmv2SigCount, rmv2AvgReturn, rmv2SuccRateOk, rmv2SuccRateStr, rmv2Score] = dreperf.successRateAllTimeStatsFull(bullishRmv2, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [rmv3SuccRate, rmv3SuccCount, rmv3SigCount, rmv3AvgReturn, rmv3SuccRateOk, rmv3SuccRateStr, rmv3Score] = dreperf.successRateAllTimeStatsFull(bullishRmv3, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
@@ -293,6 +300,7 @@ float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossM
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
 et4sbSigColor = color.new(color.lime, 0)
+et1YHsbSigColor = color.new(color.green, 0)
 rmvSigColor = color.new(color.maroon, 0)
 etcsbSigColor = color.new(color.fuchsia, 0)
 obvDivSigColor = color.new(color.navy, 0)
@@ -305,7 +313,7 @@ minVwapTAGSigColor = color.new(color.aqua, 0)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 19)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 20)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -318,55 +326,59 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, et4sbSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 3, text = "et4sb", text_color = et4sbSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 3, text = et4sbSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, et1YHsbSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 4, text = "et1YHsb", text_color = et1YHsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 4, text = et1YHsbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, rmv1SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 4, text = "rmv1", text_color = rmvSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 4, text = rmv1SuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 5, text = "rmv1", text_color = rmvSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 5, text = rmv1SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, rmv2SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 5, text = "rmv2", text_color = rmvSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 5, text = rmv2SuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 6, text = "rmv2", text_color = rmvSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 6, text = rmv2SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, rmv3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 6, text = "rmv3", text_color = rmvSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 6, text = rmv3SuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 7, text = "rmv3", text_color = rmvSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 7, text = rmv3SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, etc1sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 7, text = "etc1sb", text_color = etcsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 7, text = etc1sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 8, text = "etc1sb", text_color = etcsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 8, text = etc1sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, etc2sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 8, text = "etc2sb", text_color = etcsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 8, text = etc2sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 9, text = "etc2sb", text_color = etcsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 9, text = etc2sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, etc3sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 9, text = "etc3sb", text_color = etcsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 9, text = etc3sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 10, text = "etc3sb", text_color = etcsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 10, text = etc3sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, obvDivSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 10, text = "obvDiv", text_color = obvDivSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 10, text = obvDivSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 11, text = "obvDiv", text_color = obvDivSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 11, text = obvDivSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtsbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 11, text = "mtsb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 11, text = mtsbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 12, text = "mtsb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 12, text = mtsbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtc1sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 12, text = "mtc1sb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 12, text = mtc1sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 13, text = "mtc1sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 13, text = mtc1sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtc2sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 13, text = "mtc2sb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 13, text = mtc2sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 14, text = "mtc2sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 14, text = mtc2sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, mtc3sbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 14, text = "mtc3sb", text_color = mtsbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 14, text = mtc3sbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 15, text = "mtc3sb", text_color = mtsbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 15, text = mtc3sbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, ragPbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 15, text = "rag-pb", text_color = ragPbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 15, text = ragPbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 16, text = "rag-pb", text_color = ragPbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 16, text = ragPbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, wonHpSbSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 16, text = "WON:hp-sb", text_color = wonHpSbSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 16, text = wonHpSbSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 17, text = "WON:hp-sb", text_color = wonHpSbSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 17, text = wonHpSbSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, wonTurnGoUpSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 17, text = "WON:turnUp", text_color = wonTurnGoUpSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 17, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 18, text = "WON:turnUp", text_color = wonTurnGoUpSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 18, text = wonTurnGoUpSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 18, text = "ridingVwapTAG", text_color = minVwapTAGSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 18, text = minVwapTAGSuccRateStr, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 19, text = "ridingVwapTAG", text_color = minVwapTAGSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 19, text = minVwapTAGSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
 plotshape(iShowEt4sbSig and et4sb and showRow(iShowOnlyGoodSigs, et4sbSuccRateOk), title = 'et4sb', location = location.belowbar, color = et4sbSigColor, style = shape.triangleup, text = 'et4sb', textcolor = et4sbSigColor)
+plotshape(iShowEt1YHsbSig and et1YHsb and showRow(iShowOnlyGoodSigs, et1YHsbSuccRateOk), title = 'et1YHsb', location = location.belowbar, color = et1YHsbSigColor, style = shape.triangleup, text = 'et1YHsb', textcolor = et1YHsbSigColor)
 plotshape(iShowRmv1Sig and bullishRmv1 and showRow(iShowOnlyGoodSigs, rmv1SuccRateOk), title = 'rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv1', textcolor = rmvSigColor)
 plotshape(iShowRmv2Sig and bullishRmv2 and showRow(iShowOnlyGoodSigs, rmv2SuccRateOk), title = 'rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv2', textcolor = rmvSigColor)
 plotshape(iShowRmv3Sig and bullishRmv3 and showRow(iShowOnlyGoodSigs, rmv3SuccRateOk), title = 'rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'rmv3', textcolor = rmvSigColor)
@@ -400,6 +412,7 @@ et3sbSig = et3sb and et3sbSuccRateOk
 et3sbSig_p1D = et3sbSig[1] and orb
 et4sbSig = et4sb and et4sbSuccRateOk
 et4sbSig_p1D = et4sbSig[1] and orb
+et1YHsbSig = et1YHsb and et1YHsbSuccRateOk
 bullishRmvSig = (bullishRmv1 and rmv1SuccRateOk) or (bullishRmv2 and rmv2SuccRateOk) or (bullishRmv3 and rmv3SuccRateOk)
 bullishRmvSig_p1D = bullishRmvSig[1] and orb
 etcsbSig = (etc1sb and etc1sbSuccRateOk) or (etc2sb and etc2sbSuccRateOk) or (etc3sb and etc3sbSuccRateOk)
@@ -417,12 +430,13 @@ wonTurnGoUpSig_p1D = wonTurnGoUpSig[1] and orb
 minVwapTAGSig = minVwapTAG and minVwapTAGSuccRateOk
 minVwapTAGSig_p1D = minVwapTAGSig[1] and orb
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
 alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
+alertcondition(gFilter and (et1YHsbSig), title = 'bullish ET1YHSB', message = 'ET1YHSB')
 alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
 alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', message = 'ETCSB')
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
