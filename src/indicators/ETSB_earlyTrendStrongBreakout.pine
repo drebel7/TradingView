@@ -52,17 +52,18 @@ bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
+var int et1YHRecency = 15
 var series float benchIdx = drelib.getDefaultBenchmarkClose()
 rs = close / benchIdx
 rs1YHigh = rs == ta.highest(rs, drelib.getDefaultStockTradingDaysInAYear())
-rs1YHighLately = ta.barssince(rs1YHigh) < 10
+rs1YHighLately = ta.barssince(rs1YHigh) < et1YHRecency
 rsMa = ta.sma(rs, 100)
 rsCondRaw = rs > rsMa
 rsCond_10 = rsCondRaw ? 1 : 0
 
 obvCondRaw = drelib.isAboveObvSmaStddev(100, 0.35)
 obv1YHigh = ta.obv == ta.highest(ta.obv, drelib.getDefaultStockTradingDaysInAYear())
-obv1YHighLately = ta.barssince(obv1YHigh) < 10
+obv1YHighLately = ta.barssince(obv1YHigh) < et1YHRecency
 obvCond_10 = obvCondRaw ? 1 : 0
 
 [nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
@@ -84,10 +85,12 @@ totalCond = 4
 etCondSum = rsCond_10 + obvCond_10 + aboveIchimokuCloudCond_10 + nbeCond_10
 et3 = etCondSum == totalCond - 1
 et4 = etCondSum == totalCond
+et = etCondSum >= totalCond - 1
 et3sb = et3 and strongBreakout
 et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
-et1YHsb = etsb and (obv1YHighLately or rs1YHigh)
+etLately = ta.barssince(not et) < et1YHRecency
+et1YHsb = etLately and (obv1YHighLately or rs1YHighLately) and strongBreakout
 
 //Qullamaggie inspired - additional signal if there is an OpeningRangeBrakeout the next day after main signal
 //for low turnover 60 minute orb, for mid-high turnover 5 minute orb
