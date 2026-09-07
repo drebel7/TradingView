@@ -275,8 +275,8 @@ or ((vwapTouch6 or vwapTouch7) and not (vwapTouch or vwapTouch2 or vwapTouch3 or
 ) and close >= high[1] and (iRidingVwapObvCond and obvCondRaw or not iRidingVwapObvCond) and ridingVwapVolOk and ridingVwapContractionCond
 
 //Capitulation Low - highest volume on lowest point
-iCapLowLowLookback = input.int(defval = 120, title = "major low lookback", minval = 50, maxval = 300, display = display.none, group = "Signal: Capitulation Low")
-iCapLowVolLookback = input.int(defval = 150, title = "Volume percentile lookback", minval = 50, maxval = 300, display = display.none, group = "Signal: Capitulation Low")
+iCapLowLowLookback = input.int(defval = 200, title = "major low lookback", minval = 50, maxval = 300, step = 5, display = display.none, group = "Signal: Capitulation Low")
+iCapLowVolLookback = input.int(defval = 150, title = "Volume percentile lookback", minval = 50, maxval = 300, step = 5, display = display.none, group = "Signal: Capitulation Low")
 iCapLowMinVolPercentile = input.int(defval = 95, title = "Volume percentile", minval = 50, maxval = 100, display = display.none, group = "Signal: Capitulation Low")
 lowestPrice = ta.lowest(iCapLowLowLookback)
 volPercentile = ta.percentrank(volume, iCapLowVolLookback)
