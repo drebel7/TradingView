@@ -294,13 +294,14 @@ fBPercentRank = ta.percentrank(close, FBLookback)
 dttVol = volume / gVolMa
 dttVolTimePct = 100 * dttVol / dttTime
 //math.pow(1-x, n) gives a nice concave function in x={0, 1} range, the bigger the n the more concave function is
-timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (iInitialMinVolumePct - iDayEndMinVolumePct)
+dayEndMinVolumePct = 145
+timeSinceSessionOpenAdditionalVolPct = math.pow(1 - dttTime, 5) * (iInitialMinVolumePct - dayEndMinVolumePct)
 initialFlat = 0.01
-volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > iDayEndMinVolumePct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * iInitialMinVolumePct * gVolMa) or volume > iDayEndMinVolumePct * gVolMa
+volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > dayEndMinVolumePct + timeSinceSessionOpenAdditionalVolPct) : volume > initialFlat * iInitialMinVolumePct * gVolMa) or volume > dayEndMinVolumePct * gVolMa
 
 fbHighest = ta.highest(close, FBLookback)
-//fbLowestSinceHigh = ta.lowest(fbHighestBars)
-fb = fBPercentRank == iFlatBreakoutMinRecentPercentile and fBPercentRank[1] <= (iFlatBreakoutMinRecentPercentile - iFlatBreakoutClosesJumped) and fbHighest[1] == fbHighest[6] and volumeGood
+fbRankCond = fBPercentRank == iFlatBreakoutMinRecentPercentile and fBPercentRank[1] <= (iFlatBreakoutMinRecentPercentile - iFlatBreakoutClosesJumped)
+fb = fbRankCond and fbHighest[1] == fbHighest[6] and volumeGood
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
