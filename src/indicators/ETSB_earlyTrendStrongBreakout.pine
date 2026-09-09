@@ -288,6 +288,7 @@ CapLow = (lphv[1] or lphv) and low > low[1]
 //Flat Breakout
 iFlatBreakoutMinRecentPercentile = input.int(defval = 100, title = "Min. percentile", minval = 80, maxval = 100, step = 1, display = display.none, group = "Signal: Flat Breakout")
 iFlatBreakoutClosesJumped = input.int(defval = 3, title = "Number of closes jumped", minval = 2, maxval = 50, step = 1, display = display.none, group = "Signal: Flat Breakout")
+iFlatBreakoutMaxPercentileOverSMA200 = input.int(defval = 90, title = "Max percentile over sma200", minval = 5, maxval = 100, step = 5, display = display.none, group = "Signal: Flat Breakout")
 var int FBLookback = 200
 fBPercentRank = ta.percentrank(close, FBLookback)
 
@@ -301,7 +302,9 @@ volumeGood = (dttTime >= initialFlat ? (dttVolTimePct > dayEndMinVolumePct + tim
 
 fbHighest = ta.highest(close, FBLookback)
 fbRankCond = fBPercentRank == iFlatBreakoutMinRecentPercentile and fBPercentRank[1] <= (iFlatBreakoutMinRecentPercentile - iFlatBreakoutClosesJumped)
-fb = fbRankCond and fbHighest[1] == fbHighest[6] and volumeGood
+fbPercentileOverSma200 = ta.percentrank((close - mainMa) / mainMa, 200)
+fbPercentileOverSmaCond = fbPercentileOverSma200[1] < iFlatBreakoutMaxPercentileOverSMA200
+fb = fbRankCond and fbHighest[1] == fbHighest[6] and volumeGood and fbPercentileOverSmaCond
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
