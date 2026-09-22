@@ -103,6 +103,8 @@ orb = minTurnoverForOrb5 ? orb5 : orb60
 
 //pct time since session beginning 
 dttTime = drelib.dttTimePct()
+sessionCloseToEnd = dttTime >= 90
+sessionClosed = dttTime >= 1
 
 //rmv sig (like in "DRE parabolic top" v444)
 iRmvMinVolumeMultiple = input.float(defval = 1.15, title = 'Rmv volume multiple', minval = 0.0, maxval = 3.0, step = 0.05, display = display.none, group = 'Contraction (RMV)')
@@ -495,5 +497,5 @@ alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayG
 alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = "bullish O''Neil inspired: hi-percentile sb", message = 'WON:hp-sb')
 alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUpSig_p1D), title = "bullish O''Neil inspired: turnaround GO Up", message = 'WON:turUp')
 alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullish riding vwap TAG", message = 'ridingVwapTAG')
-alertcondition(gFilter and (CapLowSig), title = 'bullish CapLow', message = 'CapLow')
+alertcondition(gFilter and sessionCloseToEnd and (CapLowSig), title = 'bullish CapLow', message = 'CapLow')
 alertcondition(gFilter and (FBSig), title = 'bullish FlatB', message = 'FlatB')
