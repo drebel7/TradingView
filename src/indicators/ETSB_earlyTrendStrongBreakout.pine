@@ -39,6 +39,7 @@ iShowRidingVwap = input.bool(defval = true, title = "Show Riding Vwap TouchAndGo
 iShowRidingVwapDebug = input.bool(defval = false, title = "Show Riding Vwap TouchAndGo - debug", display = display.none, group = 'Signals')
 iShowCapitulationLow = input.bool(defval = true, title = "Show Capitulation Low", display = display.none, group = 'Signals')
 iShowFlatBreakout = input.bool(defval = true, title = "Show FlatBreakout", display = display.none, group = 'Signals')
+iShowVIP = input.bool(defval = true, title = "Show Volume Institutional Push", display = display.none, group = 'Signals')
 
 iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
 iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Signals')
@@ -308,6 +309,15 @@ fbPercentileOverSma200 = ta.percentrank((close - mainMa) / mainMa, 200)
 fbPercentileOverSmaCond = fbPercentileOverSma200[1] < iFlatBreakoutMaxPercentileOverSMA200
 fb = fbRankCond and fbHighest[1] == fbHighest[6] and volumeGood and fbPercentileOverSmaCond
 
+//VIP (Volume Instituional Push)
+vipDayGood = volume > gVolMa and close >= close[1]
+vipDayGood_10 = vipDayGood ? 1 : 0
+vipDayGood4 = math.sum(vipDayGood_10, 4)
+vipDayGood6 = math.sum(vipDayGood_10, 6)
+vip44 = vipDayGood4 == 4
+vip56 = vipDayGood6 >= 5
+vip = vip44 or vip56
+
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
 iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performance check')
@@ -336,6 +346,7 @@ float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossM
 [minVwapTAGSuccRate, minVwapTAGSuccCount, minVwapTAGSigCount, minVwapTAGAvgReturn, minVwapTAGSuccRateOk, minVwapTAGSuccRateStr, minVwapTAGScore] = dreperf.successRateAllTimeStatsFull(minVwapTAG, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [CapLowSuccRate, CapLowSuccCount, CapLowSigCount, CapLowAvgReturn, CapLowSuccRateOk, CapLowSuccRateStr, CapLowScore] = dreperf.successRateAllTimeStatsFull(CapLow, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [FBSuccRate, FBSuccCount, FBSigCount, FBAvgReturn, FBSuccRateOk, FBSuccRateStr, FBScore] = dreperf.successRateAllTimeStatsFull(fb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[vipSuccRate, vipSuccCount, vipSigCount, vipAvgReturn, vipSuccRateOk, vipSuccRateStr, vipScore] = dreperf.successRateAllTimeStatsFull(vip, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -351,11 +362,12 @@ wonTurnGoUpSigColor = color.new(color.purple, 0)
 minVwapTAGSigColor = color.new(color.aqua, 0)
 CapLowSigColor = color.new(color.orange, 0)
 FBSigColor = color.new(color.black, 0)
+vipSigColor = color.new(color.silver, 0)
 
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 22)
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 23)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
@@ -422,6 +434,9 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, FBSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 21, text = "FlatB", text_color = FBSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 21, text = FBSuccRateStr, text_size = txtSize)
+    if showRow(iShowOnlyGoodSigs, vipSuccRateOk)
+        table.cell(table_id = tbl, column = 0, row = 22, text = "vip", text_color = vipSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 22, text = vipSuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
 plotshape(iShowEt3sbSig and et3sb and showRow(iShowOnlyGoodSigs, et3sbSuccRateOk), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -449,6 +464,7 @@ plotshape(iShowRidingVwap and iShowRidingVwapDebug and minorLow3 and showRow(iSh
 plotshape(iShowRidingVwap and iShowRidingVwapDebug and (minorLow4 or minorLow5 or minorLow6) and showRow(iShowOnlyGoodSigs, minVwapTAGSuccRateOk), title = '5L+', location = location.belowbar, color = minVwapTAGSigColor, style = shape.triangleup, text = '5L+', textcolor = minVwapTAGSigColor)
 plotshape(iShowCapitulationLow and CapLow and showRow(iShowOnlyGoodSigs, CapLowSuccRateOk), title = 'CapLow', location = location.belowbar, color = CapLowSigColor, style = shape.triangleup, text = 'CapLow', textcolor = CapLowSigColor)
 plotshape(iShowFlatBreakout and fb and showRow(iShowOnlyGoodSigs, FBSuccRateOk), title = 'FlatB', location = location.belowbar, color = FBSigColor, style = shape.triangleup, text = 'FlatB', textcolor = FBSigColor)
+plotshape(iShowVIP and vip and showRow(iShowOnlyGoodSigs, vipSuccRateOk), title = 'vip', location = location.belowbar, color = vipSigColor, style = shape.triangleup, text = 'vip', textcolor = vipSigColor)
 plot(series = iShowRidingVwapDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
@@ -481,8 +497,10 @@ minVwapTAGSig = minVwapTAG and minVwapTAGSuccRateOk
 minVwapTAGSig_p1D = minVwapTAGSig[1] and orb
 CapLowSig = CapLow and CapLowSuccRateOk
 FBSig = fb and FBSuccRateOk
+vipSig = vip and vipSuccRateOk
+vipSig_p1D = vipSig[1] and orb
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLow or FBSig
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLow or FBSig or vipSig or vipSig_p1D
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
@@ -499,3 +517,4 @@ alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUpSig_p1D), title = "bull
 alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullish riding vwap TAG", message = 'ridingVwapTAG')
 alertcondition(gFilter and sessionCloseToEnd and (CapLowSig), title = 'bullish CapLow', message = 'CapLow')
 alertcondition(gFilter and (FBSig), title = 'bullish FlatB', message = 'FlatB')
+alertcondition(gFilter and (vipSig or vipSig_p1D), title = "bullish VIP", message = 'VIP')
