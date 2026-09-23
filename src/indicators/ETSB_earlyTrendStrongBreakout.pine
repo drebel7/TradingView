@@ -316,7 +316,7 @@ vipDayGood4 = math.sum(vipDayGood_10, 4)
 vipDayGood6 = math.sum(vipDayGood_10, 6)
 vip44 = vipDayGood4 == 4
 vip56 = vipDayGood6 >= 5
-vip = vip44 or vip56
+vip = (vip44 or vip56) and fBPercentRank <= 66
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
