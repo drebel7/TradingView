@@ -310,13 +310,18 @@ fbPercentileOverSmaCond = fbPercentileOverSma200[1] < iFlatBreakoutMaxPercentile
 fb = fbRankCond and fbHighest[1] == fbHighest[6] and volumeGood and fbPercentileOverSmaCond
 
 //VIP (Volume Instituional Push)
+iVIPMaxPercentileOverSMA200 = input.int(defval = 65, title = "Max percentile over sma200", minval = 5, maxval = 100, step = 5, display = display.none, group = "Signal: Volume Institutional Push")
+
 vipDayGood = volume > gVolMa and close >= close[1]
 vipDayGood_10 = vipDayGood ? 1 : 0
 vipDayGood4 = math.sum(vipDayGood_10, 4)
 vipDayGood6 = math.sum(vipDayGood_10, 6)
 vip44 = vipDayGood4 == 4
+vip44New = ta.barssince(vip44[1]) > 10 and vip44
 vip56 = vipDayGood6 >= 5
-vip = (vip44 or vip56) and fBPercentRank <= 66
+vip56New = ta.barssince(vip56[1]) > 10 and vip56
+vipPercentRankCond = fBPercentRank <= iVIPMaxPercentileOverSMA200
+vip = (vip44New or vip56New) and vipPercentRankCond
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
