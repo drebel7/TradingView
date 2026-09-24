@@ -317,10 +317,11 @@ vipDayGood_10 = vipDayGood ? 1 : 0
 vipDayGood4 = math.sum(vipDayGood_10, 4)
 vipDayGood6 = math.sum(vipDayGood_10, 6)
 vip44 = vipDayGood4 == 4
-vip44New = ta.barssince(vip44[1]) > 10 and vip44
+vip44New = nz(ta.barssince(vip44[1]), 50) > 10 and vip44
 vip56 = vipDayGood6 >= 5
-vip56New = ta.barssince(vip56[1]) > 10 and vip56
-vipPercentRankCond = fBPercentRank <= iVIPMaxPercentileOverSMA200
+vip56New = nz(ta.barssince(vip56[1]), 50) > 10 and vip56
+vipHasEnoughBars = bar_index >= 200
+vipPercentRankCond = not vipHasEnoughBars or fBPercentRank <= iVIPMaxPercentileOverSMA200
 vip = (vip44New or vip56New) and vipPercentRankCond
 
 //check performance
