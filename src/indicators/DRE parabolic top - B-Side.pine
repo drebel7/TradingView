@@ -1,11 +1,56 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
 //wycięte, słabe, niedopracowane sygnały
 
-//squeezer sig
-iBullishSqueezer = input.bool(defval = false, title = 'bullish', group = 'squeezer', inline = 'squeezer1')
+//@version=6
+indicator(title = 'DRE parabolic top - B-Side', overlay = true, max_bars_back = 2200, calc_bars_count = 12 * 252)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/24 as dreperf
+
+//general filters inputs
+iTurnoverCond = input.bool(defval = true, title = 'Min. Turnover for signal [M]', display = display.none, group = 'General filter for signal', inline = 'trn')
+iMinTurnover = input.float(defval = 0.15, title = '', minval = 0, display = display.none, group = 'General filter for signal', inline = 'trn')
+iAdrCond = input.bool(defval = true, title = 'Min. ADR% for signal', display = display.none, group = 'General filter for signal', inline = 'adr')
+iMinAdr = input.float(defval = 2.6, title = '', minval = 0, step = 0.2, display = display.none, group = 'General filter for signal', inline = 'adr')
+
+//signals switches
+iBullishSqueezer = input.bool(defval = false, title = 'Show squeezer', display = display.none, group = 'Signals')
 // iBearishSqueezer = input.bool(defval=false, title='bearish', group='squeezer', inline = 'squeezer1')
-iSqueezerLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'squeezer', display = display.none)
-iSqueezerMinInitVwapDist = input.float(defval = 11.0, title = 'min vwap init. dist.', minval = 2.0, maxval = 20.0, group = 'squeezer', display = display.none)
-iSqueezerMaxVwapDist = input.float(defval = 2.0, title = 'max vwap squeeze dist.', minval = 0.0, maxval = 10.0, group = 'squeezer', display = display.none)
+
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
+
+//common parameters
+iMainMaLength = input.int(defval = 200, title = 'Main MA length', minval = 50, maxval = 500, display = display.none, group = 'Common parameters')
+iShortMaLength = input.int(defval = 50, title = 'Short MA length', minval = 10, maxval = 200, display = display.none, group = 'Common parameters')
+iLongMaLength = input.int(defval = 750, title = 'Long MA length', minval = 200, maxval = 1000, display = display.none, group = 'Common parameters')
+iVShortMaLength1 = input.int(defval = 10, title = 'Very short MA length', minval = 5, maxval = 50, display = display.none, group = 'Common parameters')
+iVShortMaLength2 = input.int(defval = 21, title = 'Very short MA length2', minval = 8, maxval = 50, display = display.none, group = 'Common parameters')
+
+//common calculations
+mainAtr = ta.atr(iMainMaLength)
+mainMa = ta.sma(close, iMainMaLength)
+shortMa = ta.sma(close, iShortMaLength)
+longMa = ta.sma(close, iLongMaLength)
+gVShortMa1 = ta.ema(close, iVShortMaLength1)
+gVShortMa2 = ta.ema(close, iVShortMaLength2)
+gVolMa = ta.sma(volume, 30)
+adrPct = 100.0 * (ta.sma(high / low, 30) - 1)
+
+//filters calculations (min. iShortMaLength candles)
+gTurnoverMa = ta.sma(close * volume, iShortMaLength) / 1000000.0
+gTurnoverMedian = ta.median(close * volume, iShortMaLength) / 1000000.0
+gTurnoverCond = not iTurnoverCond or iTurnoverCond and gTurnoverMa > iMinTurnover and gTurnoverMedian > iMinTurnover
+gAdr = 100 * (ta.sma(high / low, iShortMaLength) - 1)
+gAdrCond = not iAdrCond or iAdrCond and gAdr > iMinAdr
+gFilter = gTurnoverCond and gAdrCond
+
+//Signal: Squeezer
+iSqueezerLookback = input.int(defval = 325, title = 'lookback', minval = 100, maxval = 750, step = 5, group = 'Signal: Squeezer', display = display.none)
+iSqueezerMinInitVwapDist = input.float(defval = 11.0, title = 'min vwap init. dist.', minval = 2.0, maxval = 20.0, group = 'Signal: Squeezer', display = display.none)
+iSqueezerMaxVwapDist = input.float(defval = 2.0, title = 'max vwap squeeze dist.', minval = 0.0, maxval = 10.0, group = 'Signal: Squeezer', display = display.none)
 
 func_sig_bull_squeezer(_atr, _lookback, _gracePeriod, _minInitVwapDist, _maxVwapDist) =>
     localHigh = ta.highest(high, _lookback)
@@ -18,10 +63,42 @@ func_sig_bull_squeezer(_atr, _lookback, _gracePeriod, _minInitVwapDist, _maxVwap
     sig = localLowCandlesAgo > 50 and localHighVwap[localLowCandlesAgo] > localLow[localLowCandlesAgo] + _minInitVwapDist * _atr and maDist > 0 and maDist < _maxVwapDist * _atr and drelib.crossover(localHighVwap) and localHigh == localHigh[_gracePeriod]
     sig
 
-bullishSqueezerSig = func_sig_bull_squeezer(mainAtr, iStepperLookback, 50, iSqueezerMinInitVwapDist, iSqueezerMaxVwapDist)
+bullishSqueezerSig = func_sig_bull_squeezer(mainAtr, iSqueezerLookback, 50, iSqueezerMinInitVwapDist, iSqueezerMaxVwapDist)
 
-alertcondition(gTurnoverCond and bullishSqueezerSig, title = 'DRE Bullish squeezer', message = 'stepper')
-// alertcondition(gTurnoverCond and bearishHunterSig, title='DRE Bearish squeezer', message='squeezer')
-plotshape(bullishSqueezerSig and iBullishSqueezer, title = 'bullish squeezer', location = location.belowbar, color = color.new(color.green, 0), style = shape.triangleup, text = 'squeezer', textcolor = color.new(color.green, 0))
+//check performance
+iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
+iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performance check')
+
+showRow(_iShowOnlyGoodSigs, sigOk) =>
+    _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
+
+showRow(_iShowOnlyGoodSigs, sigOk, _showThisSig) =>
+    _showThisSig and (_iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs)
+
+adrCond = iMinSigReturnAdrMultiple * adrPct
+
+[bullishSqueezerSuccRate, bullishSqueezerSuccCount, bullishSqueezerSigCount, bullishSqueezerAvgReturn, bullishSqueezerSuccRateOk, bullishSqueezerSuccRateStr, bullishSqueezerScore] = dreperf.successRateAllTimeStatsFull(bullishSqueezerSig, bullishSqueezerSig ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
+
+//plot sig performance
+bullishSqueezerSigColor = color.new(color.green, 0)
+
+//print sig performance table
+if barstate.islast and iShowSigPerfTable
+    var tbl = table.new(position = position.top_right, columns = 2, rows = 3)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 0, text = '')
+    table.cell(table_id = tbl, column = 1, row = 0, text = '')
+    table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 1, text = str.format("perf {0,number,#.#} {1,number,#.#}", iMinSigSuccessRate, adrCond), text_size = txtSize)
+
+    if showRow(iShowOnlyGoodSigs, bullishSqueezerSuccRateOk, iBullishSqueezer)
+        table.cell(table_id = tbl, column = 0, row = 2, text = "squeezer", text_color = bullishSqueezerSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 1, row = 2, text = bullishSqueezerSuccRateStr, text_size = txtSize)
+
+//plot signals on price chart
+plotshape(bullishSqueezerSig and showRow(iShowOnlyGoodSigs, bullishSqueezerSuccRateOk, iBullishSqueezer), title = 'bullish squeezer', location = location.belowbar, color = bullishSqueezerSigColor, style = shape.triangleup, text = 'squeezer', textcolor = bullishSqueezerSigColor)
 // plotshape(bearishHunterSig and iBearishSqueezer, title='bearish squeezer', location=location.abovebar, color=color.new(color.red, 0), style=shape.triangledown, text='squeezer', textcolor=color.new(color.red, 0))
 
+//issuing alerts
+alertcondition(gFilter and bullishSqueezerSig, title = 'DRE Bullish squeezer', message = 'squeezer')
+// alertcondition(gTurnoverCond and bearishHunterSig, title='DRE Bearish squeezer', message='squeezer')
