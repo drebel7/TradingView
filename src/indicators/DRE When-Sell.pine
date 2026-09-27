@@ -5,8 +5,9 @@
 indicator(title = 'DRE When-Sell', overlay = true, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/39 as drelib
-import drebel/DREPerf/23 as dreperf
+import drebel/DREPerf/24 as dreperf
 
+//signals switches
 iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Signals', inline = 'sma')
 iShowCloseBelowSma2 = input.bool(defval = false, title = 'sma2', group = 'Signals', inline = 'sma')
 iShowCloseBelowSma3 = input.bool(defval = false, title = 'sma3', group = 'Signals', inline = 'sma')
@@ -18,16 +19,16 @@ iShowCombiSig1 = input.bool(defval = true, title = "Show ParaLodBreak + WON turn
 iShowCombiSig2 = input.bool(defval = true, title = "Show ParaLodBreak + sma1", group = "Signals")
 iShowCombiSig3 = input.bool(defval = true, title = "Show ParaLodBreak + sma2", group = "Signals")
 
-iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, display = display.none, group = 'Moving averages')
-iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, display = display.none, group = 'Moving averages')
-iSmaLen3 = input.int(defval = 50, title = 'SMA3 len', minval = 1, display = display.none, group = 'Moving averages')
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 41.0, title = 'Min. sig success rate pct.', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
+iMinSigReturnAdrMultiple = input.float(defval = 0.8, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
-iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, display = display.none, group = 'Parabolic rise - LOD break')
-iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, display = display.none, group = 'Parabolic rise - LOD break')
-iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', display = display.none, group = 'Parabolic rise - LOD break')
+//common parameters
+iSmaLen1 = input.int(defval = 10, title = 'SMA1 len', minval = 1, display = display.none, group = 'Common parameters')
+iSmaLen2 = input.int(defval = 20, title = 'SMA2 len', minval = 1, display = display.none, group = 'Common parameters')
+iSmaLen3 = input.int(defval = 50, title = 'SMA3 len', minval = 1, display = display.none, group = 'Common parameters')
 
-iParabolicTipTopConditions = input.int(defval = 3, title = 'Min. conditions', minval = 3, maxval = 8, display = display.none, group = 'Parabolic tip-top (by @Braczyy)')
-
+//common calculations
 sma1 = ta.sma(close, iSmaLen1)
 sma2 = ta.sma(close, iSmaLen2)
 sma3 = ta.sma(close, iSmaLen3)
@@ -43,6 +44,12 @@ adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 candleBody = high != low ? (math.max(open, close) - math.min(open, close)) / (high-low) : 0
 candleColor = close > open ? 1 : close < open ? -1 : 0
 isMarubozuGreen = candleBody > 0.75 and candleColor == 1
+
+dttTimePct = drelib.dttTimePct()
+sessionClosed = dttTimePct >= 1
+
+//Signal: Parabolic tip-top (by @Braczyy)
+iParabolicTipTopConditions = input.int(defval = 3, title = 'Min. conditions', minval = 3, maxval = 8, display = display.none, group = 'Signal: Parabolic tip-top')
 
 //parabolic top by @Braczyy (https://x.com/Braczyy/status/1978067812527571223)
 move12week = high / ta.lowest(12 * 5)
@@ -77,6 +84,11 @@ parabolicTipTop6Cond = parabolicTipTipMandatoryConditions and parabolicTipTipOpt
 parabolicTipTop6Cond2 = (orbd or close < close[1]) and (parabolicTipTop6Cond or parabolicTipTop6Cond[1] or parabolicTipTop6Cond[2])
 parabolic6TipTop = parabolicTipTop6Cond2 and not parabolicTipTop6Cond2[1]
 
+//Signal: Parabolic rise LOD break
+iParabolicRisePercentile = input.int(defval = 97, title = 'Percentile above sma 1/2/3', minval = 0, maxval = 100, display = display.none, group = 'Signal: Parabolic rise LOD break')
+iParabolicRiseBigRedCandle = input.float(defval = 2.1, title = 'Min. ATR multiple', minval = 0, maxval = 5.0, step = 0.1, display = display.none, group = 'Signal: Parabolic rise LOD break')
+iParabolicRiseVolumeCond = input.bool(defval = true, title = 'Highest volume of last 10 days within last 3 days', display = display.none, group = 'Signal: Parabolic rise LOD break')
+
 //parabolic rise LOD break
 aboveSma1PctCond = ta.percentrank(high - sma1, 500) >= iParabolicRisePercentile
 aboveSma2PctCond = ta.percentrank(high - sma2, 500) >= iParabolicRisePercentile
@@ -88,94 +100,47 @@ veryBigCandle = (high - low) > atr50 * iParabolicRiseBigRedCandle
 parabolicRiseLodBreak = (parabolicRiseCond[1] or parabolicRiseCond) and low < low[1] and (veryBigCandle or veryBigCandle[1]) and not isMarubozuGreen
 parabolicRiseLodBreakCond = parabolicRiseLodBreak and not parabolicRiseLodBreak[1] and not parabolicRiseLodBreak[2] and not parabolicRiseLodBreak[3] and volumeCond
 
-//parabolic top
+//Signal: Parabolic top
 top1Sig = drelib.sigParabolicTop(volMa, 2, 100, 8, atr200)
 top2Sig = drelib.sigParabolicTop(volMa, 3, 100, 8, atr200)
 top3Sig = drelib.sigParabolicTop(volMa, 4, 100, 8, atr200)
 topSig = top1Sig or top2Sig or top3Sig
 
-//William O'Neil (WON) turnaround GO - created to signal general market early turnarounds
-iWONTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "WON: turnaround and GO")
-iWONTurnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "WON: turnaround and GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
-iWONTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "WON: turnaround and GO")
+//Signal: WON turnaround GO - created to signal general market early turnarounds
+iWONTurnaroundExtremeAgo = input.int(defval = 45, title = "max. peak/bottom ago", minval = 20, maxval = 60, step = 5, display = display.none, group = "Signal: WON turnaround GO")
+iWONTurnaroundGoDayMinRange = input.float(defval = 0.0, title = "min. day range", minval = 0.0, maxval = 10.0, step = 0.1, display = display.none, group = "Signal: WON turnaround GO", tooltip = "Use 0 for auto calculation based on adr. \nfor adr < 0.017 uses 0.017\nfor adr >= 0.017 uses 0.017 + (adr - 0.017) / 4")
+iWONTurnaroundMinGoDays = input.int(defval = 3, title = "min. days", minval = 1, maxval = 10, display = display.none, group = "Signal: WON turnaround GO")
 
 adr = adrPct / 100
 turnaroundGoDayMinRange = iWONTurnaroundGoDayMinRange > 0.0 ? iWONTurnaroundGoDayMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
 wonBearGoSig = drelib.sigWONTurnaroundDn(iWONTurnaroundExtremeAgo, iWONTurnaroundMinGoDays, turnaroundGoDayMinRange, sma200, vol50Ma)
 
-dttTimePct = drelib.dttTimePct()
-sessionClosed = dttTimePct >= 1
-
-//time combination of above signals
-iParabolicRiseLodBreak2WonBearGoTimeSpread = input.int(defval = 13, title = "parabolic rise LOD break -> WON Bear GO: time spread", minval = 5, maxval = 20, display = display.none, group = "Combination Signals")
-parabolicRiseLodBreakAgo = ta.barssince(parabolicRiseLodBreakCond)
-combiSig1 = wonBearGoSig and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
-
+//Signal: Close below SMA
 belowSma1 = close < sma1
 newBelowSma1 = belowSma1 and not belowSma1[1]
-alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
-if iShowCloseBelowSma1 and newBelowSma1
-    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.orange, 70), style = label.style_circle, size = size.tiny)
-//plotshape(iShowCloseBelowSma1 and newBelowSma1, title = 'close below sma1', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
 
 belowSma2 = close < sma2
 newBelowSma2 = belowSma2 and not belowSma2[1]
-alertcondition(newBelowSma2, title = 'close below sma2', message = 'close < sma2')
-if iShowCloseBelowSma2 and newBelowSma2
-    label.new(bar_index, close, tooltip = 'close < sma2', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
-//plotshape(iShowCloseBelowSma2 and newBelowSma2, title = 'close below sma2', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
 
 belowSma3 = close < sma3
 newBelowSma3 = belowSma3 and not belowSma3[1]
-alertcondition(newBelowSma3, title = 'close below sma3', message = 'close < sma3')
-if iShowCloseBelowSma3 and newBelowSma3
-    label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
-//plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
 
+//Signal: Combination
+iParabolicRiseLodBreak2WonBearGoTimeSpread = input.int(defval = 13, title = "parabolic rise LOD break -> WON Bear GO: time spread", minval = 5, maxval = 20, display = display.none, group = "Signal: Combination")
+
+//time combination of above signals
+parabolicRiseLodBreakAgo = ta.barssince(parabolicRiseLodBreakCond)
+combiSig1 = wonBearGoSig and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
 combiSig2 = newBelowSma1 and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
 combiSig3 = newBelowSma2 and parabolicRiseLodBreakAgo < iParabolicRiseLodBreak2WonBearGoTimeSpread
 
-alertcondition(topSig, title = 'parabolic top', message = 'top')
-if iShowParabolicTop and topSig
-    label.new(bar_index, open, tooltip = 'top', color = color.new(color.red, 70), style = label.style_triangledown, size = size.tiny)
-//plotshape(iShowParabolicTop and topSig ? close : na, title = 'parabolic top', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
-
-alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
-if iShowParabolicRiseStop and parabolicRiseLodBreakCond
-    label.new(bar_index, math.min(low[1], open), tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_diamond, size = size.tiny)
-//plotshape(iShowParabolicRiseStop and parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
-
-alertcondition(parabolicTipTop, title = 'parabolic tip top', message = 'parabolic tip tip')
-if iShowParabolicTipTop and parabolicTipTop
-    label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 35), style = label.style_xcross, size = size.tiny)
-
-alertcondition(wonBearGoSig, title = 'WON: turnaround GO down', message = 'WON: GO down')
-if iShowWONTurnaroundGo and wonBearGoSig
-    label.new(bar_index, close[1], tooltip = 'WON: turnaround GO down', color = color.new(color.red, 70), style = label.style_flag, size = size.tiny)
-
-alertcondition(combiSig1, title = 'combi sig1 (paraLodBreak + WON turnaround GO)', message = 'combi sig1')
-if iShowCombiSig1 and combiSig1
-    label.new(bar_index, close, tooltip = 'combi sig1', color = color.new(color.red, 35), style = label.style_flag, size = size.tiny)
-
-alertcondition(combiSig2, title = 'combi sig2 (paraLodBreak + sma1)', message = 'combi sig2')
-if iShowCombiSig2 and combiSig2
-    label.new(bar_index, close, tooltip = 'combi sig2', color = color.new(color.orange, 35), style = label.style_circle, size = size.tiny)
-
-alertcondition(combiSig3, title = 'combi sig3 (paraLodBreak + sma2)', message = 'combi sig3')
-if iShowCombiSig3 and combiSig3
-    label.new(bar_index, close, tooltip = 'combi sig3', color = color.new(color.red, 35), style = label.style_circle, size = size.tiny)
-
+//signals aggregate
 onSessionCloseConditions = sessionClosed and (newBelowSma1 or newBelowSma2 or newBelowSma3 or combiSig1 or combiSig2 or combiSig3)
-
 tipTopAndCombiCond = parabolicTipTop or sessionClosed and (combiSig1 or combiSig2 or combiSig3)
-alertcondition(tipTopAndCombiCond, title = 'when-sell - tipTop and combi', message = 'when-sell - tipTop and combi')
-
 allCond = parabolicTipTop or parabolicRiseLodBreakCond or topSig or onSessionCloseConditions or wonBearGoSig
-alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
-
 
 //check performance
-adrCond = 0.8 * adrPct
+adrCond = iMinSigReturnAdrMultiple * adrPct
 
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performance check')
 iShowOnlyGoodSigs = input.bool(defval = false, title = 'show only good sigs.', group = 'Sig. performance check')
@@ -183,32 +148,40 @@ iShowOnlyGoodSigs = input.bool(defval = false, title = 'show only good sigs.', g
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
 
+[topSuccRate, topSuccCount, topSigCount, topAvgReturn, topSuccRateOk, topSuccRateStr, topScore] = dreperf.successRateAllTimeStatsFull(topSig, topSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[parabolicRiseLodBreakSuccRate, parabolicRiseLodBreakSuccCount, parabolicRiseLodBreakSigCount, parabolicRiseLodBreakAvgReturn, parabolicRiseLodBreakSuccRateOk, parabolicRiseLodBreakSuccRateStr, parabolicRiseLodBreakScore] = dreperf.successRateAllTimeStatsFull(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[tiptopSuccRate, tiptopSuccCount, tiptopSigCount, tiptopAvgReturn, tiptopSuccRateOk, tiptopSuccRateStr, tiptopScore] = dreperf.successRateAllTimeStatsFull(parabolicTipTop, parabolicTipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[tiptop4SuccRate, tiptop4SuccCount, tiptop4SigCount, tiptop4AvgReturn, tiptop4SuccRateOk, tiptop4SuccRateStr, tiptop4Score] = dreperf.successRateAllTimeStatsFull(parabolic4TipTop, parabolic4TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[tiptop5SuccRate, tiptop5SuccCount, tiptop5SigCount, tiptop5AvgReturn, tiptop5SuccRateOk, tiptop5SuccRateStr, tiptop5Score] = dreperf.successRateAllTimeStatsFull(parabolic5TipTop, parabolic5TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[tiptop6SuccRate, tiptop6SuccCount, tiptop6SigCount, tiptop6AvgReturn, tiptop6SuccRateOk, tiptop6SuccRateStr, tiptop6Score] = dreperf.successRateAllTimeStatsFull(parabolic6TipTop, parabolic6TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[sma1SuccRate, sma1SuccCount, sma1SigCount, sma1AvgReturn, sma1SuccRateOk, sma1SuccRateStr, sma1Score] = dreperf.successRateAllTimeStatsFull(belowSma1, belowSma1 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[sma2SuccRate, sma2SuccCount, sma2SigCount, sma2AvgReturn, sma2SuccRateOk, sma2SuccRateStr, sma2Score] = dreperf.successRateAllTimeStatsFull(belowSma2, belowSma2 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[sma3SuccRate, sma3SuccCount, sma3SigCount, sma3AvgReturn, sma3SuccRateOk, sma3SuccRateStr, sma3Score] = dreperf.successRateAllTimeStatsFull(belowSma3, belowSma3 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[wonGoDnSuccRate, wonGoDnSuccCount, wonGoDnSigCount, wonGoDnAvgReturn, wonGoDnSuccRateOk, wonGoDnSuccRateStr, wonGoDnScore] = dreperf.successRateAllTimeStatsFull(wonBearGoSig, wonBearGoSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[combiSig1SuccRate, combiSig1SuccCount, combiSig1Count, combiSig1AvgReturn, combiSig1SuccRateOk, combiSig1SuccRateStr, combiSig1Score] = dreperf.successRateAllTimeStatsFull(combiSig1, combiSig1 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[combiSig2SuccRate, combiSig2SuccCount, combiSig2Count, combiSig2AvgReturn, combiSig2SuccRateOk, combiSig2SuccRateStr, combiSig2Score] = dreperf.successRateAllTimeStatsFull(combiSig2, combiSig2 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+[combiSig3SuccRate, combiSig3SuccCount, combiSig3Count, combiSig3AvgReturn, combiSig3SuccRateOk, combiSig3SuccRateStr, combiSig3Score] = dreperf.successRateAllTimeStatsFull(combiSig3, combiSig3 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+
+//plot sig performance
 topSigColor = color.new(color.fuchsia, 0)
 parabolicRiseLodBreakSigColor = color.new(color.maroon, 0)
 tiptopSigColor = color.new(color.red, 0)
+sma1SigColor = color.new(color.orange, 0)
+sma2SigColor = color.new(color.red, 0)
+sma3SigColor = color.new(color.red, 0)
+wonGoDnSigColor = color.new(color.purple, 0)
+combiSig1SigColor = color.new(color.red, 0)
+combiSig2SigColor = color.new(color.orange, 0)
+combiSig3SigColor = color.new(color.red, 0)
 
-//sig stats table
-float minSuccRate = 41.0
-[topSuccRate, topSuccCount, topSigCount, topAvgReturn, topSuccRateOk, topSuccRateStr, topScore] = dreperf.successRateAllTimeStatsFull(topSig, topSig ? high : na, false, minSuccRate, adrCond)
-[parabolicRiseLodBreakSuccRate, parabolicRiseLodBreakSuccCount, parabolicRiseLodBreakSigCount, parabolicRiseLodBreakAvgReturn, parabolicRiseLodBreakSuccRateOk, parabolicRiseLodBreakSuccRateStr, parabolicRiseLodBreakScore] = dreperf.successRateAllTimeStatsFull(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false, minSuccRate, adrCond)
-[tiptopSuccRate, tiptopSuccCount, tiptopSigCount, tiptopAvgReturn, tiptopSuccRateOk, tiptopSuccRateStr, tiptopScore] = dreperf.successRateAllTimeStatsFull(parabolicTipTop, parabolicTipTop ? high : na, false, minSuccRate, adrCond)
-[tiptop4SuccRate, tiptop4SuccCount, tiptop4SigCount, tiptop4AvgReturn, tiptop4SuccRateOk, tiptop4SuccRateStr, tiptop4Score] = dreperf.successRateAllTimeStatsFull(parabolic4TipTop, parabolic4TipTop ? high : na, false, minSuccRate, adrCond)
-[tiptop5SuccRate, tiptop5SuccCount, tiptop5SigCount, tiptop5AvgReturn, tiptop5SuccRateOk, tiptop5SuccRateStr, tiptop5Score] = dreperf.successRateAllTimeStatsFull(parabolic5TipTop, parabolic5TipTop ? high : na, false, minSuccRate, adrCond)
-[tiptop6SuccRate, tiptop6SuccCount, tiptop6SigCount, tiptop6AvgReturn, tiptop6SuccRateOk, tiptop6SuccRateStr, tiptop6Score] = dreperf.successRateAllTimeStatsFull(parabolic6TipTop, parabolic6TipTop ? high : na, false, minSuccRate, adrCond)
-[sma1SuccRate, sma1SuccCount, sma1SigCount, sma1AvgReturn, sma1SuccRateOk, sma1SuccRateStr, sma1Score] = dreperf.successRateAllTimeStatsFull(belowSma1, belowSma1 ? high : na, false, minSuccRate, adrCond)
-[sma2SuccRate, sma2SuccCount, sma2SigCount, sma2AvgReturn, sma2SuccRateOk, sma2SuccRateStr, sma2Score] = dreperf.successRateAllTimeStatsFull(belowSma2, belowSma2 ? high : na, false, minSuccRate, adrCond)
-[sma3SuccRate, sma3SuccCount, sma3SigCount, sma3AvgReturn, sma3SuccRateOk, sma3SuccRateStr, sma3Score] = dreperf.successRateAllTimeStatsFull(belowSma3, belowSma3 ? high : na, false, minSuccRate, adrCond)
-[wonGoDnSuccRate, wonGoDnSuccCount, wonGoDnSigCount, wonGoDnAvgReturn, wonGoDnSuccRateOk, wonGoDnSuccRateStr, wonGoDnScore] = dreperf.successRateAllTimeStatsFull(wonBearGoSig, wonBearGoSig ? high : na, false, minSuccRate, adrCond)
-[combiSig1SuccRate, combiSig1SuccCount, combiSig1Count, combiSig1AvgReturn, combiSig1SuccRateOk, combiSig1SuccRateStr, combiSig1Score] = dreperf.successRateAllTimeStatsFull(combiSig1, combiSig1 ? high : na, false, minSuccRate, adrCond)
-[combiSig2SuccRate, combiSig2SuccCount, combiSig2Count, combiSig2AvgReturn, combiSig2SuccRateOk, combiSig2SuccRateStr, combiSig2Score] = dreperf.successRateAllTimeStatsFull(combiSig2, combiSig2 ? high : na, false, minSuccRate, adrCond)
-[combiSig3SuccRate, combiSig3SuccCount, combiSig3Count, combiSig3AvgReturn, combiSig3SuccRateOk, combiSig3SuccRateStr, combiSig3Score] = dreperf.successRateAllTimeStatsFull(combiSig3, combiSig3 ? high : na, false, minSuccRate, adrCond)
+//print sig performance table
 if barstate.islast and iShowSigPerfTable
     var tbl = table.new(position = position.top_right, columns = 2, rows = 15)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 1, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
-    table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(minSuccRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
 
     if showRow(iShowOnlyGoodSigs, topSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 2, text = "top", text_color = topSigColor, text_size = txtSize)
@@ -229,23 +202,73 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 0, row = 7, text = "tip-top6", text_color = tiptopSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 7, text = tiptop6SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, sma1SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 8, text = "sma10", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 8, text = "sma10", text_color = sma1SigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 8, text = sma1SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, sma2SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 9, text = "sma20", text_color = color.red, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 9, text = "sma20", text_color = sma2SigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 9, text = sma2SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, sma3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 10, text = "sma50", text_color = color.red, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 10, text = "sma50", text_color = sma3SigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 10, text = sma3SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, wonGoDnSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 11, text = "WON GO dn", text_color = color.purple, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 11, text = "WON GO dn", text_color = wonGoDnSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 11, text = wonGoDnSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, combiSig1SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 12, text = "combi sig1", text_color = tiptopSigColor, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 12, text = "combi sig1", text_color = combiSig1SigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 12, text = combiSig1SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, combiSig2SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 13, text = "combi sig2", text_color = color.orange, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 13, text = "combi sig2", text_color = combiSig2SigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 13, text = combiSig2SuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, combiSig3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 14, text = "combi sig3", text_color = color.red, text_size = txtSize)
+        table.cell(table_id = tbl, column = 0, row = 14, text = "combi sig3", text_color = combiSig3SigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 14, text = combiSig3SuccRateStr, text_size = txtSize)
+
+//plot signals on price chart
+if iShowCloseBelowSma1 and newBelowSma1
+    label.new(bar_index, close, tooltip = 'close < sma1', color = color.new(color.orange, 70), style = label.style_circle, size = size.tiny)
+//plotshape(iShowCloseBelowSma1 and newBelowSma1, title = 'close below sma1', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma1', textcolor = color.new(color.red, 0))
+
+if iShowCloseBelowSma2 and newBelowSma2
+    label.new(bar_index, close, tooltip = 'close < sma2', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+//plotshape(iShowCloseBelowSma2 and newBelowSma2, title = 'close below sma2', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma2', textcolor = color.new(color.red, 0))
+
+if iShowCloseBelowSma3 and newBelowSma3
+    label.new(bar_index, close, tooltip = 'close < sma3', color = color.new(color.red, 70), style = label.style_circle, size = size.tiny)
+//plotshape(iShowCloseBelowSma3 and newBelowSma3, title = 'close below sma3', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'close < sma3', textcolor = color.new(color.red, 0))
+
+if iShowParabolicTop and topSig
+    label.new(bar_index, open, tooltip = 'top', color = color.new(color.red, 70), style = label.style_triangledown, size = size.tiny)
+//plotshape(iShowParabolicTop and topSig ? close : na, title = 'parabolic top', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'top', textcolor = color.new(color.red, 0))
+
+if iShowParabolicRiseStop and parabolicRiseLodBreakCond
+    label.new(bar_index, math.min(low[1], open), tooltip = 'parabolic rise lod - break', color = color.new(color.red, 70), style = label.style_diamond, size = size.tiny)
+//plotshape(iShowParabolicRiseStop and parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', location = location.absolute, color = color.new(color.red, 0), style = shape.triangledown, text = 'par. rise LOD break', textcolor = color.new(color.red, 0))
+
+if iShowParabolicTipTop and parabolicTipTop
+    label.new(bar_index, close[1], tooltip = 'parabolic tip tip', color = color.new(color.red, 35), style = label.style_xcross, size = size.tiny)
+
+if iShowWONTurnaroundGo and wonBearGoSig
+    label.new(bar_index, close[1], tooltip = 'WON: turnaround GO down', color = color.new(color.red, 70), style = label.style_flag, size = size.tiny)
+
+if iShowCombiSig1 and combiSig1
+    label.new(bar_index, close, tooltip = 'combi sig1', color = color.new(color.red, 35), style = label.style_flag, size = size.tiny)
+
+if iShowCombiSig2 and combiSig2
+    label.new(bar_index, close, tooltip = 'combi sig2', color = color.new(color.orange, 35), style = label.style_circle, size = size.tiny)
+
+if iShowCombiSig3 and combiSig3
+    label.new(bar_index, close, tooltip = 'combi sig3', color = color.new(color.red, 35), style = label.style_circle, size = size.tiny)
+
+//issuing alerts
+alertcondition(newBelowSma1, title = 'close below sma1', message = 'close < sma1')
+alertcondition(newBelowSma2, title = 'close below sma2', message = 'close < sma2')
+alertcondition(newBelowSma3, title = 'close below sma3', message = 'close < sma3')
+alertcondition(topSig, title = 'parabolic top', message = 'top')
+alertcondition(parabolicRiseLodBreakCond, title = 'parabolic rise lod - break', message = 'LOD break')
+alertcondition(parabolicTipTop, title = 'parabolic tip top', message = 'parabolic tip tip')
+alertcondition(wonBearGoSig, title = 'WON: turnaround GO down', message = 'WON: GO down')
+alertcondition(combiSig1, title = 'combi sig1 (paraLodBreak + WON turnaround GO)', message = 'combi sig1')
+alertcondition(combiSig2, title = 'combi sig2 (paraLodBreak + sma1)', message = 'combi sig2')
+alertcondition(combiSig3, title = 'combi sig3 (paraLodBreak + sma2)', message = 'combi sig3')
+alertcondition(tipTopAndCombiCond, title = 'when-sell - tipTop and combi', message = 'when-sell - tipTop and combi')
+alertcondition(allCond, title = 'when-sell - all sigs', message = 'when-sell')
