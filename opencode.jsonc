@@ -48,5 +48,17 @@
       }
     }
   },
+  "mcp": {
+    "tradingview": {
+      "type": "remote",
+      "url": "https://mcp.tradingview.com/mcp",
+      "enabled": true
+    },
+    "tradingview-desktop": {
+      "type": "local",
+      "command": ["C:\\Program Files\\nodejs\\node.exe", "C:\\daniel\\_workspace\\github\\tradingview-mcp\\src\\server.js"],
+      "enabled": true
+    }
+  },
   "model": "opencode/deepseek-v4-flash-free"
 }
