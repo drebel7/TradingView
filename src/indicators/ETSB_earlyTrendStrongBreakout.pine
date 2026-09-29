@@ -283,11 +283,15 @@ iCapLowLowLookback = input.int(defval = 200, title = "major low lookback", minva
 iCapLowVolLookback = input.int(defval = 150, title = "Volume percentile lookback", minval = 50, maxval = 300, step = 5, display = display.none, group = "Signal: Capitulation Low")
 iCapLowMinVolPercentile = input.int(defval = 95, title = "Volume percentile", minval = 50, maxval = 100, display = display.none, group = "Signal: Capitulation Low")
 iCapLow2ndDayVolumeAboveAvg = input.bool(defval = true, title = '2nd day vol > avg', display = display.none, group = "Signal: Capitulation Low")
+iCapLow2ndDayCloseGtThirdPrevCandle = input.bool(defval = false, title = '2nd day above prev. candles 1/3 height', display = display.none, group = "Signal: Capitulation Low")
+iCapLow2ndDayHighAbovePrevHigh = input.bool(defval = true, title = '2nd day high above prev. high', display = display.none, group = "Signal: Capitulation Low")
 lowestPrice = ta.lowest(iCapLowLowLookback)
 volPercentile = ta.percentrank(volume, iCapLowVolLookback)
 lphv = low == lowestPrice and volPercentile >= iCapLowMinVolPercentile
-vol2ndDayCond = iCapLow2ndDayVolumeAboveAvg and volume > gVolMa and volume > volume[1] / 3 or not iCapLow2ndDayVolumeAboveAvg
-CapLow = (lphv[1] or lphv) and low > low[1] and vol2ndDayCond
+capLow2ndDayVolCond = iCapLow2ndDayVolumeAboveAvg and volume > gVolMa and volume > volume[1] / 3 or not iCapLow2ndDayVolumeAboveAvg
+capLow2ndDayCandleCond = iCapLow2ndDayCloseGtThirdPrevCandle and close > low[1] + (high[1] - low[1]) / 3 or not iCapLow2ndDayCloseGtThirdPrevCandle
+calLow2ndDayHighCond = iCapLow2ndDayHighAbovePrevHigh and high > high[1] or not iCapLow2ndDayHighAbovePrevHigh
+CapLow = (lphv[1] or lphv) and low > low[1] and capLow2ndDayVolCond and capLow2ndDayCandleCond and calLow2ndDayHighCond
 
 
 //Flat Breakout
