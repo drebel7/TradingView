@@ -494,6 +494,7 @@ et3sbSig_p1D = et3sbSig[1] and orb
 et4sbSig = et4sb and et4sbSuccRateOk
 et4sbSig_p1D = et4sbSig[1] and orb
 et1YHsbSig = et1YHsb and et1YHsbSuccRateOk
+et1YHsbSig_p1D = et1YHsbSig[1] and orb
 bullishRmvSig = (bullishRmv1 and rmv1SuccRateOk) or (bullishRmv2 and rmv2SuccRateOk) or (bullishRmv3 and rmv3SuccRateOk)
 bullishRmvSig_p1D = bullishRmvSig[1] and orb
 etcsbSig = (etc1sb and etc1sbSuccRateOk) or (etc2sb and etc2sbSuccRateOk) or (etc3sb and etc3sbSuccRateOk)
@@ -511,17 +512,19 @@ wonTurnGoUpSig_p1D = wonTurnGoUpSig[1] and orb
 minVwapTAGSig = minVwapTAG and minVwapTAGSuccRateOk
 minVwapTAGSig_p1D = minVwapTAGSig[1] and orb
 CapLowSig = CapLow and CapLowSuccRateOk
+CapLowSig_p1D = CapLowSig[1] and orb
 FBSig = fb and FBSuccRateOk
+FBSig_p1D = FBSig[1] and orb
 vipSig = vip and vipSuccRateOk
 vipSig_p1D = vipSig[1] and orb
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLowSig or FBSig or vipSig or vipSig_p1D
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or et1YHsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLowSig or CapLowSig_p1D or FBSig or FBSig_p1D or vipSig or vipSig_p1D
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
 alertcondition(gFilter and (et3sbSig or et3sbSig_p1D), title = 'bullish ET3SB', message = 'ET3SB')
 alertcondition(gFilter and (et4sbSig or et4sbSig_p1D), title = 'bullish ET4SB', message = 'ET4SB')
-alertcondition(gFilter and (et1YHsbSig), title = 'bullish ET1YHSB', message = 'ET1YHSB')
+alertcondition(gFilter and (et1YHsbSig or et1YHsbSig_p1D), title = 'bullish ET1YHSB', message = 'ET1YHSB')
 alertcondition(gFilter and (bullishRmvSig or bullishRmvSig_p1D), title = 'bullish RMV', message = 'RMV')
 alertcondition(gFilter and (etcsbSig or etcsbSig_p1D), title = 'bullish ETCSB', message = 'ETCSB')
 alertcondition(gFilter and (obvDivSig or obvDivSig_p1D), title = 'bullish obvDiv', message = 'obvDiv')
@@ -530,6 +533,6 @@ alertcondition(gFilter and (ragPbSig or ragPbSig_p1D), title = 'bullish RunAwayG
 alertcondition(gFilter and (wonHpSbSig or wonHpSbSig_p1D), title = "bullish O''Neil inspired: hi-percentile sb", message = 'WON:hp-sb')
 alertcondition(gFilter and (wonTurnGoUpSig or wonTurnGoUpSig_p1D), title = "bullish O''Neil inspired: turnaround GO Up", message = 'WON:turUp')
 alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullish riding vwap TAG", message = 'ridingVwapTAG')
-alertcondition(gFilter and sessionCloseToEnd and (CapLowSig), title = 'bullish CapLow', message = 'CapLow')
-alertcondition(gFilter and (FBSig), title = 'bullish FlatB', message = 'FlatB')
+alertcondition(gFilter and sessionCloseToEnd and (CapLowSig or CapLowSig_p1D), title = 'bullish CapLow', message = 'CapLow')
+alertcondition(gFilter and (FBSig and FBSig_p1D), title = 'bullish FlatB', message = 'FlatB')
 alertcondition(gFilter and (vipSig or vipSig_p1D), title = "bullish VIP", message = 'VIP')
