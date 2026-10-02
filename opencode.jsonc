@@ -21,6 +21,10 @@
           "name": "qwen/qwen3.6-35b-a3b",
           "capabilities": ["text_generation", "code_analysis", "tool_use"]
         },
+        "ornith-ai/Ornith-1.5-35B-A3B-GGUF": {
+          "name": "ornith-ai/Ornith-1.5-35B-A3B-GGUF",
+          "capabilities": ["text_generation", "code_analysis", "tool_use"]
+        },
         "deepseek-coder-v2-lite-instruct": {
           "name": "deepseek-coder-v2-lite-instruct"
         },
