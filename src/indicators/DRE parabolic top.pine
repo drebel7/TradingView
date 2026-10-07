@@ -81,7 +81,6 @@ iDownDaysAfterTop3 = input.int(defval = 4, title = '', minval = 1, maxval = 8, d
 top1Sig = drelib.sigParabolicTop(gVolMa, iDownDaysAfterTop1, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays1
 top2Sig = drelib.sigParabolicTop(gVolMa, iDownDaysAfterTop2, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays2
 top3Sig = drelib.sigParabolicTop(gVolMa, iDownDaysAfterTop3, iParTopGainDays, iParTopAtrMulti, mainAtr) and iDownDays3
-topSig = top1Sig or top2Sig or top3Sig
 
 //Signal: Junior
 func_init_vwap_excl_init_higher_volume() =>
@@ -330,7 +329,7 @@ turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRa
 bullishRmvSigs = bullishRmvSig or bullishRmvPbSig
 bearishRmvSigs = bearishRmvSig or bearishRmvPbSig
 bullishSig = juniorSig or bullishStarterSig or bullishFireStarterSig or bullishHunterSig or longerSig or bullishStepperSig or bullishLongerStepperSig or bullishObvSig or bullishRmvSigs or mtbSig
-bearishSig = topSig or bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
+bearishSig = bearishStarterSig or bearishHunterSig or bearishObvSig or bearishRmvSigs
 
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
@@ -348,7 +347,6 @@ highestFew = ta.highest(iGoSigsExtremeLen)
 
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
-[topSuccRate, topSuccCount, topSigCount, topAvgReturn, topSuccRateOk, topSuccRateStr, topScore] = dreperf.successRateAllTimeStatsFull(topSig, topSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [juniorSuccRate, juniorSuccCount, juniorSigCount, juniorAvgReturn, juniorSuccRateOk, juniorSuccRateStr, juniorScore] = dreperf.successRateAllTimeStatsFull(juniorSig, juniorSig ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [junior2SuccRate, junior2SuccCount, junior2SigCount, junior2AvgReturn, junior2SuccRateOk, junior2SuccRateStr, junior2Score] = dreperf.successRateAllTimeStatsFull(junior2Sig, junior2Sig ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [juniorLateSuccRate, juniorLateSuccCount, juniorLateSigCount, juniorLateAvgReturn, juniorLateSuccRateOk, juniorLateSuccRateStr, juniorLateScore] = dreperf.successRateAllTimeStatsFull(juniorLateSig, juniorLateSig ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
@@ -372,7 +370,6 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 [pvc2SuccRate, pvc2SuccCount, pvc2SigCount, pvc2AvgReturn, pvc2SuccRateOk, pvc2SuccRateStr, pvc2Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 
 //plot sig performance
-topSigColor = color.new(color.red, 0)
 juniorSigColor = color.new(color.green, 0)
 junior2SigColor = color.new(color.green, 0)
 juniorLateSigColor = color.new(color.green, 0)
@@ -402,9 +399,6 @@ if barstate.islast and iShowSigPerfTable
     table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
     table.cell(table_id = tbl, column = 1, row = 1, text = str.format("perf {0,number,#.#} {1,number,#.#}", iMinSigSuccessRate, adrCond), text_size = txtSize)
 
-    if showRow(iShowOnlyGoodSigs, topSuccRateOk, iParabolicTop)
-        table.cell(table_id = tbl, column = 0, row = 2, text = "parabolic top", text_color = topSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 2, text = topSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, juniorSuccRateOk, iJunior)
         table.cell(table_id = tbl, column = 0, row = 3, text = "junior", text_color = juniorSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 3, text = juniorSuccRateStr, text_size = txtSize)
@@ -470,7 +464,6 @@ if barstate.islast and iShowSigPerfTable
         table.cell(table_id = tbl, column = 1, row = 24, text = pvc2SuccRateStr, text_size = txtSize)
 
 //plot signals on price chart
-plotshape(topSig and showRow(iShowOnlyGoodSigs, topSuccRateOk, iParabolicTop), title = 'parabolic top', location = location.abovebar, color = topSigColor, style = shape.triangledown, text = 'top', textcolor = topSigColor)
 plotshape(juniorSig and showRow(iShowOnlyGoodSigs, juniorSuccRateOk, iJunior), title = 'junior', location = location.belowbar, color = juniorSigColor, style = shape.triangleup, text = 'junior', textcolor = juniorSigColor)
 plotshape(junior2Sig and showRow(iShowOnlyGoodSigs, junior2SuccRateOk, iJunior2), title = 'junior2', location = location.belowbar, color = junior2SigColor, style = shape.triangleup, text = 'junior2', textcolor = junior2SigColor)
 plotshape(juniorLateSig and showRow(iShowOnlyGoodSigs, juniorLateSuccRateOk, iJunior3), title = 'late-junior', location = location.belowbar, color = juniorLateSigColor, style = shape.triangleup, text = 'late-junior', textcolor = juniorLateSigColor)
@@ -492,7 +485,6 @@ plotshape(bullishObvSig and showRow(iShowOnlyGoodSigs, bullishObvSuccRateOk, iBu
 plotshape(bearishObvSig and showRow(iShowOnlyGoodSigs, bearishObvSuccRateOk, iBearishObv), title = 'bearish obv', location = location.abovebar, color = bearishObvSigColor, style = shape.triangledown, text = 'obv', textcolor = bearishObvSigColor)
 
 //issuing alerts
-alertcondition(gFilter and topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
 alertcondition(juniorSig, title = 'DRE junior sig', message = 'junior')
 alertcondition(juniorLateSig, title = 'DRE late-junior', message = 'late-junior')
 alertcondition(junior2Sig, title = 'DRE junior2 sig', message = 'junior2')
