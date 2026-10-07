@@ -326,8 +326,6 @@ vol50sma = ta.sma(volume, 50)
 adr = adrPct / 100
 turnaroundGoDayMinRange = iturnaroundGoDayMinRange > 0.0 ? iturnaroundGoDayMinRange / 100 : (adr < 0.017 ? 0.017 : 0.017 + (adr - 0.017) / 4)
 
-bearGoSig = drelib.sigWONTurnaroundDn(iTurnaroundExtremeAgo, iTurnaroundMinGoDays, turnaroundGoDayMinRange, mainMa, vol50sma)
-
 //signals aggregate
 bullishRmvSigs = bullishRmvSig or bullishRmvPbSig
 bearishRmvSigs = bearishRmvSig or bearishRmvPbSig
@@ -370,7 +368,6 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 [bullishSLongerStepperSuccRate, bullishSLongerStepperSuccCount, bullishSLongerStepperSigCount, bullishSLongerStepperAvgReturn, bullishSLongerStepperSuccRateOk, bullishSLongerStepperSuccRateStr, bullishSLongerStepperScore] = dreperf.successRateAllTimeStatsFull(bullishSLongerStepperSig, bullishSLongerStepperSig ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [bullishObvSuccRate, bullishObvSuccCount, bullishObvSigCount, bullishObvAvgReturn, bullishObvSuccRateOk, bullishObvSuccRateStr, bullishObvScore] = dreperf.successRateAllTimeStatsFull(bullishObvSig, bullishObvSig ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [bearishObvSuccRate, bearishObvSuccCount, bearishObvSigCount, bearishObvAvgReturn, bearishObvSuccRateOk, bearishObvSuccRateStr, bearishObvScore] = dreperf.successRateAllTimeStatsFull(bearishObvSig, bearishObvSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[bearGoSuccRate, bearGoSuccCount, bearGoSigCount, bearGoAvgReturn, bearGoSuccRateOk, bearGoSuccRateStr, bearGoScore] = dreperf.successRateAllTimeStatsFull(bearGoSig, bearGoSig ? highestFew : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [pvcSuccRate, pvcSuccCount, pvcSigCount, pvcAvgReturn, pvcSuccRateOk, pvcSuccRateStr, pvcScore] = dreperf.successRateAllTimeStatsFull(pvc, pvc ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 [pvc2SuccRate, pvc2SuccCount, pvc2SigCount, pvc2AvgReturn, pvc2SuccRateOk, pvc2SuccRateStr, pvc2Score] = dreperf.successRateAllTimeStatsFull(pvc2, pvc2 ? low : na, true, iMinSigSuccessRate, adrCond, iSigCheckTime)
 
@@ -395,7 +392,6 @@ bullishLongerStepperSigColor = color.new(color.green, 0)
 bullishSLongerStepperSigColor = color.new(color.green, 0)
 bullishObvSigColor = color.new(color.green, 0)
 bearishObvSigColor = color.new(color.red, 0)
-bearGoSigColor = color.new(color.red, 0)
 
 //print sig performance table
 if barstate.islast and iShowSigPerfTable
@@ -466,9 +462,6 @@ if barstate.islast and iShowSigPerfTable
     if showRow(iShowOnlyGoodSigs, bearishObvSuccRateOk, iBearishObv)
         table.cell(table_id = tbl, column = 0, row = 21, text = "bear obv", text_color = bearishObvSigColor, text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 21, text = bearishObvSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, bearGoSuccRateOk, iTurnaroundGo)
-        table.cell(table_id = tbl, column = 0, row = 22, text = "WON-bearGO", text_color = bearGoSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 22, text = bearGoSuccRateStr, text_size = txtSize)
     if showRow(iShowOnlyGoodSigs, pvcSuccRateOk)
         table.cell(table_id = tbl, column = 0, row = 23, text = "pvc", text_size = txtSize)
         table.cell(table_id = tbl, column = 1, row = 23, text = pvcSuccRateStr, text_size = txtSize)
@@ -497,7 +490,6 @@ plotshape(bullishLongerStepperSig and showRow(iShowOnlyGoodSigs, bullishLongerSt
 plotshape(bullishSLongerStepperSig and showRow(iShowOnlyGoodSigs, bullishSLongerStepperSuccRateOk, iBullishLongerStepper), title = 'bullish s-l.stepper', location = location.belowbar, color = bullishSLongerStepperSigColor, style = shape.triangleup, text = 's-l.stepper', textcolor = bullishSLongerStepperSigColor)
 plotshape(bullishObvSig and showRow(iShowOnlyGoodSigs, bullishObvSuccRateOk, iBullishObv), title = 'bullish obv', location = location.belowbar, color = bullishObvSigColor, style = shape.triangleup, text = 'obv', textcolor = bullishObvSigColor)
 plotshape(bearishObvSig and showRow(iShowOnlyGoodSigs, bearishObvSuccRateOk, iBearishObv), title = 'bearish obv', location = location.abovebar, color = bearishObvSigColor, style = shape.triangledown, text = 'obv', textcolor = bearishObvSigColor)
-plotshape(bearGoSig and showRow(iShowOnlyGoodSigs, bearGoSuccRateOk, iTurnaroundGo), title = 'bearish GO', location = location.abovebar, color = bearGoSigColor, style = shape.triangledown, text = 'GO', textcolor = bearGoSigColor)
 
 //issuing alerts
 alertcondition(gFilter and topSig, title = 'DRE Parabolic TOP sig', message = 'parabolic TOP')
