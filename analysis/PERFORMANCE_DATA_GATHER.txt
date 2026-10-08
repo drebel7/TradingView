@@ -1,0 +1,22 @@
+Korzystając z mcp tradingview-desktop: 
+1. dla każdej spółki z pliku watchlist/GPW_NC.txt
+2. ustaw się na pierwszej spółce z tej listy. 
+3. Odczytaj zawartość tabeli z prawego górnego rogu. Tabela jest rysowana przez wskaźnik "early trend strong breakout". Jest to tabela, która zawiera listę sygnałów i ich skuteczność w 2 kolumnach z wieloma wierszami. Jest tam wiersz nagłówka: sig, perf n m, a w kolejnych liniach są wymienione różne sygnały, w pierwszej kolumnie nazwa sygnału, w drugiej jego skuteczność dla aktualnej spółki. 
+4. zapisz do pliku zawartość tej tabeli w taki sposób, aby można było zrobić podsumowanie i na koniec ocenić skumulowaną / sumaryczną / średnią skuteczność dla danego sygnału w skali całej listy. Plik zapisz w analysis/GPW_NC_ETSB_<data>.txt.
+
+Skuteczność każdej spółki zapisywana jest następująco:
+x% (a/b) y% z
+gdzie:
+x% to procent sukcesów i jest równe a / b
+a liczba sukcesów sygnału
+b liczba wszystkich uruchomień danego sygnału
+y% średni zysk ze wszystkich wystąpień danego sygnału
+z jednoliczbowa ocena uwzględniająca wszystkie wcześniejsze wyniki sygnału
+Jeśli dany sygnał ma tylko znak "-" to znaczy, że nie wystąpił ani razu dla danej spółki, czyli x=n/a, a=0, b=0, y=n/a, z=0.
+
+Nie zatrzymuj się na spółkach, których nie odczytałeś ceny - prawdopodobnie się nie odświeżyły na liście. Należy poczekać kilka sekund. Spółek na liście jest ponad 400.
+Aby całość przebiegała sprawnie napisz skrypt realizujący główną pętlę, tak aby w każdej kolejnej iteracji czas przetwarzania i kontekst dla modelu językowego nie rósł znacząco. Iteruj po symbolach we wskazanym pliku ze spółkami. Na liście znajdują się też separatory grup, zaczynają się one od "###" np. ###NEWCONNECT, ###GPW-PALIWA. Kolejne symbole i sekcje są oddzielone znakiem przecinka.
+
+Nie rób na razie podsumowania, ale format pliku dobierz tak, aby był łatwy w późniejszej obróbce.
+
+Podobne zadanie będzie także później wykorzystywane dla innych list spółek oraz innych wskaźników z podobną tabelą skuteczności. Opracowując rozwiązanie spróbuj opracować odpowiedniego skilla, który później się przyda.
