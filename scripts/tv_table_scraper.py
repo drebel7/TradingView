@@ -427,6 +427,12 @@ def parse_perf(text):
 # ----------------------------------------------------------------------------
 # Watchlist
 # ----------------------------------------------------------------------------
+def _ticker(sym):
+    """Ticker part of EXCHANGE:TICKER (TradingView may canonicalize the exchange,
+    e.g. NASDAQ:NVDA -> BATS:NVDA, so compare on the ticker)."""
+    return (sym or "").split(":")[-1].strip().upper()
+
+
 def parse_watchlist(path):
     content = Path(path).read_text(encoding="utf-8", errors="replace")
     items = [x.strip() for x in content.split(",") if x.strip()]
@@ -474,11 +480,12 @@ async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_ro
     stable = 0
     last_state = None
     last_set = 0.0
+    target_ticker = _ticker(symbol)
 
     while time.monotonic() < deadline:
         now = time.monotonic()
         # (Re)issue the symbol switch only while the chart is on a wrong symbol.
-        if last_state is None or last_state.get("symbol") != symbol:
+        if last_state is None or _ticker(last_state.get("symbol")) != target_ticker:
             if now - last_set >= 2.0:
                 try:
                     await cdp.evaluate(js_set_symbol(symbol))
@@ -495,7 +502,7 @@ async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_ro
             continue
 
         last_state = state
-        if state.get("symbol") == symbol and state.get("ready"):
+        if _ticker(state.get("symbol")) == target_ticker and state.get("ready"):
             rows = state.get("rows") or []
             if len(rows) >= min_rows:
                 key = json.dumps(rows)

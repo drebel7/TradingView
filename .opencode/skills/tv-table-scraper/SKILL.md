@@ -149,3 +149,6 @@ Per signal (`sig`), across all symbols:
   value); multi-column tables are truncated to those two.
 - Reusing for another indicator: change `--indicator` (matched by name prefix),
   `--tag`, and `--resolution`. Any indicator using `table.new` works.
+- TradingView may canonicalize the exchange: e.g. `NASDAQ:NVDA` resolves to
+  `BATS:NVDA` (Cboe One). The script therefore matches the chart symbol by
+  **ticker** (part after `:`), not by the full `EXCHANGE:TICKER` string.
