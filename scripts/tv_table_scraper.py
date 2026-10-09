@@ -15,6 +15,12 @@ server uses). For each symbol it:
   3. reads the Pine `table.new` cells from the study's graphics primitives
   4. appends one CSV row per signal
 
+If TradingView Desktop is not reachable over CDP, the script launches it with
+--remote-debugging-port (restarting it first if it is running without CDP), then
+waits for the chart page. Use --no-tv-autolaunch to disable, --tv-path to point
+at a specific TradingView.exe (some Store/MSIX installs), --tv-kill-existing /
+--no-tv-kill-existing to control restarting.
+
 Output is appended incrementally, so an interrupted run keeps its data.
 A progress file lets the run resume with --start / is written every symbol.
 
@@ -25,7 +31,9 @@ Usage
       --outdir analysis \
       --tag GPW_NC_ETSB \
       --indicator "early trend strong breakout" \
-      [--limit 10] [--start 0] [--timeout 25] [--settle 2]
+      [--resolution D] [--min-rows 5] \
+      [--limit 10] [--start 0] [--timeout 25] [--settle 0.6] \
+      [--tv-port 9222] [--tv-path PATH] [--no-tv-autolaunch]
 
 The watchlist format: comma separated items; group separators start with "###".
 """
@@ -33,8 +41,13 @@ The watchlist format: comma separated items; group separators start with "###".
 import argparse
 import asyncio
 import csv
+import glob
 import json
+import os
+import platform
 import re
+import shutil
+import subprocess
 import sys
 import time
 import urllib.request
@@ -46,15 +59,190 @@ try:
 except Exception:  # pragma: no cover - fallback for older websockets
     from websockets import connect  # type: ignore
 
-CDP_HTTP = "http://127.0.0.1:9222/json"
+DEFAULT_CDP_PORT = 9222
+
+
+# ----------------------------------------------------------------------------
+# TradingView Desktop launch (CDP)
+# ----------------------------------------------------------------------------
+def cdp_available(port, timeout=1.5):
+    """True if a Chrome DevTools Protocol endpoint answers on this port."""
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/json/version", timeout=timeout
+        ) as r:
+            r.read(1)
+        return True
+    except Exception:
+        return False
+
+
+def is_tv_running():
+    """True if a TradingView Desktop process is running."""
+    system = platform.system()
+    try:
+        if system == "Windows":
+            out = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq TradingView.exe", "/NH"],
+                capture_output=True, text=True, timeout=10,
+            ).stdout
+            return "TradingView.exe" in out
+        out = subprocess.run(
+            ["pgrep", "-f", "TradingView"], capture_output=True, text=True, timeout=10
+        )
+        return out.returncode == 0
+    except Exception:
+        return False
+
+
+def kill_tv():
+    """Force-quit any running TradingView Desktop instance."""
+    system = platform.system()
+    try:
+        if system == "Windows":
+            subprocess.run(["taskkill", "/IM", "TradingView.exe", "/F"],
+                           capture_output=True, text=True, timeout=15)
+        else:
+            subprocess.run(["pkill", "-f", "TradingView"],
+                           capture_output=True, text=True, timeout=15)
+    except Exception as e:
+        print(f"[warn] could not stop TradingView: {e}")
+
+
+def _windows_store_tv_path():
+    """Resolve the Microsoft Store/MSIX install path via Get-AppxPackage.
+
+    The WindowsApps directory is not listable, so glob cannot find it, but the
+    exact path is returned by Get-AppxPackage and is executable.
+    """
+    ps = ("Get-AppxPackage *TradingView* | "
+          "Select-Object -ExpandProperty InstallLocation")
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps],
+            capture_output=True, text=True, timeout=25,
+        ).stdout
+    except Exception:
+        return None
+    for line in out.splitlines():
+        loc = line.strip()
+        if not loc:
+            continue
+        exe = os.path.join(loc, "TradingView.exe")
+        if os.path.isfile(exe):
+            return exe
+    return None
+
+
+def find_tv_executable():
+    """Best-effort locate the TradingView Desktop executable."""
+    system = platform.system()
+    candidates = []
+    if system == "Windows":
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("ProgramFiles", r"C:\Program Files")
+        pf86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+        candidates += [
+            os.path.join(local, "Microsoft", "WindowsApps", "TradingView.exe"),
+            os.path.join(local, "Programs", "TradingView", "TradingView.exe"),
+            os.path.join(local, "TradingView", "TradingView.exe"),
+            os.path.join(pf, "TradingView", "TradingView.exe"),
+            os.path.join(pf86, "TradingView", "TradingView.exe"),
+        ]
+        # Microsoft Store / MSIX install (glob fails: dir not listable)
+        candidates += glob.glob(
+            r"C:\Program Files\WindowsApps\TradingView.Desktop_*_x64__*\TradingView.exe"
+        )
+        store = _windows_store_tv_path()
+        if store:
+            candidates.append(store)
+    elif system == "Darwin":
+        candidates += [
+            "/Applications/TradingView.app/Contents/MacOS/TradingView",
+            os.path.expanduser("~/Applications/TradingView.app/Contents/MacOS/TradingView"),
+        ]
+    else:
+        candidates += [
+            "/opt/TradingView/tradingview",
+            "/usr/bin/tradingview",
+            shutil.which("tradingview") or "",
+        ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+    return None
+
+
+def launch_tv(exe, port):
+    """Launch TradingView Desktop with the CDP debugging port enabled."""
+    system = platform.system()
+    try:
+        if system == "Windows":
+            # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP: survives this script.
+            flags = 0x00000008 | 0x00000200
+            subprocess.Popen(
+                [exe, f"--remote-debugging-port={port}"],
+                creationflags=flags, close_fds=True,
+            )
+        elif system == "Darwin":
+            subprocess.Popen(
+                ["open", "-a", "TradingView", "--args", f"--remote-debugging-port={port}"]
+            )
+        else:
+            subprocess.Popen(
+                [exe, f"--remote-debugging-port={port}"], start_new_session=True
+            )
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to launch TradingView ({exe}): {e}. "
+            f"If it is a Store/MSIX install, pass --tv-path with the full path."
+        )
+
+
+def ensure_tv_cdp(port, exe_path=None, kill_existing=True, launch_wait=30.0):
+    """Make sure TradingView Desktop is running with CDP on `port`."""
+    if cdp_available(port):
+        print(f"[i] TradingView CDP already available on port {port}")
+        return True
+
+    print(f"[i] CDP port {port} not reachable - checking TradingView Desktop...")
+    if is_tv_running():
+        if not kill_existing:
+            raise RuntimeError(
+                f"TradingView is running but CDP port {port} is closed. Quit "
+                f"TradingView first, or run with --tv-kill-existing."
+            )
+        print("[i] TradingView is running WITHOUT CDP - restarting it with CDP...")
+        kill_tv()
+        time.sleep(3)
+
+    exe = exe_path or find_tv_executable()
+    if not exe:
+        raise RuntimeError(
+            "TradingView Desktop executable not found. Pass "
+            '--tv-path "C:\\path\\to\\TradingView.exe".'
+        )
+    print(f"[i] launching: {exe} --remote-debugging-port={port}")
+    launch_tv(exe, port)
+
+    deadline = time.monotonic() + launch_wait
+    while time.monotonic() < deadline:
+        if cdp_available(port):
+            print(f"[i] TradingView CDP is up on port {port}")
+            return True
+        time.sleep(1)
+    raise RuntimeError(
+        f"TradingView was launched but CDP port {port} did not open within "
+        f"{launch_wait:.0f}s. For a Store/MSIX install, pass --tv-path."
+    )
 
 
 # ----------------------------------------------------------------------------
 # CDP helpers
 # ----------------------------------------------------------------------------
-def find_chart_ws_url():
+def find_chart_ws_url(port):
     """Return the CDP WebSocket debugger URL of the TradingView chart page."""
-    with urllib.request.urlopen(CDP_HTTP, timeout=10) as resp:
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/json", timeout=10) as resp:
         targets = json.loads(resp.read().decode("utf-8"))
     for t in targets:
         if t.get("type") == "page" and "tradingview.com/chart/" in (t.get("url") or ""):
@@ -63,7 +251,22 @@ def find_chart_ws_url():
     for t in targets:
         if t.get("type") == "page" and "tradingview.com" in (t.get("url") or ""):
             return t["webSocketDebuggerUrl"]
-    raise RuntimeError("TradingView chart page not found on CDP port 9222")
+    raise RuntimeError(f"TradingView chart page not found on CDP port {port}")
+
+
+def wait_for_chart_ws_url(port, timeout=60.0):
+    """Wait until a TradingView chart page is available over CDP."""
+    deadline = time.monotonic() + timeout
+    last_err = None
+    while time.monotonic() < deadline:
+        try:
+            return find_chart_ws_url(port)
+        except Exception as e:
+            last_err = e
+            time.sleep(1)
+    raise RuntimeError(
+        f"No TradingView chart page found within {timeout:.0f}s: {last_err}"
+    )
 
 
 class CDP:
@@ -137,8 +340,63 @@ JS_READ_STATE = r"""
 """
 
 
+JS_READY = r"""
+(function(){
+  try{
+    var c=window._exposed_chartWidgetCollection;
+    if(!c) return JSON.stringify({ready:false});
+    var w=c.activeChartWidget; if(w&&w._value!==undefined) w=w._value;
+    var hasModel = !!(w && w.hasModel && w.hasModel());
+    var loading = c._flags ? !!c._flags.loadingChart : false;
+    var sym = hasModel ? w.model().mainSeries().symbol() : null;
+    return JSON.stringify({ready: hasModel && !loading && !!sym, symbol: sym, loading: loading});
+  }catch(e){ return JSON.stringify({ready:false, err:String(e)}); }
+})()
+"""
+
+
 def js_set_symbol(symbol):
     return "window._exposed_chartWidgetCollection.setSymbol(%s)" % json.dumps(symbol)
+
+
+def js_set_resolution(resolution):
+    return "window._exposed_chartWidgetCollection.setResolution(%s)" % json.dumps(resolution)
+
+
+JS_GET_INTERVAL = (
+    "(function(){var w=window._exposed_chartWidgetCollection.activeChartWidget;"
+    "if(w&&w._value!==undefined)w=w._value;return w.model().mainSeries().interval();})()"
+)
+
+
+def _norm_res(r):
+    r = str(r).strip().upper()
+    if r in ("D", "W", "M"):
+        return r
+    if r in ("1D", "1W", "1M"):
+        return r[1:]
+    return r
+
+
+async def set_resolution(cdp, resolution, timeout=20.0):
+    """Set chart resolution and wait until it applies. Returns True on success."""
+    try:
+        await cdp.evaluate(js_set_resolution(resolution))
+    except Exception as e:
+        print(f"[warn] setResolution('{resolution}') failed: {e}")
+        return False
+    target = _norm_res(resolution)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            cur = await cdp.evaluate(JS_GET_INTERVAL)
+        except Exception:
+            cur = None
+        if cur is not None and _norm_res(cur) == target:
+            return True
+        await asyncio.sleep(0.4)
+    print(f"[warn] resolution '{resolution}' not confirmed within {timeout}s (continuing)")
+    return False
 
 
 # ----------------------------------------------------------------------------
@@ -185,31 +443,61 @@ def parse_watchlist(path):
 # ----------------------------------------------------------------------------
 # Scrape loop
 # ----------------------------------------------------------------------------
-async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval):
-    """Switch to symbol and return parsed table rows (list of [sig, perf])."""
-    # switch symbol
-    try:
-        await cdp.evaluate(js_set_symbol(symbol))
-    except Exception as e:
-        return None, f"setSymbol error: {e}"
+async def wait_chart_ready(cdp, timeout=90.0, consecutive=2):
+    """Wait until the chart finished loading (fresh launch may still be busy)."""
+    deadline = time.monotonic() + timeout
+    good = 0
+    while time.monotonic() < deadline:
+        try:
+            st = json.loads(await cdp.evaluate(JS_READY))
+        except Exception:
+            st = {"ready": False}
+        if st.get("ready"):
+            good += 1
+            if good >= consecutive:
+                return True
+        else:
+            good = 0
+        await asyncio.sleep(0.5)
+    return False
 
+
+async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_rows):
+    """Switch to symbol and return parsed table rows (list of [sig, perf]).
+
+    setSymbol is re-issued (every ~2s) while the chart still shows another
+    symbol - this handles the race right after a fresh TradingView launch where
+    the chart is still loading and would otherwise ignore the request.
+    """
     deadline = time.monotonic() + timeout
     prev_key = None
     stable = 0
     last_state = None
+    last_set = 0.0
 
     while time.monotonic() < deadline:
+        now = time.monotonic()
+        # (Re)issue the symbol switch only while the chart is on a wrong symbol.
+        if last_state is None or last_state.get("symbol") != symbol:
+            if now - last_set >= 2.0:
+                try:
+                    await cdp.evaluate(js_set_symbol(symbol))
+                    last_set = now
+                except Exception:
+                    await asyncio.sleep(0.4)
+                    continue
+
         try:
             raw = await cdp.evaluate(JS_READ_STATE.replace("__INDICATOR__", indicator))
             state = json.loads(raw)
-        except Exception as e:
+        except Exception:
             await asyncio.sleep(0.4)
             continue
 
         last_state = state
         if state.get("symbol") == symbol and state.get("ready"):
             rows = state.get("rows") or []
-            if len(rows) >= 20:
+            if len(rows) >= min_rows:
                 key = json.dumps(rows)
                 if key == prev_key:
                     stable += 1
@@ -265,7 +553,10 @@ def append_rows(path, group, symbol, rows):
 
 
 async def main_async(args):
-    ws_url = find_chart_ws_url()
+    if args.tv_autolaunch:
+        ensure_tv_cdp(args.tv_port, args.tv_path,
+                      args.tv_kill_existing, args.tv_launch_wait)
+    ws_url = wait_for_chart_ws_url(args.tv_port, timeout=60)
     print(f"[i] CDP chart target: {ws_url}")
 
     symbols = parse_watchlist(args.watchlist)
@@ -289,6 +580,11 @@ async def main_async(args):
 
     async with connect(ws_url, max_size=None, open_timeout=15) as ws:
         cdp = CDP(ws)
+        if not await wait_chart_ready(cdp, timeout=90):
+            print("[warn] chart did not report ready within 90s - continuing anyway")
+        if args.resolution:
+            ok_res = await set_resolution(cdp, args.resolution)
+            print(f"[i] resolution set to '{args.resolution}': {ok_res}")
         for idx in range(start, end):
             group, symbol = symbols[idx]
             label = f"[{idx+1}/{total}] {symbol} ({group})"
@@ -297,7 +593,7 @@ async def main_async(args):
 
             t0 = time.monotonic()
             rows, err = await scrape_symbol(
-                cdp, symbol, args.indicator, args.timeout, args.settle
+                cdp, symbol, args.indicator, args.timeout, args.settle, args.min_rows
             )
             dt = time.monotonic() - t0
 
@@ -333,10 +629,31 @@ def main():
     ap.add_argument("--outdir", default="analysis")
     ap.add_argument("--tag", default="ETSB")
     ap.add_argument("--indicator", default="early trend strong breakout")
+    ap.add_argument("--resolution", default=None,
+                    help="chart interval to set before scraping (e.g. D, W, 60); "
+                         "omit to leave the chart's current interval")
+    ap.add_argument("--min-rows", type=int, default=5,
+                    help="minimum table rows required to accept a symbol (default 5)")
     ap.add_argument("--limit", type=int, default=0, help="0 = all")
     ap.add_argument("--start", type=int, default=0, help="start index (resume)")
     ap.add_argument("--timeout", type=float, default=25.0, help="per-symbol timeout (s)")
     ap.add_argument("--settle", type=float, default=0.6, help="poll interval (s)")
+    # TradingView Desktop / CDP
+    ap.add_argument("--tv-port", type=int, default=DEFAULT_CDP_PORT,
+                    help="CDP debugging port (default 9222)")
+    ap.add_argument("--tv-path", default=None,
+                    help="explicit path to TradingView.exe (needed for some "
+                         "Store/MSIX installs)")
+    ap.add_argument("--tv-autolaunch", action=argparse.BooleanOptionalAction,
+                    default=True,
+                    help="launch TradingView Desktop with CDP if not already "
+                         "reachable (default: on)")
+    ap.add_argument("--tv-kill-existing", action=argparse.BooleanOptionalAction,
+                    default=True,
+                    help="if TradingView is running without CDP, restart it "
+                         "(default: on)")
+    ap.add_argument("--tv-launch-wait", type=float, default=30.0,
+                    help="seconds to wait for CDP after launching (default 30)")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
