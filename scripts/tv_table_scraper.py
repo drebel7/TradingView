@@ -13,7 +13,11 @@ server uses). For each symbol it:
   1. calls  _exposed_chartWidgetCollection.setSymbol(<symbol>)
   2. waits until the chart symbol matches AND the indicator table is stable
   3. reads the Pine `table.new` cells from the study's graphics primitives
-  4. appends one CSV row per signal
+     (every column; multi-column tables like the ETSB 8-column perf table are
+     captured in full)
+  4. appends one CSV row per signal, with the perf string split into
+     succ/total/success_pct/avg_gain and the extended metrics
+     (win_pct, n, avg_r, pf, max_dd, score) plus the raw row
 
 If TradingView Desktop is not reachable over CDP, the script launches it with
 --remote-debugging-port (restarting it first if it is running without CDP), then
@@ -331,7 +335,12 @@ JS_READ_STATE = r"""
         cells.sort(function(a,b){return a.r-b.r||a.c-b.c;});
         var rm={};
         cells.forEach(function(cl){ (rm[cl.r]=rm[cl.r]||{})[cl.c]=cl.t; });
-        rows = Object.keys(rm).sort(function(a,b){return a-b;}).map(function(r){var cc=rm[r];return [cc[0]||'',cc[1]||''];}); 
+        rows = Object.keys(rm).sort(function(a,b){return a-b;}).map(function(r){
+          var cc=rm[r]; var maxc=-1;
+          for(var k in cc){ if(cc.hasOwnProperty(k)){ var kk=+k; if(kk>maxc) maxc=kk; } }
+          var arr=[]; for(var j=0;j<=maxc;j++){ arr.push(cc[j]!==undefined?cc[j]:''); }
+          return arr;
+        });
       }
     }catch(e){}
     return JSON.stringify({symbol:sym, statusType:statusType, ready:true, rows:rows});
@@ -402,13 +411,33 @@ async def set_resolution(cdp, resolution, timeout=20.0):
 # ----------------------------------------------------------------------------
 # Parsing
 # ----------------------------------------------------------------------------
+# Column 1 ("perf") of the ETSB table: "x% (a/b) y%".
+# Legacy tables appended a single-number score ("x% (a/b) y% z") - the trailing
+# score is still accepted (optional group) for backward compatibility.
 PERF_RE = re.compile(
-    r"^\s*([\d.]+)%\s*\((\d+)\s*/\s*(\d+)\)\s+([+-]?[\d.]+)%\s+(-?\d+)\s*$"
+    r"^\s*([\d.]+)%\s*\((\d+)\s*/\s*(\d+)\)\s+([+-]?[\d.]+)%(?:\s+(-?\d+))?\s*$"
 )
+
+# Extended metric columns of the ETSB table (positions after "perf"):
+#   2 win%   3 N (win-rate sample count)   4 avgR   5 PF   6 maxDD   7 score
+EXT_METRIC_COLUMNS = [
+    ("win_pct", 2),
+    ("n", 3),
+    ("avg_r", 4),
+    ("pf", 5),
+    ("max_dd", 6),
+    ("score", 7),
+]
+
+# Full CSV schema.
+CSV_COLUMNS = [
+    "group", "symbol", "sig", "succ", "total", "success_pct", "avg_gain",
+    "win_pct", "n", "avg_r", "pf", "max_dd", "score", "raw",
+]
 
 
 def parse_perf(text):
-    """Parse 'x% (a/b) y% z' -> dict, or None for '-' / unparseable."""
+    """Parse 'x% (a/b) y%' (or legacy 'x% (a/b) y% z') -> dict, or None for '-'."""
     text = (text or "").strip()
     if text == "-" or text == "":
         return None
@@ -420,8 +449,49 @@ def parse_perf(text):
         "succ": int(m.group(2)),
         "total": int(m.group(3)),
         "avg_gain": float(m.group(4)),
-        "score": int(m.group(5)),
+        "legacy_score": int(m.group(5)) if m.group(5) is not None else None,
     }
+
+
+def parse_metric(text):
+    """Parse a numeric table cell to float, or None for ''/'-'/unparseable."""
+    text = (text or "").strip()
+    if text in ("", "-"):
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def row_to_record(cells):
+    """Map a raw table row (list of cell strings) to a metric record.
+
+    The first column is the signal name, the second is the perf string
+    ('x% (a/b) y%'); any further columns are the extended metrics (win%, N,
+    avgR, PF, maxDD, score). Rows for a signal that never occurred ('-') keep
+    every metric blank; the full row is always preserved in 'raw'.
+    """
+    cells = [("" if c is None else str(c)) for c in cells]
+    rec = {c: "" for c in CSV_COLUMNS}
+    rec["sig"] = (cells[0].strip() if cells else "")
+    rec["raw"] = " | ".join(cells)
+    perf = cells[1] if len(cells) > 1 else ""
+    p = parse_perf(perf)
+    if not p or p["total"] <= 0:
+        return rec
+    rec["succ"] = p["succ"]
+    rec["total"] = p["total"]
+    rec["success_pct"] = p["success_pct"]
+    rec["avg_gain"] = p["avg_gain"]
+    for name, idx in EXT_METRIC_COLUMNS:
+        val = parse_metric(cells[idx] if len(cells) > idx else "")
+        if val is None:
+            continue
+        rec[name] = int(val) if name == "n" else val
+    if rec["score"] == "" and p.get("legacy_score") is not None:
+        rec["score"] = p["legacy_score"]
+    return rec
 
 
 # ----------------------------------------------------------------------------
@@ -469,7 +539,7 @@ async def wait_chart_ready(cdp, timeout=90.0, consecutive=2):
 
 
 async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_rows):
-    """Switch to symbol and return parsed table rows (list of [sig, perf]).
+    """Switch to symbol and return the raw table rows (list of cell lists).
 
     setSymbol is re-issued (every ~2s) while the chart still shows another
     symbol - this handles the race right after a fresh TradingView launch where
@@ -518,45 +588,44 @@ async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_ro
     return None, f"timeout (last={last_state})"
 
 
-HEADER_MARKER = "# TradingView table scraper results"
+HEADER_MARKER = "# TradingView table scraper results v2"
 
 
 def write_csv_header(path, indicator, watchlist):
     if path.exists() and path.stat().st_size > 0:
-        # Refuse to append to a file that was not produced by this scraper.
+        # Refuse to append to a file that was not produced by this scraper
+        # (schema v2 - older files without the extended metric columns fail here).
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             first = f.readline().strip()
         if first != HEADER_MARKER:
             raise SystemExit(
-                f"ERROR: {path} exists but is not a scraper output file "
-                f"(first line: {first!r}). Remove or rename it and retry."
+                f"ERROR: {path} exists but is not a current scraper output file "
+                f"(first line: {first!r}, expected {HEADER_MARKER!r}). "
+                f"Remove or rename it and retry."
             )
         return
     with open(path, "w", newline="", encoding="utf-8") as f:
-        f.write("# TradingView table scraper results\n")
+        f.write(HEADER_MARKER + "\n")
         f.write(f"# indicator: {indicator}\n")
         f.write(f"# watchlist: {watchlist}\n")
         f.write(f"# generated: {datetime.now().isoformat(timespec='seconds')}\n")
-        f.write("# columns: group,symbol,sig,succ,total,success_pct,avg_gain,score,raw\n")
-        f.write("# 'raw' = '-' means the signal did not occur for that symbol\n")
+        f.write("# columns: " + ",".join(CSV_COLUMNS) + "\n")
+        f.write("# perf = 'x% (a/b) y%' (success rate a/b and avg return y%); "
+                "'-' means the signal did not occur for that symbol\n")
+        f.write("# extended metrics: win_pct, n, avg_r, pf, max_dd, score "
+                "(blank when the signal did not occur)\n")
         w = csv.writer(f)
-        w.writerow(["group", "symbol", "sig", "succ", "total",
-                    "success_pct", "avg_gain", "score", "raw"])
+        w.writerow(CSV_COLUMNS)
 
 
 def append_rows(path, group, symbol, rows):
     with open(path, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        for sig, perf in rows:
-            sig = (sig or "").strip()
-            if sig in ("", "sig"):
+        for cells in rows:
+            rec = row_to_record(cells)
+            if rec["sig"] in ("", "sig"):
                 continue  # skip empty / header rows
-            p = parse_perf(perf)
-            if p is None:
-                w.writerow([group, symbol, sig, 0, 0, "", "", 0, (perf or "-")])
-            else:
-                w.writerow([group, symbol, sig, p["succ"], p["total"],
-                            p["success_pct"], p["avg_gain"], p["score"], perf])
+            w.writerow([group, symbol] + [rec[c] for c in CSV_COLUMNS[2:]])
 
 
 async def main_async(args):
@@ -609,9 +678,14 @@ async def main_async(args):
                 print(f"FAIL ({err}) [{dt:.1f}s]")
                 # record a NO_DATA marker row so gaps are visible
                 with open(out_csv, "a", newline="", encoding="utf-8") as f:
-                    csv.writer(f).writerow([group, symbol, "NO_DATA", "", "", "", "", "", str(err)])
+                    row = ([group, symbol, "NO_DATA"]
+                           + [""] * (len(CSV_COLUMNS) - 4) + [str(err)])
+                    csv.writer(f).writerow(row)
             else:
-                n_sig = sum(1 for s, _ in rows if (s or "").strip() not in ("", "sig"))
+                n_sig = sum(
+                    1 for c in rows
+                    if ((c[0] if c else "") or "").strip() not in ("", "sig")
+                )
                 append_rows(out_csv, group, symbol, rows)
                 ok += 1
                 print(f"OK ({n_sig} signals) [{dt:.1f}s]")
