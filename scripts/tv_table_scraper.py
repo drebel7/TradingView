@@ -415,8 +415,9 @@ async def set_resolution(cdp, resolution, timeout=20.0):
 # Column 1 ("perf") of the ETSB table: "x% (a/b) y%".
 # Legacy tables appended a single-number score ("x% (a/b) y% z") - the trailing
 # score is still accepted (optional group) for backward compatibility.
+# Counts may use a thousands separator (e.g. "1,437"), so commas are allowed.
 PERF_RE = re.compile(
-    r"^\s*([\d.]+)%\s*\((\d+)\s*/\s*(\d+)\)\s+([+-]?[\d.]+)%(?:\s+(-?\d+))?\s*$"
+    r"^\s*([\d.]+)%\s*\(([\d,]+)\s*/\s*([\d,]+)\)\s+([+-]?[\d.]+)%(?:\s+(-?\d+))?\s*$"
 )
 
 # Extended metric columns of the ETSB table (positions after "perf"):
@@ -450,20 +451,23 @@ def parse_perf(text):
         return None
     return {
         "success_pct": float(m.group(1)),
-        "succ": int(m.group(2)),
-        "total": int(m.group(3)),
+        "succ": int(m.group(2).replace(",", "")),
+        "total": int(m.group(3).replace(",", "")),
         "avg_gain": float(m.group(4)),
         "legacy_score": int(m.group(5)) if m.group(5) is not None else None,
     }
 
 
 def parse_metric(text):
-    """Parse a numeric table cell to float, or None for ''/'-'/unparseable."""
+    """Parse a numeric table cell to float, or None for ''/'-'/unparseable.
+
+    Thousands separators (commas) are ignored; decimal separator is a dot.
+    """
     text = (text or "").strip()
     if text in ("", "-"):
         return None
     try:
-        return float(text)
+        return float(text.replace(",", ""))
     except ValueError:
         return None
 
