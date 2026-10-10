@@ -5,7 +5,7 @@
 indicator(title = 'DRE When-Sell', overlay = true, calc_bars_count = 12 * 252)
 
 import drebel/DRELib/39 as drelib
-import drebel/DREPerf/24 as dreperf
+import drebel/DREPerf/27 as dreperf
 
 //signals switches
 iShowCloseBelowSma1 = input.bool(defval = false, title = 'Show close below sma1', group = 'Signals', inline = 'sma')
@@ -144,23 +144,43 @@ adrCond = iMinSigReturnAdrMultiple * adrPct
 
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performance check')
 iShowOnlyGoodSigs = input.bool(defval = false, title = 'show only good sigs.', group = 'Sig. performance check')
+iUseQualityGate = input.bool(defval = false, title = 'use extended quality gate', display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
 
-[topSuccRate, topSuccCount, topSigCount, topAvgReturn, topSuccRateOk, topSuccRateStr, topScore] = dreperf.successRateAllTimeStatsFull(topSig, topSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[parabolicRiseLodBreakSuccRate, parabolicRiseLodBreakSuccCount, parabolicRiseLodBreakSigCount, parabolicRiseLodBreakAvgReturn, parabolicRiseLodBreakSuccRateOk, parabolicRiseLodBreakSuccRateStr, parabolicRiseLodBreakScore] = dreperf.successRateAllTimeStatsFull(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[tiptopSuccRate, tiptopSuccCount, tiptopSigCount, tiptopAvgReturn, tiptopSuccRateOk, tiptopSuccRateStr, tiptopScore] = dreperf.successRateAllTimeStatsFull(parabolicTipTop, parabolicTipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[tiptop4SuccRate, tiptop4SuccCount, tiptop4SigCount, tiptop4AvgReturn, tiptop4SuccRateOk, tiptop4SuccRateStr, tiptop4Score] = dreperf.successRateAllTimeStatsFull(parabolic4TipTop, parabolic4TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[tiptop5SuccRate, tiptop5SuccCount, tiptop5SigCount, tiptop5AvgReturn, tiptop5SuccRateOk, tiptop5SuccRateStr, tiptop5Score] = dreperf.successRateAllTimeStatsFull(parabolic5TipTop, parabolic5TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[tiptop6SuccRate, tiptop6SuccCount, tiptop6SigCount, tiptop6AvgReturn, tiptop6SuccRateOk, tiptop6SuccRateStr, tiptop6Score] = dreperf.successRateAllTimeStatsFull(parabolic6TipTop, parabolic6TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[sma1SuccRate, sma1SuccCount, sma1SigCount, sma1AvgReturn, sma1SuccRateOk, sma1SuccRateStr, sma1Score] = dreperf.successRateAllTimeStatsFull(belowSma1, belowSma1 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[sma2SuccRate, sma2SuccCount, sma2SigCount, sma2AvgReturn, sma2SuccRateOk, sma2SuccRateStr, sma2Score] = dreperf.successRateAllTimeStatsFull(belowSma2, belowSma2 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[sma3SuccRate, sma3SuccCount, sma3SigCount, sma3AvgReturn, sma3SuccRateOk, sma3SuccRateStr, sma3Score] = dreperf.successRateAllTimeStatsFull(belowSma3, belowSma3 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[wonGoDnSuccRate, wonGoDnSuccCount, wonGoDnSigCount, wonGoDnAvgReturn, wonGoDnSuccRateOk, wonGoDnSuccRateStr, wonGoDnScore] = dreperf.successRateAllTimeStatsFull(wonBearGoSig, wonBearGoSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[combiSig1SuccRate, combiSig1SuccCount, combiSig1Count, combiSig1AvgReturn, combiSig1SuccRateOk, combiSig1SuccRateStr, combiSig1Score] = dreperf.successRateAllTimeStatsFull(combiSig1, combiSig1 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[combiSig2SuccRate, combiSig2SuccCount, combiSig2Count, combiSig2AvgReturn, combiSig2SuccRateOk, combiSig2SuccRateStr, combiSig2Score] = dreperf.successRateAllTimeStatsFull(combiSig2, combiSig2 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
-[combiSig3SuccRate, combiSig3SuccCount, combiSig3Count, combiSig3AvgReturn, combiSig3SuccRateOk, combiSig3SuccRateStr, combiSig3Score] = dreperf.successRateAllTimeStatsFull(combiSig3, combiSig3 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime)
+showRow(_iShowOnlyGoodSigs, sigOk, _showThisSig) =>
+    _showThisSig and (_iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs)
+
+[topSuccRate, topSuccCount, topSigCount, topAvgReturn, topSuccRateOk, topSuccRateStr, topWinRate, topWinCount, topAvgR, topMedR, topStdR, topPf, topWilsonLb, topAvgMfe, topAvgMae, topMaxDd, topMaxLossStreak, topScore, topQualityOk, topSumWinR, topSumLossR] = dreperf.signalQualityFull(topSig, topSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[parabolicRiseLodBreakSuccRate, parabolicRiseLodBreakSuccCount, parabolicRiseLodBreakSigCount, parabolicRiseLodBreakAvgReturn, parabolicRiseLodBreakSuccRateOk, parabolicRiseLodBreakSuccRateStr, parabolicRiseLodBreakWinRate, parabolicRiseLodBreakWinCount, parabolicRiseLodBreakAvgR, parabolicRiseLodBreakMedR, parabolicRiseLodBreakStdR, parabolicRiseLodBreakPf, parabolicRiseLodBreakWilsonLb, parabolicRiseLodBreakAvgMfe, parabolicRiseLodBreakAvgMae, parabolicRiseLodBreakMaxDd, parabolicRiseLodBreakMaxLossStreak, parabolicRiseLodBreakScore, parabolicRiseLodBreakQualityOk, parabolicRiseLodBreakSumWinR, parabolicRiseLodBreakSumLossR] = dreperf.signalQualityFull(parabolicRiseLodBreakCond, parabolicRiseLodBreakCond ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[tiptopSuccRate, tiptopSuccCount, tiptopSigCount, tiptopAvgReturn, tiptopSuccRateOk, tiptopSuccRateStr, tiptopWinRate, tiptopWinCount, tiptopAvgR, tiptopMedR, tiptopStdR, tiptopPf, tiptopWilsonLb, tiptopAvgMfe, tiptopAvgMae, tiptopMaxDd, tiptopMaxLossStreak, tiptopScore, tiptopQualityOk, tiptopSumWinR, tiptopSumLossR] = dreperf.signalQualityFull(parabolicTipTop, parabolicTipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[tiptop4SuccRate, tiptop4SuccCount, tiptop4SigCount, tiptop4AvgReturn, tiptop4SuccRateOk, tiptop4SuccRateStr, tiptop4WinRate, tiptop4WinCount, tiptop4AvgR, tiptop4MedR, tiptop4StdR, tiptop4Pf, tiptop4WilsonLb, tiptop4AvgMfe, tiptop4AvgMae, tiptop4MaxDd, tiptop4MaxLossStreak, tiptop4Score, tiptop4QualityOk, tiptop4SumWinR, tiptop4SumLossR] = dreperf.signalQualityFull(parabolic4TipTop, parabolic4TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[tiptop5SuccRate, tiptop5SuccCount, tiptop5SigCount, tiptop5AvgReturn, tiptop5SuccRateOk, tiptop5SuccRateStr, tiptop5WinRate, tiptop5WinCount, tiptop5AvgR, tiptop5MedR, tiptop5StdR, tiptop5Pf, tiptop5WilsonLb, tiptop5AvgMfe, tiptop5AvgMae, tiptop5MaxDd, tiptop5MaxLossStreak, tiptop5Score, tiptop5QualityOk, tiptop5SumWinR, tiptop5SumLossR] = dreperf.signalQualityFull(parabolic5TipTop, parabolic5TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[tiptop6SuccRate, tiptop6SuccCount, tiptop6SigCount, tiptop6AvgReturn, tiptop6SuccRateOk, tiptop6SuccRateStr, tiptop6WinRate, tiptop6WinCount, tiptop6AvgR, tiptop6MedR, tiptop6StdR, tiptop6Pf, tiptop6WilsonLb, tiptop6AvgMfe, tiptop6AvgMae, tiptop6MaxDd, tiptop6MaxLossStreak, tiptop6Score, tiptop6QualityOk, tiptop6SumWinR, tiptop6SumLossR] = dreperf.signalQualityFull(parabolic6TipTop, parabolic6TipTop ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[sma1SuccRate, sma1SuccCount, sma1SigCount, sma1AvgReturn, sma1SuccRateOk, sma1SuccRateStr, sma1WinRate, sma1WinCount, sma1AvgR, sma1MedR, sma1StdR, sma1Pf, sma1WilsonLb, sma1AvgMfe, sma1AvgMae, sma1MaxDd, sma1MaxLossStreak, sma1Score, sma1QualityOk, sma1SumWinR, sma1SumLossR] = dreperf.signalQualityFull(belowSma1, belowSma1 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[sma2SuccRate, sma2SuccCount, sma2SigCount, sma2AvgReturn, sma2SuccRateOk, sma2SuccRateStr, sma2WinRate, sma2WinCount, sma2AvgR, sma2MedR, sma2StdR, sma2Pf, sma2WilsonLb, sma2AvgMfe, sma2AvgMae, sma2MaxDd, sma2MaxLossStreak, sma2Score, sma2QualityOk, sma2SumWinR, sma2SumLossR] = dreperf.signalQualityFull(belowSma2, belowSma2 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[sma3SuccRate, sma3SuccCount, sma3SigCount, sma3AvgReturn, sma3SuccRateOk, sma3SuccRateStr, sma3WinRate, sma3WinCount, sma3AvgR, sma3MedR, sma3StdR, sma3Pf, sma3WilsonLb, sma3AvgMfe, sma3AvgMae, sma3MaxDd, sma3MaxLossStreak, sma3Score, sma3QualityOk, sma3SumWinR, sma3SumLossR] = dreperf.signalQualityFull(belowSma3, belowSma3 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[wonGoDnSuccRate, wonGoDnSuccCount, wonGoDnSigCount, wonGoDnAvgReturn, wonGoDnSuccRateOk, wonGoDnSuccRateStr, wonGoDnWinRate, wonGoDnWinCount, wonGoDnAvgR, wonGoDnMedR, wonGoDnStdR, wonGoDnPf, wonGoDnWilsonLb, wonGoDnAvgMfe, wonGoDnAvgMae, wonGoDnMaxDd, wonGoDnMaxLossStreak, wonGoDnScore, wonGoDnQualityOk, wonGoDnSumWinR, wonGoDnSumLossR] = dreperf.signalQualityFull(wonBearGoSig, wonBearGoSig ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[combiSig1SuccRate, combiSig1SuccCount, combiSig1Count, combiSig1AvgReturn, combiSig1SuccRateOk, combiSig1SuccRateStr, combiSig1WinRate, combiSig1WinCount, combiSig1AvgR, combiSig1MedR, combiSig1StdR, combiSig1Pf, combiSig1WilsonLb, combiSig1AvgMfe, combiSig1AvgMae, combiSig1MaxDd, combiSig1MaxLossStreak, combiSig1Score, combiSig1QualityOk, combiSig1SumWinR, combiSig1SumLossR] = dreperf.signalQualityFull(combiSig1, combiSig1 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[combiSig2SuccRate, combiSig2SuccCount, combiSig2Count, combiSig2AvgReturn, combiSig2SuccRateOk, combiSig2SuccRateStr, combiSig2WinRate, combiSig2WinCount, combiSig2AvgR, combiSig2MedR, combiSig2StdR, combiSig2Pf, combiSig2WilsonLb, combiSig2AvgMfe, combiSig2AvgMae, combiSig2MaxDd, combiSig2MaxLossStreak, combiSig2Score, combiSig2QualityOk, combiSig2SumWinR, combiSig2SumLossR] = dreperf.signalQualityFull(combiSig2, combiSig2 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[combiSig3SuccRate, combiSig3SuccCount, combiSig3Count, combiSig3AvgReturn, combiSig3SuccRateOk, combiSig3SuccRateStr, combiSig3WinRate, combiSig3WinCount, combiSig3AvgR, combiSig3MedR, combiSig3StdR, combiSig3Pf, combiSig3WilsonLb, combiSig3AvgMfe, combiSig3AvgMae, combiSig3MaxDd, combiSig3MaxLossStreak, combiSig3Score, combiSig3QualityOk, combiSig3SumWinR, combiSig3SumLossR] = dreperf.signalQualityFull(combiSig3, combiSig3 ? high : na, false, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+
+topEffOk = iUseQualityGate ? topQualityOk : topSuccRateOk
+parabolicRiseLodBreakEffOk = iUseQualityGate ? parabolicRiseLodBreakQualityOk : parabolicRiseLodBreakSuccRateOk
+tiptopEffOk = iUseQualityGate ? tiptopQualityOk : tiptopSuccRateOk
+tiptop4EffOk = iUseQualityGate ? tiptop4QualityOk : tiptop4SuccRateOk
+tiptop5EffOk = iUseQualityGate ? tiptop5QualityOk : tiptop5SuccRateOk
+tiptop6EffOk = iUseQualityGate ? tiptop6QualityOk : tiptop6SuccRateOk
+sma1EffOk = iUseQualityGate ? sma1QualityOk : sma1SuccRateOk
+sma2EffOk = iUseQualityGate ? sma2QualityOk : sma2SuccRateOk
+sma3EffOk = iUseQualityGate ? sma3QualityOk : sma3SuccRateOk
+wonGoDnEffOk = iUseQualityGate ? wonGoDnQualityOk : wonGoDnSuccRateOk
+combiSig1EffOk = iUseQualityGate ? combiSig1QualityOk : combiSig1SuccRateOk
+combiSig2EffOk = iUseQualityGate ? combiSig2QualityOk : combiSig2SuccRateOk
+combiSig3EffOk = iUseQualityGate ? combiSig3QualityOk : combiSig3SuccRateOk
 
 //plot sig performance
 topSigColor = color.new(color.fuchsia, 0)
@@ -175,53 +195,46 @@ combiSig2SigColor = color.new(color.orange, 0)
 combiSig3SigColor = color.new(color.red, 0)
 
 //print sig performance table
+renderQualityRow(table _tbl, int _row, string _name, color _color, bool _sigOk, bool _showThisSig, string _perfStr, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    if showRow(iShowOnlyGoodSigs, _sigOk, _showThisSig)
+        table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_color = _color, text_size = size.small)
+        table.cell(table_id = _tbl, column = 1, row = _row, text = _perfStr, text_size = size.small)
+        table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+        table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+        table.cell(table_id = _tbl, column = 4, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+        table.cell(table_id = _tbl, column = 5, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+        table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+        table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+        table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+        table.cell(table_id = _tbl, column = 9, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 2, rows = 15)
+    var tbl = table.new(position = position.top_right, columns = 10, rows = 15)
     txtSize = size.small
-    table.cell(table_id = tbl, column = 0, row = 0, text = '')
-    table.cell(table_id = tbl, column = 1, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 1, text = "sig", text_size = txtSize)
     table.cell(table_id = tbl, column = 1, row = 1, text = "perf " + str.tostring(iMinSigSuccessRate, "#.# ") + str.tostring(adrCond, "#.#"), text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 1, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 1, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 1, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 1, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 1, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 1, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 1, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 9, row = 1, text = "lossR", text_size = txtSize)
 
-    if showRow(iShowOnlyGoodSigs, topSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 2, text = "top", text_color = topSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 2, text = topSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, parabolicRiseLodBreakSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 3, text = "paraRiseLodBreak", text_color = parabolicRiseLodBreakSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 3, text = parabolicRiseLodBreakSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, tiptopSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 4, text = "tip-top", text_color = tiptopSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 4, text = tiptopSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, tiptop4SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 5, text = "tip-top4", text_color = tiptopSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 5, text = tiptop4SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, tiptop5SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 6, text = "tip-top5", text_color = tiptopSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 6, text = tiptop5SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, tiptop6SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 7, text = "tip-top6", text_color = tiptopSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 7, text = tiptop6SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, sma1SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 8, text = "sma10", text_color = sma1SigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 8, text = sma1SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, sma2SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 9, text = "sma20", text_color = sma2SigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 9, text = sma2SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, sma3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 10, text = "sma50", text_color = sma3SigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 10, text = sma3SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, wonGoDnSuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 11, text = "WON GO dn", text_color = wonGoDnSigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 11, text = wonGoDnSuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, combiSig1SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 12, text = "combi sig1", text_color = combiSig1SigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 12, text = combiSig1SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, combiSig2SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 13, text = "combi sig2", text_color = combiSig2SigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 13, text = combiSig2SuccRateStr, text_size = txtSize)
-    if showRow(iShowOnlyGoodSigs, combiSig3SuccRateOk)
-        table.cell(table_id = tbl, column = 0, row = 14, text = "combi sig3", text_color = combiSig3SigColor, text_size = txtSize)
-        table.cell(table_id = tbl, column = 1, row = 14, text = combiSig3SuccRateStr, text_size = txtSize)
+    renderQualityRow(tbl, 2, "top", topSigColor, topEffOk, true, topSuccRateStr, topWinRate, topSigCount, topAvgR, topPf, topMaxDd, topScore, topSumWinR, topSumLossR)
+    renderQualityRow(tbl, 3, "paraRiseLodBreak", parabolicRiseLodBreakSigColor, parabolicRiseLodBreakEffOk, true, parabolicRiseLodBreakSuccRateStr, parabolicRiseLodBreakWinRate, parabolicRiseLodBreakSigCount, parabolicRiseLodBreakAvgR, parabolicRiseLodBreakPf, parabolicRiseLodBreakMaxDd, parabolicRiseLodBreakScore, parabolicRiseLodBreakSumWinR, parabolicRiseLodBreakSumLossR)
+    renderQualityRow(tbl, 4, "tip-top", tiptopSigColor, tiptopEffOk, true, tiptopSuccRateStr, tiptopWinRate, tiptopSigCount, tiptopAvgR, tiptopPf, tiptopMaxDd, tiptopScore, tiptopSumWinR, tiptopSumLossR)
+    renderQualityRow(tbl, 5, "tip-top4", tiptopSigColor, tiptop4EffOk, true, tiptop4SuccRateStr, tiptop4WinRate, tiptop4SigCount, tiptop4AvgR, tiptop4Pf, tiptop4MaxDd, tiptop4Score, tiptop4SumWinR, tiptop4SumLossR)
+    renderQualityRow(tbl, 6, "tip-top5", tiptopSigColor, tiptop5EffOk, true, tiptop5SuccRateStr, tiptop5WinRate, tiptop5SigCount, tiptop5AvgR, tiptop5Pf, tiptop5MaxDd, tiptop5Score, tiptop5SumWinR, tiptop5SumLossR)
+    renderQualityRow(tbl, 7, "tip-top6", tiptopSigColor, tiptop6EffOk, true, tiptop6SuccRateStr, tiptop6WinRate, tiptop6SigCount, tiptop6AvgR, tiptop6Pf, tiptop6MaxDd, tiptop6Score, tiptop6SumWinR, tiptop6SumLossR)
+    renderQualityRow(tbl, 8, "sma10", sma1SigColor, sma1EffOk, true, sma1SuccRateStr, sma1WinRate, sma1SigCount, sma1AvgR, sma1Pf, sma1MaxDd, sma1Score, sma1SumWinR, sma1SumLossR)
+    renderQualityRow(tbl, 9, "sma20", sma2SigColor, sma2EffOk, true, sma2SuccRateStr, sma2WinRate, sma2SigCount, sma2AvgR, sma2Pf, sma2MaxDd, sma2Score, sma2SumWinR, sma2SumLossR)
+    renderQualityRow(tbl, 10, "sma50", sma3SigColor, sma3EffOk, true, sma3SuccRateStr, sma3WinRate, sma3SigCount, sma3AvgR, sma3Pf, sma3MaxDd, sma3Score, sma3SumWinR, sma3SumLossR)
+    renderQualityRow(tbl, 11, "WON GO dn", wonGoDnSigColor, wonGoDnEffOk, true, wonGoDnSuccRateStr, wonGoDnWinRate, wonGoDnSigCount, wonGoDnAvgR, wonGoDnPf, wonGoDnMaxDd, wonGoDnScore, wonGoDnSumWinR, wonGoDnSumLossR)
+    renderQualityRow(tbl, 12, "combi sig1", combiSig1SigColor, combiSig1EffOk, true, combiSig1SuccRateStr, combiSig1WinRate, combiSig1Count, combiSig1AvgR, combiSig1Pf, combiSig1MaxDd, combiSig1Score, combiSig1SumWinR, combiSig1SumLossR)
+    renderQualityRow(tbl, 13, "combi sig2", combiSig2SigColor, combiSig2EffOk, true, combiSig2SuccRateStr, combiSig2WinRate, combiSig2Count, combiSig2AvgR, combiSig2Pf, combiSig2MaxDd, combiSig2Score, combiSig2SumWinR, combiSig2SumLossR)
+    renderQualityRow(tbl, 14, "combi sig3", combiSig3SigColor, combiSig3EffOk, true, combiSig3SuccRateStr, combiSig3WinRate, combiSig3Count, combiSig3AvgR, combiSig3Pf, combiSig3MaxDd, combiSig3Score, combiSig3SumWinR, combiSig3SumLossR)
 
 //plot signals on price chart
 if iShowCloseBelowSma1 and newBelowSma1
