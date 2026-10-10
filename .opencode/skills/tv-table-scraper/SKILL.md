@@ -45,15 +45,22 @@ Related flags: `--tv-port` (default 9222), `--tv-path` (explicit
 `scripts/tv_table_scraper.py` — connects directly to the TradingView chart page
 over CDP (same transport the `tradingview-desktop` MCP server uses) and, per symbol:
 
-1. `window._exposed_chartWidgetCollection.setSymbol("<SYMBOL>")`
-2. waits until `model().mainSeries().symbol()` matches AND the table is stable
+1. **hides every study except the scraped one** (see `--solo-visibility`), so
+   Pine tables from other indicators do not overlap the one being read
+2. `window._exposed_chartWidgetCollection.setSymbol("<SYMBOL>")`
+3. waits until `model().mainSeries().symbol()` matches AND the table is stable
    (two identical consecutive reads, and at least `--min-rows` rows)
-3. reads Pine table cells from
+4. reads Pine table cells from
    `study.graphics()._primitivesCollection.dwgtablecells.get('tableCells')._primitivesDataById`
    (each cell has `row`, `col`, `t`), groups by row/col and keeps **all** columns
-4. appends one CSV row per signal: col 1 (the perf string `x% (a/b) y%`) is split
+5. appends one CSV row per signal: col 1 (the perf string `x% (a/b) y%`) is split
    into `succ/total/success_pct/avg_gain`, and the extended metric columns
-   (win%, N, avgR, PF, maxDD, score) go to their own fields (incremental, crash-safe)
+   (win%, N, avgR, PF, maxDD, score, winR, lossR) go to their own fields
+   (incremental, crash-safe)
+
+> The scraped indicator must already be added to the chart **and visible** (step 1
+> leaves it visible), with its performance table enabled. If the study is hidden
+> the table primitives are not drawn and every symbol times out with `rows: []`.
 
 ### Run
 
@@ -72,6 +79,7 @@ Useful flags:
 | Flag | Meaning |
 | --- | --- |
 | `--resolution` | chart interval set once before scraping (`D`, `W`, `M`, `60`, `1`…). Omit to keep the chart's current interval. |
+| `--solo-visibility` / `--no-solo-visibility` | on startup hide every study except the scraped one (default: on) so overlapping Pine tables do not interfere. Use `--no-solo-visibility` to leave the chart's study visibility untouched. |
 | `--min-rows` | minimum table rows required to accept a symbol (default `5`). Lower it for indicators with short tables. |
 | `--limit N` | process only the first N symbols (smoke test). |
 | `--start N` | resume from symbol index N. |
