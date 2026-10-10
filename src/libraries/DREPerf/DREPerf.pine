@@ -178,7 +178,7 @@ export successRateAllTime(series bool _sig, series float _sigCandleStopLoss) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, true)
 	sigSuccRatePct
 
-const float MIN_R_STD = 0.0001
+const float MIN_R_STD = 1.0
 const float DEFAULT_WILSON_Z = 1.96
 const int MAX_R_SAMPLES = 2048
 const float MAX_PROFIT_FACTOR = 100.0
@@ -207,7 +207,7 @@ export wilsonLowerBoundPct(int _winCount, int _sigCount, float _z) =>
 export wilsonLowerBoundPct(int _winCount, int _sigCount) =>
 	wilsonLowerBoundPct(_winCount, _sigCount, DEFAULT_WILSON_Z)
 
-// @function Sample-aware signal score based on R-multiple statistics (t-statistic-like formula avgR / stdR * sqrt(sigCount)). Unlike the legacy sigScore it does not depend on bar_index, so values are comparable between charts with different history length. It rewards positive expectancy, return stability and sample size.
+// @function Sample-aware signal score based on R-multiple statistics (t-statistic-like formula avgR / max(stdR, MIN_R_STD) * sqrt(sigCount)). The standard deviation of R is floored at MIN_R_STD (1R) so that degenerate samples (single trades or zero-variance R series) do not produce inflated scores. Unlike the legacy sigScore it does not depend on bar_index, so values are comparable between charts with different history length. It rewards positive expectancy, return stability and sample size.
 // @param _avgR Average R-multiple of completed signals.
 // @param _stdR Standard deviation of R-multiples of completed signals.
 // @param _sigCount Number of completed signals with a valid risk.
