@@ -43,15 +43,21 @@ from pathlib import Path
 
 
 def read_scraper_csv(path):
+    indicator = ""
     rows = []
     with open(path, newline="", encoding="utf-8", errors="replace") as f:
         for line in f:
             if line.startswith("#"):
+                if line.startswith("# indicator:"):
+                    indicator = line.split(":", 1)[1].strip()
                 continue
             rows.append(line)
     if not rows:
         return []
-    return list(csv.DictReader(rows))
+    records = list(csv.DictReader(rows))
+    for r in records:
+        r["indicator"] = indicator
+    return records
 
 
 def fnum(x):
@@ -69,7 +75,9 @@ def aggregate(records):
         sig = (r.get("sig") or "").strip()
         if not sig or sig in ("sig", "NO_DATA"):
             continue
-        a = agg.setdefault(sig, {
+        ind = (r.get("indicator") or "").strip()
+        a = agg.setdefault((ind, sig), {
+            "indicator": ind,
             "sig": sig,
             "symbols": 0,
             "occ_total": 0.0,
@@ -133,6 +141,7 @@ def aggregate(records):
         else:
             pf = round(a["sum_pf_n"] / a["pf_n"], 2) if a["pf_n"] else ""
         out.append({
+            "indicator": a["indicator"],
             "sig": a["sig"],
             "symbols": a["symbols"],
             "occurrences": int(a["occ_total"]),
@@ -154,7 +163,7 @@ def aggregate(records):
     return out
 
 
-COLUMNS = ["sig", "symbols", "occurrences", "success_pct", "avg_gain",
+COLUMNS = ["indicator", "sig", "symbols", "occurrences", "success_pct", "avg_gain",
            "win_pct", "avg_r", "pf", "max_dd", "score_mean", "score_sum",
            "score_pos_pct", "median_avg_r", "median_pf", "gross_win_r",
            "gross_loss_r"]
