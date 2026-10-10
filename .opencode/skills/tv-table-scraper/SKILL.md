@@ -116,15 +116,19 @@ after a separator belongs to that group. Symbols look like `GPW:AQU`.
 `analysis/<tag>_<YYYYMMDD>.csv` (schema v2 — multi-column tables):
 
 ```
-group,symbol,sig,succ,total,success_pct,avg_gain,win_pct,n,avg_r,pf,max_dd,score,raw
-NEWCONNECT,GPW:AQU,et3sb,26,51,51.0,1.2,45.1,51,0.45,1.88,6.55,1.6,et3sb | 51% (26/51) 1.2% | 45.1 | 51 | 0.45 | 1.88 | 6.55 | 1.6
-NEWCONNECT,GPW:AQU,et4sb,,,,,,,,,,,et4sb | - | 0 | 0 | 0 | 0 | 0 | 0
+group,symbol,sig,succ,total,success_pct,avg_gain,win_pct,n,avg_r,pf,max_dd,score,sum_win_r,sum_loss_r,raw
+NEWCONNECT,GPW:AQU,et3sb,26,51,51.0,1.2,45.1,51,0.45,1.88,6.55,1.6,12.3,-4.5,et3sb | 51% (26/51) 1.2% | 45.1 | 51 | 0.45 | 1.88 | 6.55 | 1.6 | 12.3 | -4.5
+NEWCONNECT,GPW:AQU,et4sb,,,,,,,,,,,,,et4sb | - | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0
 ```
 
 - Column 1 of the table is the legacy perf string `x% (a/b) y%` → `succ`, `total`,
   `success_pct`, `avg_gain` (a legacy trailing score, `x% (a/b) y% z`, is still
   accepted and used only if the extended `score` column is absent).
-- Columns 2–7 map to `win_pct`, `n`, `avg_r`, `pf`, `max_dd`, `score`.
+- Columns 2–9 map to `win_pct`, `n`, `avg_r`, `pf`, `max_dd`, `score`,
+  `sum_win_r`, `sum_loss_r` (gross winning/losing R).
+- `pf` in the table is shown as the infinity sign when the signal has **no losing
+  trades**; that cell is written blank in the CSV (so it is not confused with a
+  real ratio — a literal `100` would mean "100:1", not "no losses").
 - `raw` mirrors the whole table row joined with ` | `. `-` in the perf cell =
   signal never occurred; then every metric is left blank.
 - On a plain 2-column table the extended fields stay blank and only the
@@ -143,7 +147,7 @@ A progress checkpoint is written to `analysis/.<tag>_progress.json`.
 ```powershell
 python scripts\summarize_signals.py `
   --out analysis\SIGNAL_SUMMARY.csv `
-  analysis\GPW_NC_ETSB_20261009.csv analysis\US_BIG_ETSB_20261009.csv
+  analysis\GPW_NC_ETSB_20261010.csv analysis\US_BIG_ETSB_20261010.csv
 ```
 
 Per signal (`sig`), across all symbols it computes:
@@ -151,9 +155,19 @@ Per signal (`sig`), across all symbols it computes:
 - cumulative success rate = `sum(succ) / sum(total)` over rows with `total > 0`
 - average gain (weighted) = `sum(avg_gain * total) / sum(total)`
 - cumulative win rate = `sum(win_pct * n) / sum(n)` over rows with `n > 0`
-- average R (weighted) = `sum(avg_r * n) / sum(n)`; mean `pf` and `max_dd`
-- score = `sum(score)` (or mean)
-- occurrences = `sum(total)` (and `sum(n)`), symbols covered = distinct `symbol` with `total>0`
+- average R (weighted) = `sum(avg_r * n) / sum(n)`
+- **pooled profit factor** = `sum(sum_win_r) / |sum(sum_loss_r)|` (blank = no
+  losing trades). Falls back to an n-weighted mean of the per-symbol `pf` column
+  for older CSVs that lack `sum_win_r`/`sum_loss_r`.
+- max drawdown = n-weighted mean of `max_dd`
+- score = mean and sum of the per-symbol `score`
+- **score_pos_pct** = % of occurring symbols whose per-symbol `score` > 0
+  (repeatability - how often the signal is a net-positive edge on a symbol)
+- **median_avg_r** = median of per-symbol `avg_r` (outlier-robust, contrasts with
+  the pooled weighted `avg_r`)
+- **median_pf** = median of per-symbol profit factor (from gross win/loss R,
+  losing-trade symbols only; outlier-robust, contrasts with the pooled `pf`)
+- occurrences = `sum(total)`, symbols covered = distinct `symbol` with `total>0`
 
 ## Notes / gotchas
 

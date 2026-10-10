@@ -17,7 +17,8 @@ server uses). For each symbol it:
      captured in full)
   4. appends one CSV row per signal, with the perf string split into
      succ/total/success_pct/avg_gain and the extended metrics
-     (win_pct, n, avg_r, pf, max_dd, score) plus the raw row
+     (win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r) plus the
+     raw row
 
 If TradingView Desktop is not reachable over CDP, the script launches it with
 --remote-debugging-port (restarting it first if it is running without CDP), then
@@ -419,7 +420,7 @@ PERF_RE = re.compile(
 )
 
 # Extended metric columns of the ETSB table (positions after "perf"):
-#   2 win%   3 N (win-rate sample count)   4 avgR   5 PF   6 maxDD   7 score
+#   2 win%   3 N   4 avgR   5 PF   6 maxDD   7 score   8 gross win R   9 gross loss R
 EXT_METRIC_COLUMNS = [
     ("win_pct", 2),
     ("n", 3),
@@ -427,12 +428,15 @@ EXT_METRIC_COLUMNS = [
     ("pf", 5),
     ("max_dd", 6),
     ("score", 7),
+    ("sum_win_r", 8),
+    ("sum_loss_r", 9),
 ]
 
 # Full CSV schema.
 CSV_COLUMNS = [
     "group", "symbol", "sig", "succ", "total", "success_pct", "avg_gain",
-    "win_pct", "n", "avg_r", "pf", "max_dd", "score", "raw",
+    "win_pct", "n", "avg_r", "pf", "max_dd", "score", "sum_win_r", "sum_loss_r",
+    "raw",
 ]
 
 
@@ -612,8 +616,9 @@ def write_csv_header(path, indicator, watchlist):
         f.write("# columns: " + ",".join(CSV_COLUMNS) + "\n")
         f.write("# perf = 'x% (a/b) y%' (success rate a/b and avg return y%); "
                 "'-' means the signal did not occur for that symbol\n")
-        f.write("# extended metrics: win_pct, n, avg_r, pf, max_dd, score "
+        f.write("# extended metrics: win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r "
                 "(blank when the signal did not occur)\n")
+        f.write("# pf is shown as the infinity sign and left blank here when there are no losing trades\n")
         w = csv.writer(f)
         w.writerow(CSV_COLUMNS)
 
@@ -705,6 +710,14 @@ async def main_async(args):
 
 
 def main():
+    # Windows consoles may use a non-UTF-8 code page (e.g. cp1250); the scraped
+    # table can contain non-ASCII glyphs (the infinity sign used for profit
+    # factor when there are no losing trades), which would crash print().
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     ap = argparse.ArgumentParser(description="TradingView table scraper via CDP")
     ap.add_argument("--watchlist", required=True)
     ap.add_argument("--outdir", default="analysis")

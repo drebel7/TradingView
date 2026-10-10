@@ -181,7 +181,6 @@ export successRateAllTime(series bool _sig, series float _sigCandleStopLoss) =>
 const float MIN_R_STD = 1.0
 const float DEFAULT_WILSON_Z = 1.96
 const int MAX_R_SAMPLES = 2048
-const float MAX_PROFIT_FACTOR = 100.0
 const float MAX_RECOVERY_FACTOR = 100.0
 
 // @function Wilson score interval lower bound (pct) for a binomial proportion. Useful to judge how reliable a win rate is on a given sample size - the lower the sample, the lower the bound.
@@ -246,7 +245,7 @@ export winRateStats(series bool _sig, series float _sigCandleStopLoss, int _chec
 // @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle.
 // @param _checkTime A number of candles after the signal to check is a signal was a success or not.
 // @param _long true for long plays check, false for short plays check.
-// @returns avg R, median R (uses the last MAX_R_SAMPLES completed signals and is available on the last bar only), std dev of R, profit factor (capped at MAX_PROFIT_FACTOR, 0 when there are no losses but also no wins), expectancy in R (= avg R).
+// @returns avg R, median R (uses the last MAX_R_SAMPLES completed signals and is available on the last bar only), std dev of R, profit factor (gross win R / gross loss R; na when there are no losing trades, 0 when there are no trades), expectancy in R (= avg R).
 export rMultipleStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
 	var float _sumR = 0.0
 	var float _sumR2 = 0.0
@@ -278,7 +277,7 @@ export rMultipleStats(series bool _sig, series float _sigCandleStopLoss, int _ch
 			array.shift(_rVals)
 	_avgR = _cntR > 0 ? _sumR / _cntR : 0.0
 	_stdR = _cntR > 0 ? math.sqrt(math.max(_sumR2 / _cntR - _avgR * _avgR, 0.0)) : 0.0
-	_profitFactor = _sumNegR < 0 ? _sumPosR / math.abs(_sumNegR) : (_sumPosR > 0 ? MAX_PROFIT_FACTOR : 0.0)
+	_profitFactor = _cntR == 0 ? 0.0 : (_sumNegR < 0 ? _sumPosR / math.abs(_sumNegR) : na)
 	_medR = 0.0
 	if barstate.islast and array.size(_rVals) > 0
 		_sortedR = array.copy(_rVals)
@@ -349,7 +348,7 @@ export equityStats(series bool _sig, series float _sigCandleStopLoss, int _check
 // @param _checkTime A number of candles after the signal to check is a signal was a success or not.
 // @param _minSigCount Minimum number of completed signals for the quality gate.
 // @param _minWilsonLbPct Minimum Wilson score lower bound of the win rate in pct for the quality gate.
-// @returns success rate pct, success count, all signals count, avg mixed return pct, legacy threshold check, legacy formatted string, win rate pct, win count, avg R, median R (last bar only), std dev of R, profit factor, Wilson lower bound pct, avg MFE pct, avg MAE pct, max drawdown in R, max losing streak, score, quality gate check.
+// @returns success rate pct, success count, all signals count, avg mixed return pct, legacy threshold check, legacy formatted string, win rate pct, win count, avg R, median R (last bar only), std dev of R, profit factor (gross win R / gross loss R; na when there are no losing trades), Wilson lower bound pct, avg MFE pct, avg MAE pct, max drawdown in R, max losing streak, score, quality gate check, gross win R, gross loss R.
 export signalQualityFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct, int _checkTime, int _minSigCount, float _minWilsonLbPct) =>
 	_lowestCheck = ta.lowest(_checkTime)
 	_highestCheck = ta.highest(_checkTime)
@@ -406,7 +405,7 @@ export signalQualityFull(series bool _sig, series float _sigCandleStopLoss, bool
 	_winRatePct = _cmpCnt > 0 ? 100.0 * _winCnt / _cmpCnt : 0.0
 	_avgR = _cntR > 0 ? _sumR / _cntR : 0.0
 	_stdR = _cntR > 0 ? math.sqrt(math.max(_sumR2 / _cntR - _avgR * _avgR, 0.0)) : 0.0
-	_profitFactor = _sumNegR < 0 ? _sumPosR / math.abs(_sumNegR) : (_sumPosR > 0 ? MAX_PROFIT_FACTOR : 0.0)
+	_profitFactor = _cntR == 0 ? 0.0 : (_sumNegR < 0 ? _sumPosR / math.abs(_sumNegR) : na)
 	_medR = 0.0
 	if barstate.islast and array.size(_rVals) > 0
 		_sortedR = array.copy(_rVals)
@@ -421,5 +420,5 @@ export signalQualityFull(series bool _sig, series float _sigCandleStopLoss, bool
 	_avgMfePct = _exCnt > 0 ? _cumMfePct / _exCnt : 0.0
 	_avgMaePct = _exCnt > 0 ? _cumMaePct / _exCnt : 0.0
 	_qualityOk = _succRateOk and _sigAllCount >= _minSigCount and _wilsonLbPct >= _minWilsonLbPct
-	[_succRatePct, _sigSuccCount, _sigAllCount, _retAvgPct, _succRateOk, _succRateStr, _winRatePct, _winCnt, _avgR, _medR, _stdR, _profitFactor, _wilsonLbPct, _avgMfePct, _avgMaePct, _maxDdR, _maxLossStreak, _scoreV2, _qualityOk]
+	[_succRatePct, _sigSuccCount, _sigAllCount, _retAvgPct, _succRateOk, _succRateStr, _winRatePct, _winCnt, _avgR, _medR, _stdR, _profitFactor, _wilsonLbPct, _avgMfePct, _avgMaePct, _maxDdR, _maxLossStreak, _scoreV2, _qualityOk, _sumPosR, _sumNegR]
 
