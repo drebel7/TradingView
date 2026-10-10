@@ -20,6 +20,11 @@ server uses). For each symbol it:
      (win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r) plus the
      raw row
 
+On startup (unless --no-solo-visibility) it also hides every study on the chart
+except the scraped indicator, so Pine tables from other indicators do not
+overlap the one being read. The scraped indicator must already be added and its
+performance table enabled.
+
 If TradingView Desktop is not reachable over CDP, the script launches it with
 --remote-debugging-port (restarting it first if it is running without CDP), then
 waits for the chart page. Use --no-tv-autolaunch to disable, --tv-path to point
@@ -379,6 +384,37 @@ JS_GET_INTERVAL = (
 )
 
 
+# Hide every study except the one whose name starts with __INDICATOR__, so only
+# the scraped indicator's Pine table is on the chart (overlapping tables from
+# other studies would otherwise break the cell read / clutter the view).
+JS_SET_VISIBILITY = r"""
+(function(){
+  try{
+    var c = window._exposed_chartWidgetCollection;
+    if(!c) return JSON.stringify({ok:false, err:'no chartWidgetCollection'});
+    var w = c.activeChartWidget; if(w && w._value!==undefined) w=w._value;
+    var ds = w.model().dataSources();
+    var target = "__INDICATOR__";
+    var shown = [], hiddenN = 0, errs = 0, matched = false;
+    for(var i=0;i<ds.length;i++){
+      try{
+        var d = ds[i];
+        if(!d || typeof d.name!=='function') continue;
+        var nm = d.name() || '';
+        if(!nm) continue;
+        var props = null; try{ props = d.properties(); }catch(e){ props = null; }
+        if(!props || !props.visible || typeof props.visible.setValue!=='function') continue;
+        var want = nm.indexOf(target)===0;
+        props.visible.setValue(want);
+        if(want){ shown.push(nm); matched = true; } else { hiddenN++; }
+      }catch(e){ errs++; }
+    }
+    return JSON.stringify({ok:true, matched:matched, shown:shown, hidden:hiddenN, errs:errs});
+  }catch(e){ return JSON.stringify({ok:false, err:String(e)}); }
+})()
+"""
+
+
 def _norm_res(r):
     r = str(r).strip().upper()
     if r in ("D", "W", "M"):
@@ -407,6 +443,20 @@ async def set_resolution(cdp, resolution, timeout=20.0):
         await asyncio.sleep(0.4)
     print(f"[warn] resolution '{resolution}' not confirmed within {timeout}s (continuing)")
     return False
+
+
+async def show_only_indicator(cdp, indicator):
+    """Hide every study on the chart except the scraped one.
+
+    Keeps only the study whose name starts with `indicator` visible, so Pine
+    tables drawn by other studies do not overlap the one being scraped.
+    Returns the parsed JS result (dict), never raises.
+    """
+    try:
+        raw = await cdp.evaluate(JS_SET_VISIBILITY.replace("__INDICATOR__", indicator))
+        return json.loads(raw)
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
 
 
 # ----------------------------------------------------------------------------
@@ -670,6 +720,15 @@ async def main_async(args):
         if args.resolution:
             ok_res = await set_resolution(cdp, args.resolution)
             print(f"[i] resolution set to '{args.resolution}': {ok_res}")
+        if args.solo_visibility:
+            vis = await show_only_indicator(cdp, args.indicator)
+            if vis.get("ok"):
+                shown = ", ".join(vis.get("shown") or []) or "-"
+                print(f"[i] solo visibility: showing [{shown}], hid {vis.get('hidden')} other studies")
+                if not vis.get("matched"):
+                    print("[warn] target indicator not found on chart - it must be added and visible")
+            else:
+                print(f"[warn] solo visibility failed: {vis.get('err')}")
         for idx in range(start, end):
             group, symbol = symbols[idx]
             label = f"[{idx+1}/{total}] {symbol} ({group})"
@@ -730,6 +789,11 @@ def main():
     ap.add_argument("--resolution", default=None,
                     help="chart interval to set before scraping (e.g. D, W, 60); "
                          "omit to leave the chart's current interval")
+    ap.add_argument("--solo-visibility", action=argparse.BooleanOptionalAction,
+                    default=True,
+                    help="on startup hide every study on the chart except the one "
+                         "being scraped (default: on) so overlapping Pine tables "
+                         "from other indicators do not interfere")
     ap.add_argument("--min-rows", type=int, default=5,
                     help="minimum table rows required to accept a symbol (default 5)")
     ap.add_argument("--limit", type=int, default=0, help="0 = all")
