@@ -81,8 +81,10 @@ export successRateInPeriod(series bool _sig, series float _sigCandleStopLoss) =>
 // @param _long true for long plays check, false for short plays check
 // @returns signal success rate, signal succesc count, singal count average pct return when succes.
 export successRateAllTimeStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
-	longSigSucc = _long and ta.lowest(_checkTime) > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
-	shortSigSucc = not _long and ta.highest(_checkTime) < _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
+	_lowestCheck = ta.lowest(_checkTime)
+	_highestCheck = ta.highest(_checkTime)
+	longSigSucc = _long and _lowestCheck > _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
+	shortSigSucc = not _long and _highestCheck < _sigCandleStopLoss[_checkTime] and _sig[_checkTime]
 	sigSucc_10 = (_long ? longSigSucc : shortSigSucc) ? 1 : 0
 	sigSuccCount = int(ta.cum(sigSucc_10))
 	sigAll_10 = _sig[_checkTime] ? 1 : 0
@@ -175,4 +177,249 @@ export successRateAllTime(series bool _sig, series float _sigCandleStopLoss, boo
 export successRateAllTime(series bool _sig, series float _sigCandleStopLoss) =>
 	[sigSuccRatePct, sigSuccCount, sigAllCount, retAvgPct] = successRateAllTimeStats(_sig, _sigCandleStopLoss, DEFAULT_SIG_CHECK_TIME, true)
 	sigSuccRatePct
+
+const float MIN_R_STD = 0.0001
+const float DEFAULT_WILSON_Z = 1.96
+const int MAX_R_SAMPLES = 2048
+const float MAX_PROFIT_FACTOR = 100.0
+const float MAX_RECOVERY_FACTOR = 100.0
+
+// @function Wilson score interval lower bound (pct) for a binomial proportion. Useful to judge how reliable a win rate is on a given sample size - the lower the sample, the lower the bound.
+// @param _winCount Number of wins (completed signals with a positive result).
+// @param _sigCount Number of completed signals with a valid risk (stop loss level different than the signal candle close).
+// @param _z Z-score of the interval (1.96 for 95% confidence).
+// @returns lower bound of the Wilson score interval for the win rate in pct (0..100), 0 when there are no signals.
+export wilsonLowerBoundPct(int _winCount, int _sigCount, float _z) =>
+	_res = 0.0
+	if _sigCount > 0
+		_p = _winCount * 1.0 / _sigCount
+		_n = _sigCount * 1.0
+		_denom = 1.0 + _z * _z / _n
+		_centre = _p + _z * _z / (2.0 * _n)
+		_margin = _z * math.sqrt((_p * (1.0 - _p) + _z * _z / (4.0 * _n)) / _n)
+		_res := 100.0 * (_centre - _margin) / _denom
+	math.max(_res, 0.0)
+
+// @function Wilson score interval lower bound (pct) for a binomial proportion with default 95% confidence (z = 1.96). Useful to judge how reliable a win rate is on a given sample size - the lower the sample, the lower the bound.
+// @param _winCount Number of wins (completed signals with a positive result).
+// @param _sigCount Number of completed signals with a valid risk (stop loss level different than the signal candle close).
+// @returns lower bound of the Wilson score interval for the win rate in pct (0..100), 0 when there are no signals.
+export wilsonLowerBoundPct(int _winCount, int _sigCount) =>
+	wilsonLowerBoundPct(_winCount, _sigCount, DEFAULT_WILSON_Z)
+
+// @function Sample-aware signal score based on R-multiple statistics (t-statistic-like formula avgR / stdR * sqrt(sigCount)). Unlike the legacy sigScore it does not depend on bar_index, so values are comparable between charts with different history length. It rewards positive expectancy, return stability and sample size.
+// @param _avgR Average R-multiple of completed signals.
+// @param _stdR Standard deviation of R-multiples of completed signals.
+// @param _sigCount Number of completed signals with a valid risk.
+// @returns signal score, 0 when there are no signals or when inputs are na.
+export sigScoreV2(float _avgR, float _stdR, int _sigCount) =>
+	_sigCount > 0 and not na(_avgR) and not na(_stdR) ? _avgR / math.max(_stdR, MIN_R_STD) * math.sqrt(_sigCount) : 0.0
+
+// @function Win rate of a signal (bool series) over all completed signal checks. A check is completed _checkTime candles after the signal. Entry is the close of the signal candle, the result is the mixed return (at check time when price did not hit _sigCandleStopLoss, at the stop loss level otherwise). A win is a positive result. Requires a sample with a valid risk (stop loss level different than the signal candle close).
+// @param _sig A bool series indicating signal was triggered on given candle or not.
+// @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @param _long true for long plays check, false for short plays check.
+// @returns win rate pct, win count, completed signal count.
+export winRateStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
+	var int _winCnt = 0
+	var int _cmpCnt = 0
+	_lowestCheck = ta.lowest(_checkTime)
+	_highestCheck = ta.highest(_checkTime)
+	_isSig = _sig[_checkTime]
+	_slAmt = _sigCandleStopLoss[_checkTime]
+	_succ = _long ? (_lowestCheck > _slAmt and _isSig) : (_highestCheck < _slAmt and _isSig)
+	_entry = close[_checkTime]
+	_hasRisk = _isSig and not na(_slAmt) and not na(_entry) and _entry > 0
+	_riskPct = _hasRisk ? math.abs(_slAmt - _entry) / _entry : 0.0
+	_sigRet = _hasRisk ? (_succ ? (_long ? (close - _entry) / _entry : (_entry - close) / _entry) : (_long ? (_slAmt - _entry) / _entry : (_entry - _slAmt) / _entry)) : 0.0
+	_rOk = _hasRisk and _riskPct > 0
+	_r = _rOk ? _sigRet / _riskPct : 0.0
+	if _rOk
+		_cmpCnt += 1
+		_winCnt += _r > 0 ? 1 : 0
+	_winRatePct = _cmpCnt > 0 ? 100.0 * _winCnt / _cmpCnt : 0.0
+	[_winRatePct, _winCnt, _cmpCnt]
+
+// @function R-multiple statistics of a signal over all completed signal checks (see winRateStats for the outcome model). R-multiple = mixed return pct / risk pct, where risk pct is the distance between the signal candle close and the stop loss level. Winning trades are expressed as multiples of the risked amount, losing trades are about -1R. Requires a sample with a valid risk (stop loss level different than the signal candle close).
+// @param _sig A bool series indicating signal was triggered on given candle or not.
+// @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @param _long true for long plays check, false for short plays check.
+// @returns avg R, median R (uses the last MAX_R_SAMPLES completed signals and is available on the last bar only), std dev of R, profit factor (capped at MAX_PROFIT_FACTOR, 0 when there are no losses but also no wins), expectancy in R (= avg R).
+export rMultipleStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
+	var float _sumR = 0.0
+	var float _sumR2 = 0.0
+	var float _sumPosR = 0.0
+	var float _sumNegR = 0.0
+	var int _cntR = 0
+	var array<float> _rVals = array.new_float()
+	_lowestCheck = ta.lowest(_checkTime)
+	_highestCheck = ta.highest(_checkTime)
+	_isSig = _sig[_checkTime]
+	_slAmt = _sigCandleStopLoss[_checkTime]
+	_succ = _long ? (_lowestCheck > _slAmt and _isSig) : (_highestCheck < _slAmt and _isSig)
+	_entry = close[_checkTime]
+	_hasRisk = _isSig and not na(_slAmt) and not na(_entry) and _entry > 0
+	_riskPct = _hasRisk ? math.abs(_slAmt - _entry) / _entry : 0.0
+	_sigRet = _hasRisk ? (_succ ? (_long ? (close - _entry) / _entry : (_entry - close) / _entry) : (_long ? (_slAmt - _entry) / _entry : (_entry - _slAmt) / _entry)) : 0.0
+	_rOk = _hasRisk and _riskPct > 0
+	_r = _rOk ? _sigRet / _riskPct : 0.0
+	if _rOk
+		_sumR += _r
+		_sumR2 += _r * _r
+		_cntR += 1
+		if _r > 0
+			_sumPosR += _r
+		else
+			_sumNegR += _r
+		array.push(_rVals, _r)
+		if array.size(_rVals) > MAX_R_SAMPLES
+			array.shift(_rVals)
+	_avgR = _cntR > 0 ? _sumR / _cntR : 0.0
+	_stdR = _cntR > 0 ? math.sqrt(math.max(_sumR2 / _cntR - _avgR * _avgR, 0.0)) : 0.0
+	_profitFactor = _sumNegR < 0 ? _sumPosR / math.abs(_sumNegR) : (_sumPosR > 0 ? MAX_PROFIT_FACTOR : 0.0)
+	_medR = 0.0
+	if barstate.islast and array.size(_rVals) > 0
+		_sortedR = array.copy(_rVals)
+		array.sort(_sortedR)
+		_szR = array.size(_sortedR)
+		_midR = int(_szR / 2)
+		_medR := _szR % 2 == 1 ? array.get(_sortedR, _midR) : (array.get(_sortedR, _midR - 1) + array.get(_sortedR, _midR)) / 2.0
+	[_avgR, _medR, _stdR, _profitFactor, _avgR]
+
+// @function Average maximum favorable and adverse excursion (in pct of the entry price) of a signal over all completed signal checks. Excursions are measured within the _checkTime candles window after the signal candle (see winRateStats for the window model).
+// @param _sig A bool series indicating signal was triggered on given candle or not.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @param _long true for long plays check, false for short plays check.
+// @returns average MFE pct (favorable move), average MAE pct (adverse move, usually negative for longs).
+export excursionStats(series bool _sig, int _checkTime, bool _long) =>
+	_lowestCheck = ta.lowest(_checkTime)
+	_highestCheck = ta.highest(_checkTime)
+	_isSig = _sig[_checkTime]
+	_entry = close[_checkTime]
+	_exOk = _isSig and not na(_entry) and _entry > 0
+	_mfePct = _exOk ? (_long ? (_highestCheck - _entry) / _entry * 100.0 : (_entry - _lowestCheck) / _entry * 100.0) : 0.0
+	_maePct = _exOk ? (_long ? (_lowestCheck - _entry) / _entry * 100.0 : (_entry - _highestCheck) / _entry * 100.0) : 0.0
+	_exCnt = int(ta.cum(_exOk ? 1.0 : 0.0))
+	_cumMfePct = ta.cum(_mfePct)
+	_cumMaePct = ta.cum(_maePct)
+	_avgMfePct = _exCnt > 0 ? _cumMfePct / _exCnt : 0.0
+	_avgMaePct = _exCnt > 0 ? _cumMaePct / _exCnt : 0.0
+	[_avgMfePct, _avgMaePct]
+
+// @function Path statistics of an equal-weight sequence of all completed signal trades expressed in R-multiples (see rMultipleStats for the outcome model). Max drawdown is measured on the cumulative R equity curve of signals, the recovery factor is net profit (in R) divided by the max drawdown.
+// @param _sig A bool series indicating signal was triggered on given candle or not.
+// @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @param _long true for long plays check, false for short plays check.
+// @returns max drawdown in R, recovery factor (capped at MAX_RECOVERY_FACTOR, 0 when there is no drawdown but also no net profit), max consecutive losing trades.
+export equityStats(series bool _sig, series float _sigCandleStopLoss, int _checkTime, bool _long) =>
+	var float _eqR = 0.0
+	var float _peakR = 0.0
+	var float _maxDdR = 0.0
+	var int _lossStreak = 0
+	var int _maxLossStreak = 0
+	_lowestCheck = ta.lowest(_checkTime)
+	_highestCheck = ta.highest(_checkTime)
+	_isSig = _sig[_checkTime]
+	_slAmt = _sigCandleStopLoss[_checkTime]
+	_succ = _long ? (_lowestCheck > _slAmt and _isSig) : (_highestCheck < _slAmt and _isSig)
+	_entry = close[_checkTime]
+	_hasRisk = _isSig and not na(_slAmt) and not na(_entry) and _entry > 0
+	_riskPct = _hasRisk ? math.abs(_slAmt - _entry) / _entry : 0.0
+	_sigRet = _hasRisk ? (_succ ? (_long ? (close - _entry) / _entry : (_entry - close) / _entry) : (_long ? (_slAmt - _entry) / _entry : (_entry - _slAmt) / _entry)) : 0.0
+	_rOk = _hasRisk and _riskPct > 0
+	_r = _rOk ? _sigRet / _riskPct : 0.0
+	if _rOk
+		_eqR += _r
+		_peakR := math.max(_peakR, _eqR)
+		_maxDdR := math.max(_maxDdR, _peakR - _eqR)
+		_lossStreak := _r < 0 ? _lossStreak + 1 : 0
+		_maxLossStreak := math.max(_maxLossStreak, _lossStreak)
+	_recFactor = _maxDdR > 0 ? _eqR / _maxDdR : (_eqR > 0 ? MAX_RECOVERY_FACTOR : 0.0)
+	[_maxDdR, _recFactor, _maxLossStreak]
+
+// @function Full quality check of a signal (bool series). Combines the legacy all-time stats (success rate against the stop loss level, mixed average return, thresholds check, formatted string) with the extended metrics: win rate and Wilson score lower bound, R-multiples (avg, median, std dev, profit factor), MFE/MAE, max drawdown in R, max losing streak and a sample-aware score. The quality gate passes when the legacy thresholds are met AND the completed signal count is >= _minSigCount AND the Wilson lower bound of the win rate is >= _minWilsonLbPct.
+// @param _sig A bool series indicating signal was triggered on given candle or not.
+// @param _sigCandleStopLoss A float series storing a stop loss level for a signal candle.
+// @param _long true for long plays check, false for short plays check.
+// @param _minSuccRatePct Minimum success rate (no stop-hit rate) in pct for the legacy gate.
+// @param _minRetAvgPct Minimum average mixed return in pct for the legacy gate.
+// @param _checkTime A number of candles after the signal to check is a signal was a success or not.
+// @param _minSigCount Minimum number of completed signals for the quality gate.
+// @param _minWilsonLbPct Minimum Wilson score lower bound of the win rate in pct for the quality gate.
+// @returns success rate pct, success count, all signals count, avg mixed return pct, legacy threshold check, legacy formatted string, win rate pct, win count, avg R, median R (last bar only), std dev of R, profit factor, Wilson lower bound pct, avg MFE pct, avg MAE pct, max drawdown in R, max losing streak, score, quality gate check.
+export signalQualityFull(series bool _sig, series float _sigCandleStopLoss, bool _long, float _minSuccRatePct, float _minRetAvgPct, int _checkTime, int _minSigCount, float _minWilsonLbPct) =>
+	_lowestCheck = ta.lowest(_checkTime)
+	_highestCheck = ta.highest(_checkTime)
+	_isSig = _sig[_checkTime]
+	_slAmt = _sigCandleStopLoss[_checkTime]
+	_entry = close[_checkTime]
+	_succ = _long ? (_lowestCheck > _slAmt and _isSig) : (_highestCheck < _slAmt and _isSig)
+	_sigSuccCount = int(ta.cum(_succ ? 1.0 : 0.0))
+	_sigAllCount = int(ta.cum(_isSig ? 1.0 : 0.0))
+	_succRatePct = _sigAllCount > 0 ? 100.0 * _sigSuccCount / _sigAllCount : 0.0
+	_hasRisk = _isSig and not na(_slAmt) and not na(_entry) and _entry > 0
+	_riskPct = _hasRisk ? math.abs(_slAmt - _entry) / _entry : 0.0
+	_sigRet = _hasRisk ? (_succ ? (_long ? (close - _entry) / _entry : (_entry - close) / _entry) : (_long ? (_slAmt - _entry) / _entry : (_entry - _slAmt) / _entry)) : 0.0
+	_retCum = ta.cum(_isSig ? _sigRet : 0.0)
+	_retAvgPct = _sigAllCount > 0 ? 100.0 * _retCum / _sigAllCount : 0.0
+	_succRateOk = _succRatePct > _minSuccRatePct and _retAvgPct > _minRetAvgPct
+	_succRateStr = _sigAllCount == 0 ? "-" : str.format(SUCC_RATE_LONG_FORMAT, _succRatePct, _sigSuccCount, _sigAllCount, _retAvgPct)
+	var int _winCnt = 0
+	var int _cmpCnt = 0
+	var float _sumR = 0.0
+	var float _sumR2 = 0.0
+	var float _sumPosR = 0.0
+	var float _sumNegR = 0.0
+	var int _cntR = 0
+	var array<float> _rVals = array.new_float()
+	var float _eqR = 0.0
+	var float _peakR = 0.0
+	var float _maxDdR = 0.0
+	var int _lossStreak = 0
+	var int _maxLossStreak = 0
+	_mfePct = _hasRisk ? (_long ? (_highestCheck - _entry) / _entry * 100.0 : (_entry - _lowestCheck) / _entry * 100.0) : 0.0
+	_maePct = _hasRisk ? (_long ? (_lowestCheck - _entry) / _entry * 100.0 : (_entry - _highestCheck) / _entry * 100.0) : 0.0
+	_exCnt = int(ta.cum(_hasRisk ? 1.0 : 0.0))
+	_rOk = _hasRisk and _riskPct > 0
+	_r = _rOk ? _sigRet / _riskPct : 0.0
+	if _rOk
+		_cmpCnt += 1
+		_winCnt += _r > 0 ? 1 : 0
+		_sumR += _r
+		_sumR2 += _r * _r
+		_cntR += 1
+		if _r > 0
+			_sumPosR += _r
+		else
+			_sumNegR += _r
+		array.push(_rVals, _r)
+		if array.size(_rVals) > MAX_R_SAMPLES
+			array.shift(_rVals)
+		_eqR += _r
+		_peakR := math.max(_peakR, _eqR)
+		_maxDdR := math.max(_maxDdR, _peakR - _eqR)
+		_lossStreak := _r < 0 ? _lossStreak + 1 : 0
+		_maxLossStreak := math.max(_maxLossStreak, _lossStreak)
+	_winRatePct = _cmpCnt > 0 ? 100.0 * _winCnt / _cmpCnt : 0.0
+	_avgR = _cntR > 0 ? _sumR / _cntR : 0.0
+	_stdR = _cntR > 0 ? math.sqrt(math.max(_sumR2 / _cntR - _avgR * _avgR, 0.0)) : 0.0
+	_profitFactor = _sumNegR < 0 ? _sumPosR / math.abs(_sumNegR) : (_sumPosR > 0 ? MAX_PROFIT_FACTOR : 0.0)
+	_medR = 0.0
+	if barstate.islast and array.size(_rVals) > 0
+		_sortedR = array.copy(_rVals)
+		array.sort(_sortedR)
+		_szR = array.size(_sortedR)
+		_midR = int(_szR / 2)
+		_medR := _szR % 2 == 1 ? array.get(_sortedR, _midR) : (array.get(_sortedR, _midR - 1) + array.get(_sortedR, _midR)) / 2.0
+	_wilsonLbPct = wilsonLowerBoundPct(_winCnt, _cmpCnt)
+	_scoreV2 = sigScoreV2(_avgR, _stdR, _cmpCnt)
+	_cumMfePct = ta.cum(_mfePct)
+	_cumMaePct = ta.cum(_maePct)
+	_avgMfePct = _exCnt > 0 ? _cumMfePct / _exCnt : 0.0
+	_avgMaePct = _exCnt > 0 ? _cumMaePct / _exCnt : 0.0
+	_qualityOk = _succRateOk and _sigAllCount >= _minSigCount and _wilsonLbPct >= _minWilsonLbPct
+	[_succRatePct, _sigSuccCount, _sigAllCount, _retAvgPct, _succRateOk, _succRateStr, _winRatePct, _winCnt, _avgR, _medR, _stdR, _profitFactor, _wilsonLbPct, _avgMfePct, _avgMaePct, _maxDdR, _maxLossStreak, _scoreV2, _qualityOk]
 
