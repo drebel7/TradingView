@@ -33,7 +33,7 @@ Per signal it computes (ignoring rows where the signal did not occur):
     gross_loss_r   sum of gross losing R (<= 0)
 
 Usage:
-  python summarize_signals.py --out analysis\\SIG_SUMMARY.csv file1.csv [file2.csv ...]
+  python3 summarize_signals.py --out analysis/SIG_SUMMARY.csv file1.csv [file2.csv ...]
 """
 
 import argparse

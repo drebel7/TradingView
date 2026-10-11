@@ -24,6 +24,10 @@ top-right) for every symbol in a watchlist, and write a tidy CSV.
 - Python 3 with the `websockets` package (v16 uses
   `websockets.asyncio.client.connect`).
 
+Windows, macOS and Linux are all supported. The scripts live in the **repository
+root** under `scripts/` (the paths below are relative to the repo root, *not* to
+this skill folder).
+
 ### Auto-launch (TradingView / CDP)
 
 On startup the script ensures CDP is available, then waits for the chart page
@@ -32,13 +36,20 @@ and for the chart to finish loading before scraping. Behaviour:
 | Situation | What the script does |
 | --- | --- |
 | CDP already open on the port | proceeds immediately |
-| TradingView not running | finds the executable and launches it with CDP |
+| TradingView not running | locates the executable and launches it with CDP |
 | TradingView running **without** CDP | force-quits and relaunches it with CDP |
-| Store/MSIX install | resolves the path via `Get-AppxPackage` automatically |
+| Windows Store/MSIX install | resolves the path via `Get-AppxPackage` automatically |
+| Linux native / snap / flatpak | resolved from `PATH`, `/opt/TradingView`, `/snap/bin`, or run via `flatpak`/`snap` |
+| macOS `.app` bundle | launched via `open -a TradingView --args` |
 
-Related flags: `--tv-port` (default 9222), `--tv-path` (explicit
-`TradingView.exe`), `--tv-kill-existing` / `--no-tv-kill-existing` (default: on),
+Related flags: `--tv-port` (default 9222), `--tv-path` (explicit path to the
+executable), `--tv-kill-existing` / `--no-tv-kill-existing` (default: on),
 `--tv-launch-wait` (default 30 s), `--no-tv-autolaunch` (disable entirely).
+
+> On Linux/macOS the "is TradingView running?" check matches the process'
+> **executable**, not its command line, so a script invoked with an absolute path
+> like `.../TradingView/scripts/tv_table_scraper.py` is never mistaken for
+> TradingView (and never killed).
 
 ## The script
 
@@ -64,9 +75,21 @@ over CDP (same transport the `tradingview-desktop` MCP server uses) and, per sym
 
 ### Run
 
+```bash
+python3 scripts/tv_table_scraper.py \
+  --watchlist watchlist/.GPW_NC.txt \
+  --outdir analysis \
+  --tag GPW_NC_ETSB \
+  --indicator "early trend strong breakout" \
+  --resolution D \
+  --timeout 20 --settle 0.6
+```
+
+PowerShell (Windows) equivalent:
+
 ```powershell
 python scripts\tv_table_scraper.py `
-  --watchlist watchlist\GPW_NC.txt `
+  --watchlist watchlist\.GPW_NC.txt `
   --outdir analysis `
   --tag GPW_NC_ETSB `
   --indicator "early trend strong breakout" `
@@ -86,7 +109,7 @@ Useful flags:
 | `--timeout` | per-symbol seconds before giving up (`NO_DATA`). |
 | `--settle` | poll interval in seconds. |
 | `--tv-port` | CDP debugging port (default `9222`). |
-| `--tv-path` | explicit path to `TradingView.exe` (rarely needed). |
+| `--tv-path` | explicit path to the TradingView executable (rarely needed). |
 | `--tv-kill-existing` / `--no-tv-kill-existing` | restart a running-but-CDP-less TradingView (default: on). |
 | `--no-tv-autolaunch` | do not launch TradingView; require it to already be in CDP mode. |
 | `--tv-launch-wait` | seconds to wait for CDP after launching (default 30). |
@@ -95,14 +118,14 @@ Useful flags:
 
 Only `--watchlist`, `--indicator`, `--tag` (and optionally `--resolution`) change:
 
-```powershell
-python scripts\tv_table_scraper.py `
-  --watchlist watchlist\WIG20.txt `
-  --outdir analysis `
-  --tag WIG20_MYIND `
-  --indicator "my indicator table name" `
-  --resolution D `
-  --min-rows 5 `
+```bash
+python3 scripts/tv_table_scraper.py \
+  --watchlist watchlist/GPW_WIG20.txt \
+  --outdir analysis \
+  --tag WIG20_MYIND \
+  --indicator "my indicator table name" \
+  --resolution D \
+  --min-rows 5 \
   --timeout 20 --settle 0.6
 ```
 
@@ -116,8 +139,9 @@ separators start with `###` (e.g. `###NEWCONNECT`, `###GPW-BANKI`); the token
 after a separator belongs to that group. Symbols look like `GPW:AQU`.
 
 > Only comma-separated lists are parsed. A file with one symbol per line is
-> **not** supported yet — convert it to comma-separated first (e.g.
-> `(Get-Content list.txt) -join ','`).
+> **not** supported yet — convert it to comma-separated first, e.g.
+> `tr '\n' ',' < list.txt > list.csv` (bash) or `(Get-Content list.txt) -join ','`
+> (PowerShell).
 
 ## Output CSV
 
@@ -152,10 +176,10 @@ A progress checkpoint is written to `analysis/.<tag>_progress.json`.
 
 `scripts/summarize_signals.py` does this for you:
 
-```powershell
-python scripts\summarize_signals.py `
-  --out analysis\SIGNAL_SUMMARY.csv `
-  analysis\GPW_NC_ETSB_20261010.csv analysis\US_BIG_ETSB_20261010.csv
+```bash
+python3 scripts/summarize_signals.py \
+  --out analysis/SIGNAL_SUMMARY.csv \
+  analysis/GPW_NC_ETSB_20261011.csv analysis/US_BIG_ETSB_20261011.csv
 ```
 
 Per signal (`sig`), across all symbols it computes:

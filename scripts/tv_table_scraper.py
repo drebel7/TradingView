@@ -27,9 +27,10 @@ performance table enabled.
 
 If TradingView Desktop is not reachable over CDP, the script launches it with
 --remote-debugging-port (restarting it first if it is running without CDP), then
-waits for the chart page. Use --no-tv-autolaunch to disable, --tv-path to point
-at a specific TradingView.exe (some Store/MSIX installs), --tv-kill-existing /
---no-tv-kill-existing to control restarting.
+waits for the chart page. This is cross-platform: the executable is located
+automatically on Windows (incl. Store/MSIX), macOS and Linux (native, snap or
+flatpak). Use --no-tv-autolaunch to disable, --tv-path to point at a specific
+executable, --tv-kill-existing / --no-tv-kill-existing to control restarting.
 
 Output is appended incrementally, so an interrupted run keeps its data.
 A progress file lets the run resume with --start / is written every symbol.
@@ -57,6 +58,7 @@ import os
 import platform
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -70,6 +72,12 @@ except Exception:  # pragma: no cover - fallback for older websockets
     from websockets import connect  # type: ignore
 
 DEFAULT_CDP_PORT = 9222
+
+# TradingView Desktop executable names on POSIX (native installs).
+TV_EXE_NAMES_POSIX = ("tradingview", "TradingView")
+# macOS app-bundle executable, anchored on the path so an unrelated command
+# line that merely contains "TradingView" can never match.
+MAC_TV_PATTERN = r"TradingView\.app/Contents/MacOS/TradingView"
 
 
 # ----------------------------------------------------------------------------
@@ -87,8 +95,53 @@ def cdp_available(port, timeout=1.5):
         return False
 
 
+def _linux_tv_pids():
+    """Return the PIDs whose *executable* is TradingView Desktop (Linux /proc).
+
+    Matching the resolved executable rather than the whole command line means a
+    process that merely mentions "TradingView" in its arguments - e.g. this very
+    script when it is invoked with an absolute path such as
+    .../TradingView/scripts/tv_table_scraper.py - is never selected (and can
+    therefore never be killed).
+    """
+    pids = []
+    self_pid = os.getpid()
+    try:
+        entries = os.listdir("/proc")
+    except OSError:
+        return pids
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        pid = int(entry)
+        if pid == self_pid:
+            continue
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as fh:
+                argv0 = fh.read().split(b"\0", 1)[0].decode("utf-8", "replace")
+        except OSError:
+            continue
+        if not argv0:
+            continue
+        base = os.path.basename(argv0)
+        # Electron helper processes (renderer/GPU/zygote) report
+        # "/proc/self/exe" as argv[0]; resolve the real binary so they match too.
+        if base.lower() in ("exe", "self.exe"):
+            try:
+                base = os.path.basename(os.readlink(f"/proc/{pid}/exe"))
+            except OSError:
+                continue
+        if base in TV_EXE_NAMES_POSIX:
+            pids.append(pid)
+    return pids
+
+
 def is_tv_running():
-    """True if a TradingView Desktop process is running."""
+    """True if a TradingView Desktop process is running (any platform).
+
+    Never matches merely because "TradingView" appears in some command line -
+    only the actual TradingView executable counts (see _linux_tv_pids).
+    """
     system = platform.system()
     try:
         if system == "Windows":
@@ -97,24 +150,55 @@ def is_tv_running():
                 capture_output=True, text=True, timeout=10,
             ).stdout
             return "TradingView.exe" in out
+        if system == "Linux":
+            return bool(_linux_tv_pids())
+        # macOS / other POSIX: anchor on the app-bundle executable so unrelated
+        # command lines cannot match.
         out = subprocess.run(
-            ["pgrep", "-f", "TradingView"], capture_output=True, text=True, timeout=10
+            ["pgrep", "-f", MAC_TV_PATTERN],
+            capture_output=True, text=True, timeout=10,
         )
         return out.returncode == 0
     except Exception:
         return False
 
 
-def kill_tv():
-    """Force-quit any running TradingView Desktop instance."""
+def kill_tv(graceful_wait=4.0):
+    """Force-quit any running TradingView Desktop instance.
+
+    On Linux only processes whose executable *is* TradingView are killed, never
+    this script or anything that merely mentions the name in its arguments.
+    """
     system = platform.system()
     try:
         if system == "Windows":
             subprocess.run(["taskkill", "/IM", "TradingView.exe", "/F"],
                            capture_output=True, text=True, timeout=15)
-        else:
-            subprocess.run(["pkill", "-f", "TradingView"],
-                           capture_output=True, text=True, timeout=15)
+            return
+        if system == "Linux":
+            self_pid = os.getpid()
+            for pid in _linux_tv_pids():
+                if pid == self_pid:
+                    continue
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except OSError:
+                    pass
+            deadline = time.monotonic() + graceful_wait
+            while time.monotonic() < deadline:
+                if not _linux_tv_pids():
+                    return
+                time.sleep(0.2)
+            for pid in _linux_tv_pids():
+                if pid == self_pid:
+                    continue
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+            return
+        subprocess.run(["pkill", "-f", MAC_TV_PATTERN],
+                       capture_output=True, text=True, timeout=15)
     except Exception as e:
         print(f"[warn] could not stop TradingView: {e}")
 
@@ -145,7 +229,7 @@ def _windows_store_tv_path():
 
 
 def find_tv_executable():
-    """Best-effort locate the TradingView Desktop executable."""
+    """Best-effort locate the TradingView Desktop executable (native installs)."""
     system = platform.system()
     candidates = []
     if system == "Windows":
@@ -172,10 +256,17 @@ def find_tv_executable():
             os.path.expanduser("~/Applications/TradingView.app/Contents/MacOS/TradingView"),
         ]
     else:
+        # Linux and other POSIX: PATH first, then the common install locations.
+        for name in TV_EXE_NAMES_POSIX:
+            found = shutil.which(name)
+            if found:
+                candidates.append(found)
         candidates += [
             "/opt/TradingView/tradingview",
             "/usr/bin/tradingview",
-            shutil.which("tradingview") or "",
+            "/usr/local/bin/tradingview",
+            "/snap/bin/tradingview",
+            os.path.expanduser("~/.local/bin/tradingview"),
         ]
     for c in candidates:
         if c and os.path.isfile(c):
@@ -183,30 +274,53 @@ def find_tv_executable():
     return None
 
 
-def launch_tv(exe, port):
+def find_tv_launcher(exe_path=None):
+    """Return (argv_prefix, kind) able to start TradingView Desktop.
+
+    The caller appends --remote-debugging-port=<port> to argv_prefix. `kind` is
+    one of: windows, mac, linux, flatpak, snap. Returns (None, None) when no
+    launcher could be found (caller then asks the user for --tv-path).
+    """
+    system = platform.system()
+    if system == "Darwin":
+        # `open -a TradingView` works without knowing the bundle path; an
+        # explicitly supplied --tv-path is launched directly instead.
+        if exe_path:
+            return [exe_path], "mac"
+        return ["open", "-a", "TradingView", "--args"], "mac"
+    exe = exe_path or find_tv_executable()
+    if system == "Windows":
+        return ([exe], "windows") if exe else (None, None)
+    # Linux / other POSIX
+    if exe:
+        return [exe], "linux"
+    # Sandboxed POSIX packages (no native binary on PATH).
+    if shutil.which("flatpak"):
+        return ["flatpak", "run", "com.tradingview.Desktop"], "flatpak"
+    if shutil.which("snap"):
+        return ["snap", "run", "tradingview"], "snap"
+    return None, None
+
+
+def launch_tv(argv_prefix, port):
     """Launch TradingView Desktop with the CDP debugging port enabled."""
     system = platform.system()
+    cmd = list(argv_prefix) + [f"--remote-debugging-port={port}"]
     try:
         if system == "Windows":
             # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP: survives this script.
             flags = 0x00000008 | 0x00000200
-            subprocess.Popen(
-                [exe, f"--remote-debugging-port={port}"],
-                creationflags=flags, close_fds=True,
-            )
-        elif system == "Darwin":
-            subprocess.Popen(
-                ["open", "-a", "TradingView", "--args", f"--remote-debugging-port={port}"]
-            )
+            subprocess.Popen(cmd, creationflags=flags, close_fds=True)
         else:
-            subprocess.Popen(
-                [exe, f"--remote-debugging-port={port}"], start_new_session=True
-            )
+            # start_new_session detaches it from this process group on POSIX, so
+            # the editor keeps running (and keeps CDP) after the scrape.
+            subprocess.Popen(cmd, start_new_session=True)
     except Exception as e:
         raise RuntimeError(
-            f"Failed to launch TradingView ({exe}): {e}. "
-            f"If it is a Store/MSIX install, pass --tv-path with the full path."
+            f"Failed to launch TradingView ({' '.join(cmd)}): {e}. "
+            f"Pass --tv-path with the full path to the executable."
         )
+    return cmd
 
 
 def ensure_tv_cdp(port, exe_path=None, kill_existing=True, launch_wait=30.0):
@@ -226,14 +340,15 @@ def ensure_tv_cdp(port, exe_path=None, kill_existing=True, launch_wait=30.0):
         kill_tv()
         time.sleep(3)
 
-    exe = exe_path or find_tv_executable()
-    if not exe:
+    argv_prefix, kind = find_tv_launcher(exe_path)
+    if not argv_prefix:
         raise RuntimeError(
-            "TradingView Desktop executable not found. Pass "
-            '--tv-path "C:\\path\\to\\TradingView.exe".'
+            "TradingView Desktop executable not found. Pass --tv-path with the "
+            "full path to the TradingView binary/executable."
         )
-    print(f"[i] launching: {exe} --remote-debugging-port={port}")
-    launch_tv(exe, port)
+    cmd = list(argv_prefix) + [f"--remote-debugging-port={port}"]
+    print(f"[i] launching ({kind}): {' '.join(cmd)}")
+    launch_tv(argv_prefix, port)
 
     deadline = time.monotonic() + launch_wait
     while time.monotonic() < deadline:
@@ -243,7 +358,7 @@ def ensure_tv_cdp(port, exe_path=None, kill_existing=True, launch_wait=30.0):
         time.sleep(1)
     raise RuntimeError(
         f"TradingView was launched but CDP port {port} did not open within "
-        f"{launch_wait:.0f}s. For a Store/MSIX install, pass --tv-path."
+        f"{launch_wait:.0f}s. For a Store/MSIX/sandboxed install, pass --tv-path."
     )
 
 
@@ -818,8 +933,8 @@ def main():
     ap.add_argument("--tv-port", type=int, default=DEFAULT_CDP_PORT,
                     help="CDP debugging port (default 9222)")
     ap.add_argument("--tv-path", default=None,
-                    help="explicit path to TradingView.exe (needed for some "
-                         "Store/MSIX installs)")
+                    help="explicit path to the TradingView Desktop executable "
+                         "(needed for some Store/MSIX or sandboxed installs)")
     ap.add_argument("--tv-autolaunch", action=argparse.BooleanOptionalAction,
                     default=True,
                     help="launch TradingView Desktop with CDP if not already "
