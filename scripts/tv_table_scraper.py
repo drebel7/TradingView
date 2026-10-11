@@ -522,6 +522,23 @@ def parse_metric(text):
         return None
 
 
+def is_header_row(cells):
+    """True for a table's header row.
+
+    Detected either by a 'sig' label in the first cell (ETSB/PT/WS) or by the
+    performance header in the second cell (e.g. the optimizer's 'low: v(OVCFR)' /
+    'perf 41 0.4' row), so no bogus signal row is written.
+    """
+    if not cells:
+        return True
+    sig = (cells[0] or "").strip()
+    if sig in ("", "sig"):
+        return True
+    if len(cells) > 1 and str(cells[1] or "").strip().lower().startswith("perf"):
+        return True
+    return False
+
+
 def row_to_record(cells):
     """Map a raw table row (list of cell strings) to a metric record.
 
@@ -681,9 +698,9 @@ def append_rows(path, group, symbol, rows):
     with open(path, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         for cells in rows:
+            if is_header_row(cells):
+                continue
             rec = row_to_record(cells)
-            if rec["sig"] in ("", "sig"):
-                continue  # skip empty / header rows
             w.writerow([group, symbol] + [rec[c] for c in CSV_COLUMNS[2:]])
 
 
@@ -750,10 +767,7 @@ async def main_async(args):
                            + [""] * (len(CSV_COLUMNS) - 4) + [str(err)])
                     csv.writer(f).writerow(row)
             else:
-                n_sig = sum(
-                    1 for c in rows
-                    if ((c[0] if c else "") or "").strip() not in ("", "sig")
-                )
+                n_sig = sum(1 for c in rows if not is_header_row(c))
                 append_rows(out_csv, group, symbol, rows)
                 ok += 1
                 print(f"OK ({n_sig} signals) [{dt:.1f}s]")
