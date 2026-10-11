@@ -401,7 +401,14 @@ class CDP:
         self.ws = ws
         self._id = 0
 
-    async def evaluate(self, expression, await_promise=False):
+    async def evaluate(self, expression, await_promise=False, timeout=20.0):
+        """Evaluate JS over CDP, bounded by `timeout` seconds.
+
+        A stalled/blocked CDP websocket would otherwise block in recv() forever
+        (the per-symbol timeout cannot fire while blocked inside an await), which
+        hangs the whole scrape. Bounding each send/recv turns such a stall into a
+        per-call timeout the scrape loop can recover from.
+        """
         self._id += 1
         mid = self._id
         msg = {
@@ -413,9 +420,18 @@ class CDP:
                 "awaitPromise": await_promise,
             },
         }
-        await self.ws.send(json.dumps(msg))
+        await asyncio.wait_for(self.ws.send(json.dumps(msg)), timeout=timeout)
+        deadline = time.monotonic() + timeout
         while True:
-            raw = await self.ws.recv()
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"CDP evaluate timed out after {timeout}s (stalled websocket)")
+            try:
+                raw = await asyncio.wait_for(self.ws.recv(), timeout=remaining)
+            except asyncio.TimeoutError:
+                raise TimeoutError(
+                    f"CDP evaluate timed out after {timeout}s (stalled websocket)")
             resp = json.loads(raw)
             if resp.get("id") == mid:
                 if "error" in resp:
