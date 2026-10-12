@@ -44,6 +44,7 @@ Usage
       --indicator "early trend strong breakout" \
       [--resolution D] [--min-rows 5] \
       [--limit 10] [--start 0] [--timeout 25] [--settle 0.6] \
+      [--retries 2] \
       [--tv-port 9222] [--tv-path PATH] [--no-tv-autolaunch]
 
 The watchlist format: comma separated items; group separators start with "###".
@@ -883,6 +884,7 @@ async def main_async(args):
 
     ok = 0
     fail = 0
+    failed_symbols = []  # list of (idx, group, symbol) for retry
 
     async with connect(ws_url, max_size=None, open_timeout=15) as ws:
         cdp = CDP(ws)
@@ -919,6 +921,7 @@ async def main_async(args):
 
             if rows is None:
                 fail += 1
+                failed_symbols.append((idx, group, symbol, err))
                 print(f"FAIL ({err}) [{dt:.1f}s]")
                 # record a NO_DATA marker row so gaps are visible
                 with open(out_csv, "a", newline="", encoding="utf-8") as f:
@@ -941,7 +944,56 @@ async def main_async(args):
                 "out_csv": str(out_csv),
             }, indent=2), encoding="utf-8")
 
+        # ── Retry pass for failed symbols ──────────────────────────────────
+        if failed_symbols and args.retries > 0:
+            for retry in range(1, args.retries + 1):
+                if not failed_symbols:
+                    break
+                print(f"\n[i] retry pass {retry}/{args.retries} — {len(failed_symbols)} failures to retry")
+                still_failed = []
+                for idx, group, symbol, err in failed_symbols:
+                    label = f"[retry:{retry}] {symbol} ({group})"
+                    sys.stdout.write(label + " ... ")
+                    sys.stdout.flush()
+
+                    t0 = time.monotonic()
+                    rows, err = await scrape_symbol(
+                        cdp, symbol, args.indicator, args.timeout, args.settle, args.min_rows
+                    )
+                    dt = time.monotonic() - t0
+
+                    if rows is None:
+                        still_failed.append((idx, group, symbol, err))
+                        print(f"FAIL ({err}) [{dt:.1f}s]")
+                    else:
+                        # Remove the NO_DATA row written earlier and write real data
+                        n_sig = sum(1 for c in rows if not is_header_row(c))
+                        append_rows(out_csv, group, symbol, rows)
+                        ok += 1
+                        fail -= 1  # no longer a failure
+                        print(f"OK ({n_sig} signals) [{dt:.1f}s]")
+
+                failed_symbols = still_failed
+                if not failed_symbols:
+                    print("[i] all retries successful")
+                    break
+
+            # Final checkpoint
+            progress_path.write_text(json.dumps({
+                "last_index": end - 1 if end > start else start,
+                "last_symbol": symbols[-1][1] if symbols else "",
+                "ok": ok,
+                "fail": fail,
+                "retries_used": args.retries if failed_symbols else min(args.retries, 1),
+                "updated": datetime.now().isoformat(timespec="seconds"),
+                "out_csv": str(out_csv),
+            }, indent=2), encoding="utf-8")
+
     print(f"\n[done] processed={ok+fail} ok={ok} fail={fail}")
+    if failed_symbols:
+        print(f"[done] {len(failed_symbols)} symbols still failed:")
+        for _, group, symbol, err in failed_symbols:
+            print(f"    {group}:{symbol} — {err}")
     print(f"[done] CSV: {out_csv}")
 
 
@@ -989,6 +1041,8 @@ def main():
                          "(default: on)")
     ap.add_argument("--tv-launch-wait", type=float, default=30.0,
                     help="seconds to wait for CDP after launching (default 30)")
+    ap.add_argument("--retries", type=int, default=1,
+                    help="number of retry passes for failed symbols (default 1)")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
