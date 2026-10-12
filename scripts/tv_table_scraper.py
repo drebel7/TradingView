@@ -514,6 +514,31 @@ JS_GET_INTERVAL = (
 )
 
 
+# Detect and click the "Connect" button that appears when TradingView is running
+# but the user is not logged in (e.g. logged in on another machine).
+# The button is inside a dialog/modal overlay; we look for text "Connect" and
+# click the nearest clickable ancestor.
+JS_CLICK_CONNECT = r"""
+(function(){
+  try{
+    var btns = document.querySelectorAll('button, [role="button"], .Button, [class*="connect"], [class*="Connect"]');
+    for(var i=0;i<btns.length;i++){
+      var b = btns[i];
+      var text = (b.textContent || b.innerText || '').trim();
+      if(text.indexOf('Connect') === 0 || text === 'connect') {
+        b.click();
+        return JSON.stringify({ok:true, found:true, text:text});
+      }
+    }
+    // Also try aria-label / title
+    var els = document.querySelectorAll('[aria-label*="Connect"], [title*="Connect"]');
+    for(var j=0;j<els.length;j++){ els[j].click(); return JSON.stringify({ok:true, found:true, text:els[j].getAttribute('aria-label')||els[j].getAttribute('title')}); }
+    return JSON.stringify({ok:true, found:false});
+  }catch(e){ return JSON.stringify({ok:false, err:String(e)}); }
+})()
+"""
+
+
 # Hide every study except the one whose name starts with __INDICATOR__, so only
 # the scraped indicator's Pine table is on the chart (overlapping tables from
 # other studies would otherwise break the cell read / clutter the view).
@@ -587,6 +612,28 @@ async def show_only_indicator(cdp, indicator):
         return json.loads(raw)
     except Exception as e:
         return {"ok": False, "err": str(e)}
+
+
+async def click_connect_button(cdp, max_attempts=5, interval=1.0):
+    """Detect and click the "Connect" button if TradingView is not logged in.
+
+    The button appears in a dialog overlay when the user is logged in on
+    another machine. Returns True if the button was found and clicked,
+    False otherwise.
+    """
+    for attempt in range(1, max_attempts + 1):
+        try:
+            raw = await cdp.evaluate(JS_CLICK_CONNECT)
+            result = json.loads(raw)
+            if result.get("ok") and result.get("found"):
+                print(f"[i] Connect button clicked (attempt {attempt}): {result.get('text', '')}")
+                # Wait a moment for the login dialog to process
+                await asyncio.sleep(2)
+                return True
+        except Exception as e:
+            print(f"[warn] connect button check attempt {attempt}: {e}")
+        await asyncio.sleep(interval)
+    return False
 
 
 # ----------------------------------------------------------------------------
@@ -841,6 +888,11 @@ async def main_async(args):
         cdp = CDP(ws)
         if not await wait_chart_ready(cdp, timeout=90):
             print("[warn] chart did not report ready within 90s - continuing anyway")
+
+        # If TradingView is not logged in, there will be a "Connect" button
+        # that blocks chart interaction. Detect and click it.
+        await click_connect_button(cdp)
+
         if args.resolution:
             ok_res = await set_resolution(cdp, args.resolution)
             print(f"[i] resolution set to '{args.resolution}': {ok_res}")
