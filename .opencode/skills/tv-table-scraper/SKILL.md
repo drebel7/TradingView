@@ -64,9 +64,9 @@ over CDP (same transport the `tradingview-desktop` MCP server uses) and, per sym
 4. reads Pine table cells from
    `study.graphics()._primitivesCollection.dwgtablecells.get('tableCells')._primitivesDataById`
    (each cell has `row`, `col`, `t`), groups by row/col and keeps **all** columns
-5. appends one CSV row per signal: col 1 (the perf string `x% (a/b) y%`) is split
-   into `succ/total/success_pct/avg_gain`, and the extended metric columns
-   (win%, N, avgR, PF, maxDD, score, winR, lossR) go to their own fields
+5. appends one CSV row per signal with the metric columns
+   (win%, N, avgR, PF, maxDD, score, winR, lossR); a legacy leading perf column
+   (`x% (a/b) y%`), if present, is detected from the header and skipped
    (incremental, crash-safe)
 
 > The scraped indicator must already be added to the chart **and visible** (step 1
@@ -145,32 +145,33 @@ after a separator belongs to that group. Symbols look like `GPW:AQU`.
 
 ## Output CSV
 
-`analysis/<tag>_<YYYYMMDD>.csv` (schema v2 — multi-column tables):
+`analysis/<tag>_<YYYYMMDD>.csv` (schema v3 — multi-column tables):
 
 ```
-group,symbol,sig,succ,total,success_pct,avg_gain,win_pct,n,avg_r,pf,max_dd,score,sum_win_r,sum_loss_r,raw
-NEWCONNECT,GPW:AQU,et3sb,26,51,51.0,1.2,45.1,51,0.45,1.88,6.55,1.6,12.3,-4.5,et3sb | 51% (26/51) 1.2% | 45.1 | 51 | 0.45 | 1.88 | 6.55 | 1.6 | 12.3 | -4.5
-NEWCONNECT,GPW:AQU,et4sb,,,,,,,,,,,,,et4sb | - | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0
+group,symbol,sig,win_pct,n,avg_r,pf,max_dd,score,sum_win_r,sum_loss_r,raw
+NEWCONNECT,GPW:AQU,et3sb,45.1,51,0.45,1.88,6.55,1.6,12.3,-4.5,et3sb | 45.1 | 51 | 0.45 | 1.88 | 6.55 | 1.6 | 12.3 | -4.5
+NEWCONNECT,GPW:AQU,et4sb,,,,,,,,,et4sb | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0
 ```
 
-- Column 1 of the table is the legacy perf string `x% (a/b) y%` → `succ`, `total`,
-  `success_pct`, `avg_gain` (a legacy trailing score, `x% (a/b) y% z`, is still
-  accepted and used only if the extended `score` column is absent).
-- Columns 2–9 map to `win_pct`, `n`, `avg_r`, `pf`, `max_dd`, `score`,
-  `sum_win_r`, `sum_loss_r` (gross winning/losing R).
+- The signal name is column 1; the metrics follow in order:
+  `win_pct`, `n`, `avg_r`, `pf`, `max_dd`, `score`, `sum_win_r`, `sum_loss_r`
+  (gross winning/losing R).
+- `n` is the signal count and gates the row: a signal that never occurred has
+  `n = 0`, so every metric is left blank.
 - `pf` in the table is shown as the infinity sign when the signal has **no losing
   trades**; that cell is written blank in the CSV (so it is not confused with a
   real ratio — a literal `100` would mean "100:1", not "no losses").
-- `raw` mirrors the whole table row joined with ` | `. `-` in the perf cell =
-  signal never occurred; then every metric is left blank.
-- On a plain 2-column table the extended fields stay blank and only the
-  perf-derived fields are filled (the scraper still works for any indicator).
+- A legacy leading `perf` column (`x% (a/b) y%`), still present in older tables
+  (e.g. ridingVwapOptimizer), is detected from the header and skipped so the
+  metrics stay aligned; its values are no longer exported.
+- `raw` mirrors the whole table row joined with ` | `.
 - A symbol that could not be read gets a `NO_DATA` row (reason in `raw`).
 
 A progress checkpoint is written to `analysis/.<tag>_progress.json`.
 
-> Schema v2 changes the header marker, so an older (v1) CSV with the same name is
-> refused by the append guard — remove/rename it or use a fresh `--tag`/date.
+> Schema v3 changes the header marker and drops the perf-derived columns
+> (`succ/total/success_pct/avg_gain`), so an older (v1/v2) CSV with the same name
+> is refused by the append guard — remove/rename it or use a fresh `--tag`/date.
 
 ## Aggregating later
 
@@ -184,13 +185,11 @@ python3 scripts/summarize_signals.py \
 
 Per signal (`sig`), across all symbols it computes:
 
-- cumulative success rate = `sum(succ) / sum(total)` over rows with `total > 0`
-- average gain (weighted) = `sum(avg_gain * total) / sum(total)`
 - cumulative win rate = `sum(win_pct * n) / sum(n)` over rows with `n > 0`
 - average R (weighted) = `sum(avg_r * n) / sum(n)`
 - **pooled profit factor** = `sum(sum_win_r) / |sum(sum_loss_r)|` (blank = no
   losing trades). Falls back to an n-weighted mean of the per-symbol `pf` column
-  for older CSVs that lack `sum_win_r`/`sum_loss_r`.
+  for CSVs that lack `sum_win_r`/`sum_loss_r`.
 - max drawdown = n-weighted mean of `max_dd`
 - score = mean and sum of the per-symbol `score`
 - **score_pos_pct** = % of occurring symbols whose per-symbol `score` > 0
@@ -199,7 +198,7 @@ Per signal (`sig`), across all symbols it computes:
   the pooled weighted `avg_r`)
 - **median_pf** = median of per-symbol profit factor (from gross win/loss R,
   losing-trade symbols only; outlier-robust, contrasts with the pooled `pf`)
-- occurrences = `sum(total)`, symbols covered = distinct `symbol` with `total>0`
+- occurrences = `sum(n)`, symbols covered = distinct `symbol` with `n > 0`
 
 ## Notes / gotchas
 
@@ -212,10 +211,10 @@ Per signal (`sig`), across all symbols it computes:
   row is recorded; increase `--timeout` for slow feeds.
 - The stability gate requires at least `--min-rows` rows; if an indicator's
   table is shorter, lower `--min-rows` (otherwise every symbol times out).
-- All table columns are captured. Col 1 (perf) becomes
-  `succ/total/success_pct/avg_gain`; cols 2–7 become
-  `win_pct/n/avg_r/pf/max_dd/score` when present. Any other indicator using
-  `table.new` still works — a 2-column table just leaves the extended fields blank.
+- All table columns are captured. The signal name is column 1, followed by
+  `win_pct/n/avg_r/pf/max_dd/score/sum_win_r/sum_loss_r`. Any other indicator
+  using `table.new` still works — a legacy perf column is skipped and a 2-column
+  table just leaves the metric fields blank.
 - Reusing for another indicator: change `--indicator` (matched by name prefix),
   `--tag`, and `--resolution`. Any indicator using `table.new` works.
 - TradingView may canonicalize the exchange: e.g. `NASDAQ:NVDA` resolves to

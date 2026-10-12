@@ -5,16 +5,14 @@ summarize_signals.py
 Aggregate one or more tv_table_scraper CSV files per signal (`sig`), across all
 symbols, and write a tidy summary CSV.
 
-Input columns (see tv_table_scraper.py, schema v2):
-    group,symbol,sig,succ,total,success_pct,avg_gain,win_pct,n,avg_r,pf,max_dd,
-    score,sum_win_r,sum_loss_r,raw
+Input columns (see tv_table_scraper.py, schema v3):
+    group,symbol,sig,win_pct,n,avg_r,pf,max_dd,score,sum_win_r,sum_loss_r,raw
 
-Per signal it computes (ignoring rows where the signal did not occur):
+Per signal it computes (ignoring rows where the signal did not occur, i.e.
+n<=0):
 
-    symbols        distinct symbols with total>0
-    occurrences    sum(total)
-    success_pct    100 * sum(succ) / sum(total)                 (pooled)
-    avg_gain       sum(avg_gain * total) / sum(total)           (pooled)
+    symbols        distinct symbols with n>0
+    occurrences    sum(n)
     win_pct        sum(win_pct * n) / sum(n)                    (pooled)
     avg_r          sum(avg_r * n) / sum(n)                      (pooled, R-weighted)
     pf             pooled profit factor = gross_win_r / |gross_loss_r|
@@ -81,26 +79,16 @@ def aggregate(records):
             "sig": sig,
             "symbols": 0,
             "occ_total": 0.0,
-            "sum_total": 0.0, "sum_succ": 0.0, "sum_gain_total": 0.0,
             "sum_n": 0.0, "sum_win_n": 0.0, "sum_r_n": 0.0,
             "sum_pf_n": 0.0, "pf_n": 0.0, "sum_dd_n": 0.0,
             "gross_win_r": 0.0, "gross_loss_r": 0.0, "has_gross": False,
             "score_sum": 0.0, "score_cnt": 0, "score_pos": 0,
             "avg_r_list": [], "pf_list": [],
         })
-        total = fnum(r.get("total"))
         n = fnum(r.get("n"))
-        if total and total > 0:
-            a["symbols"] += 1
-            a["occ_total"] += total
-            a["sum_total"] += total
-            succ = fnum(r.get("succ"))
-            if succ is not None:
-                a["sum_succ"] += succ
-            gain = fnum(r.get("avg_gain"))
-            if gain is not None:
-                a["sum_gain_total"] += gain * total
         if n and n > 0:
+            a["symbols"] += 1
+            a["occ_total"] += n
             a["sum_n"] += n
             win = fnum(r.get("win_pct"))
             if win is not None:
@@ -135,7 +123,7 @@ def aggregate(records):
 
     out = []
     for a in agg.values():
-        st, sn = a["sum_total"], a["sum_n"]
+        sn = a["sum_n"]
         if a["has_gross"]:
             pf = round(a["gross_win_r"] / abs(a["gross_loss_r"]), 2) if a["gross_loss_r"] < 0 else ""
         else:
@@ -145,8 +133,6 @@ def aggregate(records):
             "sig": a["sig"],
             "symbols": a["symbols"],
             "occurrences": int(a["occ_total"]),
-            "success_pct": round(100.0 * a["sum_succ"] / st, 1) if st else "",
-            "avg_gain": round(a["sum_gain_total"] / st, 2) if st else "",
             "win_pct": round(a["sum_win_n"] / sn, 1) if sn else "",
             "avg_r": round(a["sum_r_n"] / sn, 3) if sn else "",
             "pf": pf,
@@ -163,8 +149,8 @@ def aggregate(records):
     return out
 
 
-COLUMNS = ["indicator", "sig", "symbols", "occurrences", "success_pct", "avg_gain",
-           "win_pct", "avg_r", "pf", "max_dd", "score_mean", "score_sum",
+COLUMNS = ["indicator", "sig", "symbols", "occurrences", "win_pct", "avg_r",
+           "pf", "max_dd", "score_mean", "score_sum",
            "score_pos_pct", "median_avg_r", "median_pf", "gross_win_r",
            "gross_loss_r"]
 

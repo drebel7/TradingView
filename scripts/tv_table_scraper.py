@@ -13,12 +13,12 @@ server uses). For each symbol it:
   1. calls  _exposed_chartWidgetCollection.setSymbol(<symbol>)
   2. waits until the chart symbol matches AND the indicator table is stable
   3. reads the Pine `table.new` cells from the study's graphics primitives
-     (every column; multi-column tables like the ETSB 8-column perf table are
-     captured in full)
-  4. appends one CSV row per signal, with the perf string split into
-     succ/total/success_pct/avg_gain and the extended metrics
+     (every column; multi-column tables are captured in full)
+  4. appends one CSV row per signal, with the metrics
      (win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r) plus the
-     raw row
+     raw row. A legacy leading perf column ("x% (a/b) y%"), if present, is
+     detected from the header and skipped so the metrics stay aligned, but is
+     no longer exported.
 
 On startup (unless --no-solo-visibility) it also hides every study on the chart
 except the scraped indicator, so Pine tables from other indicators do not
@@ -56,7 +56,6 @@ import glob
 import json
 import os
 import platform
-import re
 import shutil
 import signal
 import subprocess
@@ -593,50 +592,31 @@ async def show_only_indicator(cdp, indicator):
 # ----------------------------------------------------------------------------
 # Parsing
 # ----------------------------------------------------------------------------
-# Column 1 ("perf") of the ETSB table: "x% (a/b) y%".
-# Legacy tables appended a single-number score ("x% (a/b) y% z") - the trailing
-# score is still accepted (optional group) for backward compatibility.
-# Counts may use a thousands separator (e.g. "1,437"), so commas are allowed.
-PERF_RE = re.compile(
-    r"^\s*([\d.]+)%\s*\(([\d,]+)\s*/\s*([\d,]+)\)\s+([+-]?[\d.]+)%(?:\s+(-?\d+))?\s*$"
-)
-
-# Extended metric columns of the ETSB table (positions after "perf"):
-#   2 win%   3 N   4 avgR   5 PF   6 maxDD   7 score   8 gross win R   9 gross loss R
-EXT_METRIC_COLUMNS = [
-    ("win_pct", 2),
-    ("n", 3),
-    ("avg_r", 4),
-    ("pf", 5),
-    ("max_dd", 6),
-    ("score", 7),
-    ("sum_win_r", 8),
-    ("sum_loss_r", 9),
+# Extended metric columns of the ETSB table, in order, following the signal
+# name column:
+#   win%   N   avgR   PF   maxDD   score   gross win R   gross loss R
+# Legacy tables (e.g. ridingVwapOptimizer) insert a "perf" column
+# ("x% (a/b) y%") right after the signal name; it is detected from the header
+# and skipped so the metrics still line up. It is no longer exported.
+EXT_METRIC_NAMES = [
+    "win_pct", "n", "avg_r", "pf", "max_dd", "score", "sum_win_r", "sum_loss_r",
 ]
 
 # Full CSV schema.
-CSV_COLUMNS = [
-    "group", "symbol", "sig", "succ", "total", "success_pct", "avg_gain",
-    "win_pct", "n", "avg_r", "pf", "max_dd", "score", "sum_win_r", "sum_loss_r",
-    "raw",
-]
+CSV_COLUMNS = ["group", "symbol", "sig"] + EXT_METRIC_NAMES + ["raw"]
 
 
-def parse_perf(text):
-    """Parse 'x% (a/b) y%' (or legacy 'x% (a/b) y% z') -> dict, or None for '-'."""
-    text = (text or "").strip()
-    if text == "-" or text == "":
-        return None
-    m = PERF_RE.match(text)
-    if not m:
-        return None
-    return {
-        "success_pct": float(m.group(1)),
-        "succ": int(m.group(2).replace(",", "")),
-        "total": int(m.group(3).replace(",", "")),
-        "avg_gain": float(m.group(4)),
-        "legacy_score": int(m.group(5)) if m.group(5) is not None else None,
-    }
+def detect_metric_base(rows):
+    """Return the column index of the first extended metric for a table.
+
+    Legacy tables carry a perf column at index 1 (its header cell starts with
+    "perf"), so the metrics start at index 2; tables without it (e.g. the
+    current ETSB layout) start at index 1.
+    """
+    for cells in rows:
+        if len(cells) > 1 and str(cells[1] or "").strip().lower().startswith("perf"):
+            return 2
+    return 1
 
 
 def parse_metric(text):
@@ -670,33 +650,29 @@ def is_header_row(cells):
     return False
 
 
-def row_to_record(cells):
+def row_to_record(cells, base):
     """Map a raw table row (list of cell strings) to a metric record.
 
-    The first column is the signal name, the second is the perf string
-    ('x% (a/b) y%'); any further columns are the extended metrics (win%, N,
-    avgR, PF, maxDD, score). Rows for a signal that never occurred ('-') keep
-    every metric blank; the full row is always preserved in 'raw'.
+    The first column is the signal name; `base` is the index of the first
+    extended metric (see detect_metric_base), so a legacy perf column between
+    them is skipped. The signal count (`n`) gates the row: a signal that never
+    occurred has n=0, so every metric is left blank. The full row is always
+    preserved in 'raw'.
     """
     cells = [("" if c is None else str(c)) for c in cells]
     rec = {c: "" for c in CSV_COLUMNS}
     rec["sig"] = (cells[0].strip() if cells else "")
     rec["raw"] = " | ".join(cells)
-    perf = cells[1] if len(cells) > 1 else ""
-    p = parse_perf(perf)
-    if not p or p["total"] <= 0:
+    n_idx = base + EXT_METRIC_NAMES.index("n")
+    n_val = parse_metric(cells[n_idx] if len(cells) > n_idx else "")
+    if n_val is None or n_val <= 0:
         return rec
-    rec["succ"] = p["succ"]
-    rec["total"] = p["total"]
-    rec["success_pct"] = p["success_pct"]
-    rec["avg_gain"] = p["avg_gain"]
-    for name, idx in EXT_METRIC_COLUMNS:
+    for i, name in enumerate(EXT_METRIC_NAMES):
+        idx = base + i
         val = parse_metric(cells[idx] if len(cells) > idx else "")
         if val is None:
             continue
         rec[name] = int(val) if name == "n" else val
-    if rec["score"] == "" and p.get("legacy_score") is not None:
-        rec["score"] = p["legacy_score"]
     return rec
 
 
@@ -794,13 +770,13 @@ async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_ro
     return None, f"timeout (last={last_state})"
 
 
-HEADER_MARKER = "# TradingView table scraper results v2"
+HEADER_MARKER = "# TradingView table scraper results v3"
 
 
 def write_csv_header(path, indicator, watchlist):
     if path.exists() and path.stat().st_size > 0:
         # Refuse to append to a file that was not produced by this scraper
-        # (schema v2 - older files without the extended metric columns fail here).
+        # (schema v3 - older files with the perf-derived columns fail here).
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             first = f.readline().strip()
         if first != HEADER_MARKER:
@@ -816,22 +792,22 @@ def write_csv_header(path, indicator, watchlist):
         f.write(f"# watchlist: {watchlist}\n")
         f.write(f"# generated: {datetime.now().isoformat(timespec='seconds')}\n")
         f.write("# columns: " + ",".join(CSV_COLUMNS) + "\n")
-        f.write("# perf = 'x% (a/b) y%' (success rate a/b and avg return y%); "
-                "'-' means the signal did not occur for that symbol\n")
-        f.write("# extended metrics: win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r "
+        f.write("# metrics: win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r "
                 "(blank when the signal did not occur)\n")
+        f.write("# a legacy leading 'perf' column ('x% (a/b) y%'), if present, is skipped\n")
         f.write("# pf is shown as the infinity sign and left blank here when there are no losing trades\n")
         w = csv.writer(f)
         w.writerow(CSV_COLUMNS)
 
 
 def append_rows(path, group, symbol, rows):
+    base = detect_metric_base(rows)
     with open(path, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         for cells in rows:
             if is_header_row(cells):
                 continue
-            rec = row_to_record(cells)
+            rec = row_to_record(cells, base)
             w.writerow([group, symbol] + [rec[c] for c in CSV_COLUMNS[2:]])
 
 
