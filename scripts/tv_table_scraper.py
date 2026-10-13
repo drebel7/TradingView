@@ -22,8 +22,14 @@ server uses). For each symbol it:
 
 On startup (unless --no-solo-visibility) it also hides every study on the chart
 except the scraped indicator, so Pine tables from other indicators do not
-overlap the one being read. The scraped indicator must already be added and its
-performance table enabled.
+overlap the one being read. The scraped indicator must already be added.
+
+Right after that it also prepares the indicator's inputs (unless
+--no-set-input-defaults): every script input is reset to its script default
+(best effort), and the table-related booleans are forced so the performance
+table is complete and shows all signals - "show table" ON, "show only good
+sigs." OFF and "use extended quality gate" OFF. The study is then given time to
+recompute before the first symbol is scraped.
 
 If TradingView Desktop is not reachable over CDP, the script launches it with
 --remote-debugging-port (restarting it first if it is running without CDP), then
@@ -44,7 +50,7 @@ Usage
       --indicator "early trend strong breakout" \
       [--resolution D] [--min-rows 5] \
       [--limit 10] [--start 0] [--timeout 25] [--settle 0.6] \
-      [--retries 2] \
+      [--retries 2] [--no-set-input-defaults] \
       [--tv-port 9222] [--tv-path PATH] [--no-tv-autolaunch]
 
 The watchlist format: comma separated items; group separators start with "###".
@@ -571,6 +577,109 @@ JS_SET_VISIBILITY = r"""
 """
 
 
+# Inputs that must be forced on the scraped indicator so its performance table
+# is complete and every signal row is present:
+#   "show table"                    -> ON   (the table must be visible)
+#   "show only good sigs."          -> OFF  (keep all signals, not just the good ones)
+#   "use extended quality gate"     -> OFF  (do not filter signals out)
+# Keys are normalized input titles: lowercase, collapsed spaces, no trailing dot.
+INPUT_OVERRIDES = {
+    "show table": True,
+    "show only good sigs": False,
+    "use extended quality gate": False,
+}
+
+
+# Set the scraped study's inputs in one pass: optionally reset every script
+# input to its script default (best effort), then apply the forced overrides
+# above (matched by normalized title). Only inputs whose id starts with "in_"
+# are touched, so pineId/pineVersion/pineFeatures and the encoded source are
+# left alone. Values are applied through the study's properties API
+# (study._properties.childs().inputs.child(id).setValue), which is what the
+# TradingView settings dialog uses, so the study recomputes automatically.
+JS_SET_INPUTS = r"""
+(function(){
+  try{
+    var c = window._exposed_chartWidgetCollection;
+    if(!c) return JSON.stringify({ok:false, err:'no chartWidgetCollection'});
+    var w = c.activeChartWidget; if(w && w._value!==undefined) w=w._value;
+    var ds = w.model().dataSources();
+    var target = "__INDICATOR__";
+    var study=null;
+    for(var i=0;i<ds.length;i++){
+      try{ var nm=(ds[i].name&&ds[i].name())||''; if(nm.indexOf(target)===0){study=ds[i];break;} }catch(e){}
+    }
+    if(!study) return JSON.stringify({ok:false, err:'target study not found'});
+    var mi = study.metaInfo && study.metaInfo();
+    if(!mi || !mi.inputs) return JSON.stringify({ok:false, err:'no metaInfo inputs'});
+    var propsRoot = study._properties && study._properties.childs && study._properties.childs().inputs;
+    if(!propsRoot) return JSON.stringify({ok:false, err:'no properties.inputs'});
+
+    var overrides = __OVERRIDES__;
+    var reset = __RESET__;
+    var safeTypes = {bool:1, integer:1, float:1, text:1};
+    var applied = [], skipped = [], overrideN = 0;
+
+    function norm(s){
+      return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').replace(/[.\s]+$/,'').trim();
+    }
+
+    for(var j=0;j<mi.inputs.length;j++){
+      var inp = mi.inputs[j];
+      var id = inp.id || '';
+      if(id.indexOf('in_') !== 0) continue;   // skip pineId/pineVersion/pineFeatures/ILScript
+      var val, isOverride = false;
+      var nname = norm(inp.name);
+      if(Object.prototype.hasOwnProperty.call(overrides, nname)){
+        val = overrides[nname]; isOverride = true;
+      } else if(reset && inp.defval !== undefined && safeTypes[inp.type]){
+        val = inp.defval;
+      } else {
+        continue;
+      }
+      var prop = null;
+      try{ prop = propsRoot.child(id); }catch(e){ prop = null; }
+      if(!prop || typeof prop.setValue !== 'function'){ skipped.push(id); continue; }
+      try{
+        prop.setValue(val);
+        if(isOverride) overrideN++;
+        applied.push(id);
+      }catch(e){ skipped.push(id + ':' + e); }
+    }
+    return JSON.stringify({ok:true, study:(study.name&&study.name())||'',
+                           applied:applied.length, overrides:overrideN,
+                           skipped:skipped.length});
+  }catch(e){ return JSON.stringify({ok:false, err:String(e)}); }
+})()
+"""
+
+
+# Cheap signature of the target study's table (cell count), used to wait until
+# the study finished recomputing after its inputs were changed.
+JS_TABLE_SIG = r"""
+(function(){
+  try{
+    var c = window._exposed_chartWidgetCollection;
+    if(!c) return JSON.stringify({ready:false});
+    var w = c.activeChartWidget; if(w && w._value!==undefined) w=w._value;
+    var ds = w.model().dataSources();
+    var target = "__INDICATOR__";
+    var study=null;
+    for(var i=0;i<ds.length;i++){
+      try{ var nm=(ds[i].name&&ds[i].name())||''; if(nm.indexOf(target)===0){study=ds[i];break;} }catch(e){}
+    }
+    if(!study) return JSON.stringify({ready:false});
+    var cells=0;
+    try{
+      var tc = study.graphics()._primitivesCollection.dwgtablecells.get('tableCells');
+      if(tc) cells = tc._primitivesDataById.size;
+    }catch(e){}
+    return JSON.stringify({ready:true, cells:cells});
+  }catch(e){ return JSON.stringify({ready:false, err:String(e)}); }
+})()
+"""
+
+
 def _norm_res(r):
     r = str(r).strip().upper()
     if r in ("D", "W", "M"):
@@ -613,6 +722,53 @@ async def show_only_indicator(cdp, indicator):
         return json.loads(raw)
     except Exception as e:
         return {"ok": False, "err": str(e)}
+
+
+async def configure_inputs(cdp, indicator, reset_defaults=True, overrides=None):
+    """Set the scraped indicator's inputs before scraping.
+
+    Resets every script input to its default (best effort) when
+    `reset_defaults` is set, then applies `overrides` (matched by normalized
+    input title) so the performance table is complete: "show table" on,
+    "show only good sigs." and "use extended quality gate" off. Returns the
+    parsed JS result (dict), never raises.
+    """
+    if overrides is None:
+        overrides = INPUT_OVERRIDES
+    expr = (JS_SET_INPUTS
+            .replace("__INDICATOR__", indicator)
+            .replace("__OVERRIDES__", json.dumps(overrides))
+            .replace("__RESET__", "true" if reset_defaults else "false"))
+    try:
+        return json.loads(await cdp.evaluate(expr))
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+async def wait_inputs_applied(cdp, indicator, timeout=20.0, settle=0.6, consecutive=2):
+    """Wait until the target study's table stops changing after an input change.
+
+    Changing an input restarts the study, so the table briefly disappears and
+    is redrawn. Polling the table cell count until it is stable ensures the
+    first symbol is not scraped mid-recompute.
+    """
+    deadline = time.monotonic() + timeout
+    prev = None
+    stable = 0
+    while time.monotonic() < deadline:
+        try:
+            sig = await cdp.evaluate(JS_TABLE_SIG.replace("__INDICATOR__", indicator))
+        except Exception:
+            sig = None
+        if sig is not None and sig == prev:
+            stable += 1
+            if stable >= consecutive:
+                return True
+        else:
+            stable = 0
+            prev = sig
+        await asyncio.sleep(settle)
+    return False
 
 
 async def click_connect_button(cdp, max_attempts=5, interval=1.0):
@@ -907,6 +1063,20 @@ async def main_async(args):
                     print("[warn] target indicator not found on chart - it must be added and visible")
             else:
                 print(f"[warn] solo visibility failed: {vis.get('err')}")
+
+        # Ensure the scraped indicator's inputs are set for a complete table:
+        # reset to script defaults (best effort) and force the table-related
+        # booleans (show table on; show only good sigs. / extended quality gate
+        # off), then wait for the study to finish recomputing.
+        cfg = await configure_inputs(cdp, args.indicator, args.set_input_defaults)
+        if cfg.get("ok"):
+            print(f"[i] inputs: applied {cfg.get('applied')} "
+                  f"({cfg.get('overrides')} forced), skipped {cfg.get('skipped')}")
+            if not await wait_inputs_applied(cdp, args.indicator):
+                print("[warn] study did not settle after input change - continuing anyway")
+        else:
+            print(f"[warn] input setup failed: {cfg.get('err')}")
+
         for idx in range(start, end):
             group, symbol = symbols[idx]
             label = f"[{idx+1}/{total}] {symbol} ({group})"
@@ -1043,6 +1213,12 @@ def main():
                     help="seconds to wait for CDP after launching (default 30)")
     ap.add_argument("--retries", type=int, default=1,
                     help="number of retry passes for failed symbols (default 1)")
+    ap.add_argument("--set-input-defaults", action=argparse.BooleanOptionalAction,
+                    default=True,
+                    help="reset the scraped indicator's inputs to their script "
+                         "defaults before scraping (default: on); the table-related "
+                         "inputs (show table on; show only good sigs. / extended "
+                         "quality gate off) are always forced afterwards")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
