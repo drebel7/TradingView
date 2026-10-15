@@ -1,0 +1,191 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+// perf_opt_sig_vip - parameter sweep of the "vip" (Volume Institutional Push) signal
+// taken from ETSB_earlyTrendStrongBreakout.pine.
+//
+// Swept parameters (28 combinations = 7 * 2 * 2):
+//   iVIPMaxPercentileOverSMA200 in {40,50,60,70,80,90,100}
+//   iVIPMin1DayVeryHighVol      in {false,true}            -> suffix F / T
+//   extra trend filter close > sma(close,200) in {off,on}  -> suffix 'a' when on
+//
+// Table only (no plots / alerts), schema v3, designed for scripts/tv_table_scraper.py.
+// Sanity check: vip50F reproduces the original default vip (percentile 50, bool false).
+
+//@version=6
+indicator("perf opt sig vip", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+//signal performance check inputs (same defaults as ETSB)
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+//common computations
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+
+float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
+
+//VIP core (parameter-independent parts, copied from ETSB_earlyTrendStrongBreakout.pine)
+gVolMa = ta.sma(volume, 30)
+var int FBLookback = 200
+fBPercentRank = ta.percentrank(close, FBLookback)
+mainMa = ta.sma(close, 200)
+vipUpTrend = close > mainMa
+
+vipDayGood = volume > gVolMa and close >= close[1]
+vipDayGood_10 = vipDayGood ? 1 : 0
+vipDayGood4 = math.sum(vipDayGood_10, 4)
+vipDayGood6 = math.sum(vipDayGood_10, 6)
+vip44 = vipDayGood4 == 4
+vip44New = nz(ta.barssince(vip44[1]), 50) > 10 and vip44
+vip56 = vipDayGood6 >= 5
+vip56New = nz(ta.barssince(vip56[1]), 50) > 10 and vip56
+vipHasEnoughBars = bar_index >= 200
+vipVHighVol = volume > 2 * gVolMa and close >= close[1]
+vipVHighVol_10 = vipVHighVol ? 1 : 0
+vipVHighVolCount = math.sum(vipVHighVol_10, 6)
+vipVHighVolCountOk = vipVHighVolCount >= 1
+
+//build one vip variant.
+//_maxPct      = iVIPMaxPercentileOverSMA200
+//_needVHighVol = iVIPMin1DayVeryHighVol
+//_needUpTrend  = extra trend filter close > sma(close,200)
+vipCalc(int _maxPct, bool _needVHighVol, bool _needUpTrend) =>
+    bool _pctCond = not vipHasEnoughBars or fBPercentRank <= _maxPct
+    bool _vhvCond = _needVHighVol ? vipVHighVolCountOk : true
+    bool _trendCond = _needUpTrend ? vipUpTrend : true
+    (vip44New or vip56New) and _pctCond and _vhvCond and _trendCond
+
+//quality metrics wrapper -> [win%, N, avgR, PF, maxDD, score, sumWinR, sumLossR]
+q(series bool _sig) =>
+    [_sr, _sc, _n, _ar, _sro, _srs, _wr, _wc, _avgR, _medR, _stdR, _pf, _wlb, _mfe, _mae, _dd, _mls, _score, _qok, _swr, _slr] = dreperf.signalQualityFull(_sig, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+    [_wr, _n, _avgR, _pf, _dd, _score, _swr, _slr]
+
+//------------------------------------------------------------------------------
+//28 variants
+//------------------------------------------------------------------------------
+vip40F = vipCalc(40, false, false)
+[vip40F_wr, vip40F_n, vip40F_ar, vip40F_pf, vip40F_dd, vip40F_sc, vip40F_swr, vip40F_slr] = q(vip40F)
+vip40T = vipCalc(40, true, false)
+[vip40T_wr, vip40T_n, vip40T_ar, vip40T_pf, vip40T_dd, vip40T_sc, vip40T_swr, vip40T_slr] = q(vip40T)
+vip40Fa = vipCalc(40, false, true)
+[vip40Fa_wr, vip40Fa_n, vip40Fa_ar, vip40Fa_pf, vip40Fa_dd, vip40Fa_sc, vip40Fa_swr, vip40Fa_slr] = q(vip40Fa)
+vip40Ta = vipCalc(40, true, true)
+[vip40Ta_wr, vip40Ta_n, vip40Ta_ar, vip40Ta_pf, vip40Ta_dd, vip40Ta_sc, vip40Ta_swr, vip40Ta_slr] = q(vip40Ta)
+
+vip50F = vipCalc(50, false, false)
+[vip50F_wr, vip50F_n, vip50F_ar, vip50F_pf, vip50F_dd, vip50F_sc, vip50F_swr, vip50F_slr] = q(vip50F)
+vip50T = vipCalc(50, true, false)
+[vip50T_wr, vip50T_n, vip50T_ar, vip50T_pf, vip50T_dd, vip50T_sc, vip50T_swr, vip50T_slr] = q(vip50T)
+vip50Fa = vipCalc(50, false, true)
+[vip50Fa_wr, vip50Fa_n, vip50Fa_ar, vip50Fa_pf, vip50Fa_dd, vip50Fa_sc, vip50Fa_swr, vip50Fa_slr] = q(vip50Fa)
+vip50Ta = vipCalc(50, true, true)
+[vip50Ta_wr, vip50Ta_n, vip50Ta_ar, vip50Ta_pf, vip50Ta_dd, vip50Ta_sc, vip50Ta_swr, vip50Ta_slr] = q(vip50Ta)
+
+vip60F = vipCalc(60, false, false)
+[vip60F_wr, vip60F_n, vip60F_ar, vip60F_pf, vip60F_dd, vip60F_sc, vip60F_swr, vip60F_slr] = q(vip60F)
+vip60T = vipCalc(60, true, false)
+[vip60T_wr, vip60T_n, vip60T_ar, vip60T_pf, vip60T_dd, vip60T_sc, vip60T_swr, vip60T_slr] = q(vip60T)
+vip60Fa = vipCalc(60, false, true)
+[vip60Fa_wr, vip60Fa_n, vip60Fa_ar, vip60Fa_pf, vip60Fa_dd, vip60Fa_sc, vip60Fa_swr, vip60Fa_slr] = q(vip60Fa)
+vip60Ta = vipCalc(60, true, true)
+[vip60Ta_wr, vip60Ta_n, vip60Ta_ar, vip60Ta_pf, vip60Ta_dd, vip60Ta_sc, vip60Ta_swr, vip60Ta_slr] = q(vip60Ta)
+
+vip70F = vipCalc(70, false, false)
+[vip70F_wr, vip70F_n, vip70F_ar, vip70F_pf, vip70F_dd, vip70F_sc, vip70F_swr, vip70F_slr] = q(vip70F)
+vip70T = vipCalc(70, true, false)
+[vip70T_wr, vip70T_n, vip70T_ar, vip70T_pf, vip70T_dd, vip70T_sc, vip70T_swr, vip70T_slr] = q(vip70T)
+vip70Fa = vipCalc(70, false, true)
+[vip70Fa_wr, vip70Fa_n, vip70Fa_ar, vip70Fa_pf, vip70Fa_dd, vip70Fa_sc, vip70Fa_swr, vip70Fa_slr] = q(vip70Fa)
+vip70Ta = vipCalc(70, true, true)
+[vip70Ta_wr, vip70Ta_n, vip70Ta_ar, vip70Ta_pf, vip70Ta_dd, vip70Ta_sc, vip70Ta_swr, vip70Ta_slr] = q(vip70Ta)
+
+vip80F = vipCalc(80, false, false)
+[vip80F_wr, vip80F_n, vip80F_ar, vip80F_pf, vip80F_dd, vip80F_sc, vip80F_swr, vip80F_slr] = q(vip80F)
+vip80T = vipCalc(80, true, false)
+[vip80T_wr, vip80T_n, vip80T_ar, vip80T_pf, vip80T_dd, vip80T_sc, vip80T_swr, vip80T_slr] = q(vip80T)
+vip80Fa = vipCalc(80, false, true)
+[vip80Fa_wr, vip80Fa_n, vip80Fa_ar, vip80Fa_pf, vip80Fa_dd, vip80Fa_sc, vip80Fa_swr, vip80Fa_slr] = q(vip80Fa)
+vip80Ta = vipCalc(80, true, true)
+[vip80Ta_wr, vip80Ta_n, vip80Ta_ar, vip80Ta_pf, vip80Ta_dd, vip80Ta_sc, vip80Ta_swr, vip80Ta_slr] = q(vip80Ta)
+
+vip90F = vipCalc(90, false, false)
+[vip90F_wr, vip90F_n, vip90F_ar, vip90F_pf, vip90F_dd, vip90F_sc, vip90F_swr, vip90F_slr] = q(vip90F)
+vip90T = vipCalc(90, true, false)
+[vip90T_wr, vip90T_n, vip90T_ar, vip90T_pf, vip90T_dd, vip90T_sc, vip90T_swr, vip90T_slr] = q(vip90T)
+vip90Fa = vipCalc(90, false, true)
+[vip90Fa_wr, vip90Fa_n, vip90Fa_ar, vip90Fa_pf, vip90Fa_dd, vip90Fa_sc, vip90Fa_swr, vip90Fa_slr] = q(vip90Fa)
+vip90Ta = vipCalc(90, true, true)
+[vip90Ta_wr, vip90Ta_n, vip90Ta_ar, vip90Ta_pf, vip90Ta_dd, vip90Ta_sc, vip90Ta_swr, vip90Ta_slr] = q(vip90Ta)
+
+vip100F = vipCalc(100, false, false)
+[vip100F_wr, vip100F_n, vip100F_ar, vip100F_pf, vip100F_dd, vip100F_sc, vip100F_swr, vip100F_slr] = q(vip100F)
+vip100T = vipCalc(100, true, false)
+[vip100T_wr, vip100T_n, vip100T_ar, vip100T_pf, vip100T_dd, vip100T_sc, vip100T_swr, vip100T_slr] = q(vip100T)
+vip100Fa = vipCalc(100, false, true)
+[vip100Fa_wr, vip100Fa_n, vip100Fa_ar, vip100Fa_pf, vip100Fa_dd, vip100Fa_sc, vip100Fa_swr, vip100Fa_slr] = q(vip100Fa)
+vip100Ta = vipCalc(100, true, true)
+[vip100Ta_wr, vip100Ta_n, vip100Ta_ar, vip100Ta_pf, vip100Ta_dd, vip100Ta_sc, vip100Ta_swr, vip100Ta_slr] = q(vip100Ta)
+
+//------------------------------------------------------------------------------
+//print sig performance table (schema v3: sig | win% | N | avgR | PF | maxDD | score | winR | lossR)
+//------------------------------------------------------------------------------
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 31)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "vip40F", vip40F_wr, vip40F_n, vip40F_ar, vip40F_pf, vip40F_dd, vip40F_sc, vip40F_swr, vip40F_slr)
+    renderRow(tbl, 4, "vip40T", vip40T_wr, vip40T_n, vip40T_ar, vip40T_pf, vip40T_dd, vip40T_sc, vip40T_swr, vip40T_slr)
+    renderRow(tbl, 5, "vip40Fa", vip40Fa_wr, vip40Fa_n, vip40Fa_ar, vip40Fa_pf, vip40Fa_dd, vip40Fa_sc, vip40Fa_swr, vip40Fa_slr)
+    renderRow(tbl, 6, "vip40Ta", vip40Ta_wr, vip40Ta_n, vip40Ta_ar, vip40Ta_pf, vip40Ta_dd, vip40Ta_sc, vip40Ta_swr, vip40Ta_slr)
+    renderRow(tbl, 7, "vip50F", vip50F_wr, vip50F_n, vip50F_ar, vip50F_pf, vip50F_dd, vip50F_sc, vip50F_swr, vip50F_slr)
+    renderRow(tbl, 8, "vip50T", vip50T_wr, vip50T_n, vip50T_ar, vip50T_pf, vip50T_dd, vip50T_sc, vip50T_swr, vip50T_slr)
+    renderRow(tbl, 9, "vip50Fa", vip50Fa_wr, vip50Fa_n, vip50Fa_ar, vip50Fa_pf, vip50Fa_dd, vip50Fa_sc, vip50Fa_swr, vip50Fa_slr)
+    renderRow(tbl, 10, "vip50Ta", vip50Ta_wr, vip50Ta_n, vip50Ta_ar, vip50Ta_pf, vip50Ta_dd, vip50Ta_sc, vip50Ta_swr, vip50Ta_slr)
+    renderRow(tbl, 11, "vip60F", vip60F_wr, vip60F_n, vip60F_ar, vip60F_pf, vip60F_dd, vip60F_sc, vip60F_swr, vip60F_slr)
+    renderRow(tbl, 12, "vip60T", vip60T_wr, vip60T_n, vip60T_ar, vip60T_pf, vip60T_dd, vip60T_sc, vip60T_swr, vip60T_slr)
+    renderRow(tbl, 13, "vip60Fa", vip60Fa_wr, vip60Fa_n, vip60Fa_ar, vip60Fa_pf, vip60Fa_dd, vip60Fa_sc, vip60Fa_swr, vip60Fa_slr)
+    renderRow(tbl, 14, "vip60Ta", vip60Ta_wr, vip60Ta_n, vip60Ta_ar, vip60Ta_pf, vip60Ta_dd, vip60Ta_sc, vip60Ta_swr, vip60Ta_slr)
+    renderRow(tbl, 15, "vip70F", vip70F_wr, vip70F_n, vip70F_ar, vip70F_pf, vip70F_dd, vip70F_sc, vip70F_swr, vip70F_slr)
+    renderRow(tbl, 16, "vip70T", vip70T_wr, vip70T_n, vip70T_ar, vip70T_pf, vip70T_dd, vip70T_sc, vip70T_swr, vip70T_slr)
+    renderRow(tbl, 17, "vip70Fa", vip70Fa_wr, vip70Fa_n, vip70Fa_ar, vip70Fa_pf, vip70Fa_dd, vip70Fa_sc, vip70Fa_swr, vip70Fa_slr)
+    renderRow(tbl, 18, "vip70Ta", vip70Ta_wr, vip70Ta_n, vip70Ta_ar, vip70Ta_pf, vip70Ta_dd, vip70Ta_sc, vip70Ta_swr, vip70Ta_slr)
+    renderRow(tbl, 19, "vip80F", vip80F_wr, vip80F_n, vip80F_ar, vip80F_pf, vip80F_dd, vip80F_sc, vip80F_swr, vip80F_slr)
+    renderRow(tbl, 20, "vip80T", vip80T_wr, vip80T_n, vip80T_ar, vip80T_pf, vip80T_dd, vip80T_sc, vip80T_swr, vip80T_slr)
+    renderRow(tbl, 21, "vip80Fa", vip80Fa_wr, vip80Fa_n, vip80Fa_ar, vip80Fa_pf, vip80Fa_dd, vip80Fa_sc, vip80Fa_swr, vip80Fa_slr)
+    renderRow(tbl, 22, "vip80Ta", vip80Ta_wr, vip80Ta_n, vip80Ta_ar, vip80Ta_pf, vip80Ta_dd, vip80Ta_sc, vip80Ta_swr, vip80Ta_slr)
+    renderRow(tbl, 23, "vip90F", vip90F_wr, vip90F_n, vip90F_ar, vip90F_pf, vip90F_dd, vip90F_sc, vip90F_swr, vip90F_slr)
+    renderRow(tbl, 24, "vip90T", vip90T_wr, vip90T_n, vip90T_ar, vip90T_pf, vip90T_dd, vip90T_sc, vip90T_swr, vip90T_slr)
+    renderRow(tbl, 25, "vip90Fa", vip90Fa_wr, vip90Fa_n, vip90Fa_ar, vip90Fa_pf, vip90Fa_dd, vip90Fa_sc, vip90Fa_swr, vip90Fa_slr)
+    renderRow(tbl, 26, "vip90Ta", vip90Ta_wr, vip90Ta_n, vip90Ta_ar, vip90Ta_pf, vip90Ta_dd, vip90Ta_sc, vip90Ta_swr, vip90Ta_slr)
+    renderRow(tbl, 27, "vip100F", vip100F_wr, vip100F_n, vip100F_ar, vip100F_pf, vip100F_dd, vip100F_sc, vip100F_swr, vip100F_slr)
+    renderRow(tbl, 28, "vip100T", vip100T_wr, vip100T_n, vip100T_ar, vip100T_pf, vip100T_dd, vip100T_sc, vip100T_swr, vip100T_slr)
+    renderRow(tbl, 29, "vip100Fa", vip100Fa_wr, vip100Fa_n, vip100Fa_ar, vip100Fa_pf, vip100Fa_dd, vip100Fa_sc, vip100Fa_swr, vip100Fa_slr)
+    renderRow(tbl, 30, "vip100Ta", vip100Ta_wr, vip100Ta_n, vip100Ta_ar, vip100Ta_pf, vip100Ta_dd, vip100Ta_sc, vip100Ta_swr, vip100Ta_slr)

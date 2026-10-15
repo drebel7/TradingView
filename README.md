@@ -26,6 +26,21 @@ TradingView/
 
 Detailed descriptions are in the `README.md` files of the respective subdirectories.
 
+## Baza analiz (`db/`)
+
+Wyniki analiz z `analysis/` (surowe pomiary, warianty sygnałów z parametrami,
+kod skryptów, dane spółek z DRE Info) są w bazie SQLite `db/analysis.db`.
+
+```bash
+python3 scripts/db_init.py             # schemat -> db/analysis.db
+python3 scripts/db_import_scripts.py   # skrypty, sygnały, warianty, parametry
+python3 scripts/db_import_analysis.py  # analysis/*.csv -> runy + pomiary
+python3 scripts/db_query.py compare --signal CapLow   # gotowe zapytania
+python3 scripts/db_browser.py --open   # przeglądarka bazy w przeglądarce
+```
+
+Szczegóły: [`db/README.md`](db/README.md).
+
 ## Libraries (`src/libraries/`)
 
 - **DRELib** — main and most important library (version 31+)

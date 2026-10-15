@@ -924,12 +924,23 @@ async def wait_chart_ready(cdp, timeout=90.0, consecutive=2):
     return False
 
 
-async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_rows):
+async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_rows,
+                        stable_on=None, accept=None):
     """Switch to symbol and return the raw table rows (list of cell lists).
 
     setSymbol is re-issued (every ~2s) while the chart still shows another
     symbol - this handles the race right after a fresh TradingView launch where
     the chart is still loading and would otherwise ignore the request.
+
+    `stable_on` - opcjonalna funkcja (rows) -> wartość porównywalna, używana do
+    oceny stabilności tabeli. Domyślnie porównywane są całe wiersze; dla tabel
+    z danymi zmieniającymi się w czasie (np. DRE Info: HoD/LoD price) można
+    porównywać tylko strukturę, np. kolumnę etykiet.
+
+    `accept` - opcjonalny predykat (rows) -> bool. Wiersze są brane pod uwagę
+    tylko, gdy zwróci True. Chroni to przed tabelą, która nie zdążyła się
+    przerysować po zmianie symbolu (np. DRE Info nadal pokazuje poprzednią
+    spółkę - mimo że wykres ma już nowy symbol).
     """
     deadline = time.monotonic() + timeout
     prev_key = None
@@ -960,8 +971,8 @@ async def scrape_symbol(cdp, symbol, indicator, timeout, settle_interval, min_ro
         last_state = state
         if _ticker(state.get("symbol")) == target_ticker and state.get("ready"):
             rows = state.get("rows") or []
-            if len(rows) >= min_rows:
-                key = json.dumps(rows)
+            if len(rows) >= min_rows and (accept is None or accept(rows)):
+                key = json.dumps(stable_on(rows) if stable_on else rows)
                 if key == prev_key:
                     stable += 1
                 else:

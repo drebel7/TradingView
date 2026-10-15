@@ -1,0 +1,155 @@
+// perf_opt_sig_wonhpsb - sweep of the "WON:hp-sb" (O'Neil hi-percentile + strong breakout) signal.
+// Swept inputs (own group "Signal: O'Neil Inspired: hi-percentile sb"):
+//   iOneilPercentileLookback {100,200,300} x iOneilEpsYearsCheck {2,3,4} x iOneilMinPercentileAvg {65,75}
+//   -> 18 variants. strongBreakout + RMV kept at ETSB defaults.
+// Sanity check: wonHp200_3_... closest to default (lookback 200, eps 3, minPct 70 -> 75 vs 70).
+
+//@version=6
+indicator("perf opt sig wonhpsb", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+//signal performance check inputs (same defaults as ETSB)
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+//common computations
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
+
+//shared prerequisites (ETSB defaults, NOT swept)
+gVolMa = ta.sma(volume, 30)
+shortMa = ta.sma(close, 50)
+gVShortMa1 = ta.ema(close, 10)
+dttTime = drelib.dttTimePct()
+[nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
+int sigMod = drelib.getWideIndexAndSectorSignalMod(31)
+sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
+strongBreakout = drelib.strongBreakout(7, true, 600, 125, sigMod, true)
+rmvLowLevel = 25
+rmvContraction1 = drelib.rmv(13, 5, 3, 2)
+lowRmv1 = rmvContraction1 <= rmvLowLevel
+highRmv1 = rmvContraction1 >= 100 - rmvLowLevel / 2
+rmv1Cond = not lowRmv1 and lowRmv1[1] or highRmv1 and lowRmv1[2] or rmvContraction1 == 100 and lowRmv1[3]
+rmvContraction2 = drelib.rmv(21, 8, 5, 3)
+lowRmv2 = rmvContraction2 <= rmvLowLevel
+highRmv2 = rmvContraction2 >= 100 - rmvLowLevel / 2
+rmv2Cond = not lowRmv2 and lowRmv2[1] or highRmv2 and lowRmv2[2] or rmvContraction2 == 100 and lowRmv2[3]
+rmvContraction3 = drelib.rmv(55, 34, 21, 13)
+lowRmv3 = rmvContraction3 <= rmvLowLevel
+highRmv3 = rmvContraction3 >= 100 - rmvLowLevel / 2
+rmv3Cond = not lowRmv3 and lowRmv3[1] or highRmv3 and lowRmv3[2] or rmvContraction3 == 100 and lowRmv3[3]
+benchIdx = drelib.getDefaultBenchmarkClose()
+rs = close / benchIdx
+totalShares1M = syminfo.shares_outstanding_total / 1000000.0
+epsAct1M = request.earnings(ticker = syminfo.tickerid, field = earnings.actual) / totalShares1M
+countChanges(series float _s, int _len) =>
+    math.sum(_s != _s[1] ? 1 : 0, _len)
+
+//variant factory; _lookback = iOneilPercentileLookback, _epsYears = iOneilEpsYearsCheck, _minPctAvg = iOneilMinPercentileAvg
+wonHpCalc(int _lookback, int _epsYears, float _minPctAvg) =>
+    float _obvPct = ta.percentrank(ta.obv, _lookback)
+    float _rsPct = ta.percentrank(rs, _lookback)
+    float _epsPct = ta.percentrank(epsAct1M, _epsYears * 252)
+    float _epsChanges = countChanges(epsAct1M, _epsYears * 252)
+    float _pctAvg = math.avg(_obvPct, _rsPct, _epsPct)
+    int _okAgo = ta.barssince(_pctAvg > (100 + _minPctAvg) / 2)
+    _pctAvg > _minPctAvg and _okAgo < 50 and (rmv1Cond or rmv2Cond or rmv3Cond) and _epsChanges > 3 * _epsYears and strongBreakout
+
+//quality metrics wrapper -> [win%, N, avgR, PF, maxDD, score, sumWinR, sumLossR]
+q(series bool _sig) =>
+    [_sr, _sc, _n, _ar, _sro, _srs, _wr, _wc, _avgR, _medR, _stdR, _pf, _wlb, _mfe, _mae, _dd, _mls, _score, _qok, _swr, _slr] = dreperf.signalQualityFull(_sig, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+    [_wr, _n, _avgR, _pf, _dd, _score, _swr, _slr]
+
+//------------------------------------------------------------------------------
+//18 variants
+//------------------------------------------------------------------------------
+wonHp100_2_65 = wonHpCalc(100, 2, 65)
+[wonHp100_2_65_wr, wonHp100_2_65_n, wonHp100_2_65_ar, wonHp100_2_65_pf, wonHp100_2_65_dd, wonHp100_2_65_sc, wonHp100_2_65_swr, wonHp100_2_65_slr] = q(wonHp100_2_65)
+wonHp100_2_75 = wonHpCalc(100, 2, 75)
+[wonHp100_2_75_wr, wonHp100_2_75_n, wonHp100_2_75_ar, wonHp100_2_75_pf, wonHp100_2_75_dd, wonHp100_2_75_sc, wonHp100_2_75_swr, wonHp100_2_75_slr] = q(wonHp100_2_75)
+wonHp100_3_65 = wonHpCalc(100, 3, 65)
+[wonHp100_3_65_wr, wonHp100_3_65_n, wonHp100_3_65_ar, wonHp100_3_65_pf, wonHp100_3_65_dd, wonHp100_3_65_sc, wonHp100_3_65_swr, wonHp100_3_65_slr] = q(wonHp100_3_65)
+wonHp100_3_75 = wonHpCalc(100, 3, 75)
+[wonHp100_3_75_wr, wonHp100_3_75_n, wonHp100_3_75_ar, wonHp100_3_75_pf, wonHp100_3_75_dd, wonHp100_3_75_sc, wonHp100_3_75_swr, wonHp100_3_75_slr] = q(wonHp100_3_75)
+wonHp100_4_65 = wonHpCalc(100, 4, 65)
+[wonHp100_4_65_wr, wonHp100_4_65_n, wonHp100_4_65_ar, wonHp100_4_65_pf, wonHp100_4_65_dd, wonHp100_4_65_sc, wonHp100_4_65_swr, wonHp100_4_65_slr] = q(wonHp100_4_65)
+wonHp100_4_75 = wonHpCalc(100, 4, 75)
+[wonHp100_4_75_wr, wonHp100_4_75_n, wonHp100_4_75_ar, wonHp100_4_75_pf, wonHp100_4_75_dd, wonHp100_4_75_sc, wonHp100_4_75_swr, wonHp100_4_75_slr] = q(wonHp100_4_75)
+wonHp200_2_65 = wonHpCalc(200, 2, 65)
+[wonHp200_2_65_wr, wonHp200_2_65_n, wonHp200_2_65_ar, wonHp200_2_65_pf, wonHp200_2_65_dd, wonHp200_2_65_sc, wonHp200_2_65_swr, wonHp200_2_65_slr] = q(wonHp200_2_65)
+wonHp200_2_75 = wonHpCalc(200, 2, 75)
+[wonHp200_2_75_wr, wonHp200_2_75_n, wonHp200_2_75_ar, wonHp200_2_75_pf, wonHp200_2_75_dd, wonHp200_2_75_sc, wonHp200_2_75_swr, wonHp200_2_75_slr] = q(wonHp200_2_75)
+wonHp200_3_65 = wonHpCalc(200, 3, 65)
+[wonHp200_3_65_wr, wonHp200_3_65_n, wonHp200_3_65_ar, wonHp200_3_65_pf, wonHp200_3_65_dd, wonHp200_3_65_sc, wonHp200_3_65_swr, wonHp200_3_65_slr] = q(wonHp200_3_65)
+wonHp200_3_75 = wonHpCalc(200, 3, 75)
+[wonHp200_3_75_wr, wonHp200_3_75_n, wonHp200_3_75_ar, wonHp200_3_75_pf, wonHp200_3_75_dd, wonHp200_3_75_sc, wonHp200_3_75_swr, wonHp200_3_75_slr] = q(wonHp200_3_75)
+wonHp200_4_65 = wonHpCalc(200, 4, 65)
+[wonHp200_4_65_wr, wonHp200_4_65_n, wonHp200_4_65_ar, wonHp200_4_65_pf, wonHp200_4_65_dd, wonHp200_4_65_sc, wonHp200_4_65_swr, wonHp200_4_65_slr] = q(wonHp200_4_65)
+wonHp200_4_75 = wonHpCalc(200, 4, 75)
+[wonHp200_4_75_wr, wonHp200_4_75_n, wonHp200_4_75_ar, wonHp200_4_75_pf, wonHp200_4_75_dd, wonHp200_4_75_sc, wonHp200_4_75_swr, wonHp200_4_75_slr] = q(wonHp200_4_75)
+wonHp300_2_65 = wonHpCalc(300, 2, 65)
+[wonHp300_2_65_wr, wonHp300_2_65_n, wonHp300_2_65_ar, wonHp300_2_65_pf, wonHp300_2_65_dd, wonHp300_2_65_sc, wonHp300_2_65_swr, wonHp300_2_65_slr] = q(wonHp300_2_65)
+wonHp300_2_75 = wonHpCalc(300, 2, 75)
+[wonHp300_2_75_wr, wonHp300_2_75_n, wonHp300_2_75_ar, wonHp300_2_75_pf, wonHp300_2_75_dd, wonHp300_2_75_sc, wonHp300_2_75_swr, wonHp300_2_75_slr] = q(wonHp300_2_75)
+wonHp300_3_65 = wonHpCalc(300, 3, 65)
+[wonHp300_3_65_wr, wonHp300_3_65_n, wonHp300_3_65_ar, wonHp300_3_65_pf, wonHp300_3_65_dd, wonHp300_3_65_sc, wonHp300_3_65_swr, wonHp300_3_65_slr] = q(wonHp300_3_65)
+wonHp300_3_75 = wonHpCalc(300, 3, 75)
+[wonHp300_3_75_wr, wonHp300_3_75_n, wonHp300_3_75_ar, wonHp300_3_75_pf, wonHp300_3_75_dd, wonHp300_3_75_sc, wonHp300_3_75_swr, wonHp300_3_75_slr] = q(wonHp300_3_75)
+wonHp300_4_65 = wonHpCalc(300, 4, 65)
+[wonHp300_4_65_wr, wonHp300_4_65_n, wonHp300_4_65_ar, wonHp300_4_65_pf, wonHp300_4_65_dd, wonHp300_4_65_sc, wonHp300_4_65_swr, wonHp300_4_65_slr] = q(wonHp300_4_65)
+wonHp300_4_75 = wonHpCalc(300, 4, 75)
+[wonHp300_4_75_wr, wonHp300_4_75_n, wonHp300_4_75_ar, wonHp300_4_75_pf, wonHp300_4_75_dd, wonHp300_4_75_sc, wonHp300_4_75_swr, wonHp300_4_75_slr] = q(wonHp300_4_75)
+
+//------------------------------------------------------------------------------
+//print sig performance table (schema v3: sig | win% | N | avgR | PF | maxDD | score | winR | lossR)
+//------------------------------------------------------------------------------
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 21)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "wonHp100_2_65", wonHp100_2_65_wr, wonHp100_2_65_n, wonHp100_2_65_ar, wonHp100_2_65_pf, wonHp100_2_65_dd, wonHp100_2_65_sc, wonHp100_2_65_swr, wonHp100_2_65_slr)
+    renderRow(tbl, 4, "wonHp100_2_75", wonHp100_2_75_wr, wonHp100_2_75_n, wonHp100_2_75_ar, wonHp100_2_75_pf, wonHp100_2_75_dd, wonHp100_2_75_sc, wonHp100_2_75_swr, wonHp100_2_75_slr)
+    renderRow(tbl, 5, "wonHp100_3_65", wonHp100_3_65_wr, wonHp100_3_65_n, wonHp100_3_65_ar, wonHp100_3_65_pf, wonHp100_3_65_dd, wonHp100_3_65_sc, wonHp100_3_65_swr, wonHp100_3_65_slr)
+    renderRow(tbl, 6, "wonHp100_3_75", wonHp100_3_75_wr, wonHp100_3_75_n, wonHp100_3_75_ar, wonHp100_3_75_pf, wonHp100_3_75_dd, wonHp100_3_75_sc, wonHp100_3_75_swr, wonHp100_3_75_slr)
+    renderRow(tbl, 7, "wonHp100_4_65", wonHp100_4_65_wr, wonHp100_4_65_n, wonHp100_4_65_ar, wonHp100_4_65_pf, wonHp100_4_65_dd, wonHp100_4_65_sc, wonHp100_4_65_swr, wonHp100_4_65_slr)
+    renderRow(tbl, 8, "wonHp100_4_75", wonHp100_4_75_wr, wonHp100_4_75_n, wonHp100_4_75_ar, wonHp100_4_75_pf, wonHp100_4_75_dd, wonHp100_4_75_sc, wonHp100_4_75_swr, wonHp100_4_75_slr)
+    renderRow(tbl, 9, "wonHp200_2_65", wonHp200_2_65_wr, wonHp200_2_65_n, wonHp200_2_65_ar, wonHp200_2_65_pf, wonHp200_2_65_dd, wonHp200_2_65_sc, wonHp200_2_65_swr, wonHp200_2_65_slr)
+    renderRow(tbl, 10, "wonHp200_2_75", wonHp200_2_75_wr, wonHp200_2_75_n, wonHp200_2_75_ar, wonHp200_2_75_pf, wonHp200_2_75_dd, wonHp200_2_75_sc, wonHp200_2_75_swr, wonHp200_2_75_slr)
+    renderRow(tbl, 11, "wonHp200_3_65", wonHp200_3_65_wr, wonHp200_3_65_n, wonHp200_3_65_ar, wonHp200_3_65_pf, wonHp200_3_65_dd, wonHp200_3_65_sc, wonHp200_3_65_swr, wonHp200_3_65_slr)
+    renderRow(tbl, 12, "wonHp200_3_75", wonHp200_3_75_wr, wonHp200_3_75_n, wonHp200_3_75_ar, wonHp200_3_75_pf, wonHp200_3_75_dd, wonHp200_3_75_sc, wonHp200_3_75_swr, wonHp200_3_75_slr)
+    renderRow(tbl, 13, "wonHp200_4_65", wonHp200_4_65_wr, wonHp200_4_65_n, wonHp200_4_65_ar, wonHp200_4_65_pf, wonHp200_4_65_dd, wonHp200_4_65_sc, wonHp200_4_65_swr, wonHp200_4_65_slr)
+    renderRow(tbl, 14, "wonHp200_4_75", wonHp200_4_75_wr, wonHp200_4_75_n, wonHp200_4_75_ar, wonHp200_4_75_pf, wonHp200_4_75_dd, wonHp200_4_75_sc, wonHp200_4_75_swr, wonHp200_4_75_slr)
+    renderRow(tbl, 15, "wonHp300_2_65", wonHp300_2_65_wr, wonHp300_2_65_n, wonHp300_2_65_ar, wonHp300_2_65_pf, wonHp300_2_65_dd, wonHp300_2_65_sc, wonHp300_2_65_swr, wonHp300_2_65_slr)
+    renderRow(tbl, 16, "wonHp300_2_75", wonHp300_2_75_wr, wonHp300_2_75_n, wonHp300_2_75_ar, wonHp300_2_75_pf, wonHp300_2_75_dd, wonHp300_2_75_sc, wonHp300_2_75_swr, wonHp300_2_75_slr)
+    renderRow(tbl, 17, "wonHp300_3_65", wonHp300_3_65_wr, wonHp300_3_65_n, wonHp300_3_65_ar, wonHp300_3_65_pf, wonHp300_3_65_dd, wonHp300_3_65_sc, wonHp300_3_65_swr, wonHp300_3_65_slr)
+    renderRow(tbl, 18, "wonHp300_3_75", wonHp300_3_75_wr, wonHp300_3_75_n, wonHp300_3_75_ar, wonHp300_3_75_pf, wonHp300_3_75_dd, wonHp300_3_75_sc, wonHp300_3_75_swr, wonHp300_3_75_slr)
+    renderRow(tbl, 19, "wonHp300_4_65", wonHp300_4_65_wr, wonHp300_4_65_n, wonHp300_4_65_ar, wonHp300_4_65_pf, wonHp300_4_65_dd, wonHp300_4_65_sc, wonHp300_4_65_swr, wonHp300_4_65_slr)
+    renderRow(tbl, 20, "wonHp300_4_75", wonHp300_4_75_wr, wonHp300_4_75_n, wonHp300_4_75_ar, wonHp300_4_75_pf, wonHp300_4_75_dd, wonHp300_4_75_sc, wonHp300_4_75_swr, wonHp300_4_75_slr)

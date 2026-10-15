@@ -1,0 +1,112 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+// perf_opt_sig_obvdiv - parameter sweep of the "obvDiv" (Obv-price divergence + strong breakout) signal
+// from ETSB_earlyTrendStrongBreakout.pine.
+//
+// Swept input (own group "Signal: Obv-price divergence sb"):
+//   iDivergence (int) in {10,20,30,40,50,60,70,80,90}   -> 9 variants
+// Shared building blocks (strongBreakout) are kept at ETSB defaults and are NOT swept.
+// Table only, schema v3, designed for scripts/tv_table_scraper.py.
+// Sanity check: obvDiv50 reproduces the original default (iDivergence = 50).
+
+//@version=6
+indicator("perf opt sig obvdiv", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+//signal performance check inputs (same defaults as ETSB)
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+//common computations
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
+
+//shared prerequisites (ETSB defaults, NOT swept)
+[nonBrokenLowsPct, nonBrokenHighsPct, nonBrokenExtremesPct, lowsHighsRatio] = drelib.nonBrokenExtremesPct(100)
+int sigMod = drelib.getWideIndexAndSectorSignalMod(31)
+sigMod += nonBrokenExtremesPct <= 14 ? -1 : 0
+strongBreakout = drelib.strongBreakout(7, true, 600, 125, sigMod, true)
+
+//obvDiv core (input-independent parts)
+obvMa = ta.sma(ta.obv, 100)
+priceMa = ta.sma(close, 100)
+risingObv = obvMa > obvMa[1]
+risingPrice = priceMa > priceMa[1]
+divergence = risingObv and not risingPrice
+divergenceSum = math.sum(divergence ? 1 : 0, 100)
+
+//variant factory; _div = iDivergence
+obvDivCalc(int _div) =>
+    divergenceSum > _div and strongBreakout
+
+//quality metrics wrapper -> [win%, N, avgR, PF, maxDD, score, sumWinR, sumLossR]
+q(series bool _sig) =>
+    [_sr, _sc, _n, _ar, _sro, _srs, _wr, _wc, _avgR, _medR, _stdR, _pf, _wlb, _mfe, _mae, _dd, _mls, _score, _qok, _swr, _slr] = dreperf.signalQualityFull(_sig, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+    [_wr, _n, _avgR, _pf, _dd, _score, _swr, _slr]
+
+//------------------------------------------------------------------------------
+//9 variants (iDivergence)
+//------------------------------------------------------------------------------
+obvDiv10 = obvDivCalc(10)
+[obvDiv10_wr, obvDiv10_n, obvDiv10_ar, obvDiv10_pf, obvDiv10_dd, obvDiv10_sc, obvDiv10_swr, obvDiv10_slr] = q(obvDiv10)
+obvDiv20 = obvDivCalc(20)
+[obvDiv20_wr, obvDiv20_n, obvDiv20_ar, obvDiv20_pf, obvDiv20_dd, obvDiv20_sc, obvDiv20_swr, obvDiv20_slr] = q(obvDiv20)
+obvDiv30 = obvDivCalc(30)
+[obvDiv30_wr, obvDiv30_n, obvDiv30_ar, obvDiv30_pf, obvDiv30_dd, obvDiv30_sc, obvDiv30_swr, obvDiv30_slr] = q(obvDiv30)
+obvDiv40 = obvDivCalc(40)
+[obvDiv40_wr, obvDiv40_n, obvDiv40_ar, obvDiv40_pf, obvDiv40_dd, obvDiv40_sc, obvDiv40_swr, obvDiv40_slr] = q(obvDiv40)
+obvDiv50 = obvDivCalc(50)
+[obvDiv50_wr, obvDiv50_n, obvDiv50_ar, obvDiv50_pf, obvDiv50_dd, obvDiv50_sc, obvDiv50_swr, obvDiv50_slr] = q(obvDiv50)
+obvDiv60 = obvDivCalc(60)
+[obvDiv60_wr, obvDiv60_n, obvDiv60_ar, obvDiv60_pf, obvDiv60_dd, obvDiv60_sc, obvDiv60_swr, obvDiv60_slr] = q(obvDiv60)
+obvDiv70 = obvDivCalc(70)
+[obvDiv70_wr, obvDiv70_n, obvDiv70_ar, obvDiv70_pf, obvDiv70_dd, obvDiv70_sc, obvDiv70_swr, obvDiv70_slr] = q(obvDiv70)
+obvDiv80 = obvDivCalc(80)
+[obvDiv80_wr, obvDiv80_n, obvDiv80_ar, obvDiv80_pf, obvDiv80_dd, obvDiv80_sc, obvDiv80_swr, obvDiv80_slr] = q(obvDiv80)
+obvDiv90 = obvDivCalc(90)
+[obvDiv90_wr, obvDiv90_n, obvDiv90_ar, obvDiv90_pf, obvDiv90_dd, obvDiv90_sc, obvDiv90_swr, obvDiv90_slr] = q(obvDiv90)
+
+//------------------------------------------------------------------------------
+//print sig performance table (schema v3: sig | win% | N | avgR | PF | maxDD | score | winR | lossR)
+//------------------------------------------------------------------------------
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 12)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "obvDiv10", obvDiv10_wr, obvDiv10_n, obvDiv10_ar, obvDiv10_pf, obvDiv10_dd, obvDiv10_sc, obvDiv10_swr, obvDiv10_slr)
+    renderRow(tbl, 4, "obvDiv20", obvDiv20_wr, obvDiv20_n, obvDiv20_ar, obvDiv20_pf, obvDiv20_dd, obvDiv20_sc, obvDiv20_swr, obvDiv20_slr)
+    renderRow(tbl, 5, "obvDiv30", obvDiv30_wr, obvDiv30_n, obvDiv30_ar, obvDiv30_pf, obvDiv30_dd, obvDiv30_sc, obvDiv30_swr, obvDiv30_slr)
+    renderRow(tbl, 6, "obvDiv40", obvDiv40_wr, obvDiv40_n, obvDiv40_ar, obvDiv40_pf, obvDiv40_dd, obvDiv40_sc, obvDiv40_swr, obvDiv40_slr)
+    renderRow(tbl, 7, "obvDiv50", obvDiv50_wr, obvDiv50_n, obvDiv50_ar, obvDiv50_pf, obvDiv50_dd, obvDiv50_sc, obvDiv50_swr, obvDiv50_slr)
+    renderRow(tbl, 8, "obvDiv60", obvDiv60_wr, obvDiv60_n, obvDiv60_ar, obvDiv60_pf, obvDiv60_dd, obvDiv60_sc, obvDiv60_swr, obvDiv60_slr)
+    renderRow(tbl, 9, "obvDiv70", obvDiv70_wr, obvDiv70_n, obvDiv70_ar, obvDiv70_pf, obvDiv70_dd, obvDiv70_sc, obvDiv70_swr, obvDiv70_slr)
+    renderRow(tbl, 10, "obvDiv80", obvDiv80_wr, obvDiv80_n, obvDiv80_ar, obvDiv80_pf, obvDiv80_dd, obvDiv80_sc, obvDiv80_swr, obvDiv80_slr)
+    renderRow(tbl, 11, "obvDiv90", obvDiv90_wr, obvDiv90_n, obvDiv90_ar, obvDiv90_pf, obvDiv90_dd, obvDiv90_sc, obvDiv90_swr, obvDiv90_slr)

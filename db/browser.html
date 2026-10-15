@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Przeglądarka bazy analiz</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --line: #d8dce3; --text: #1c2128; --muted: #6b7280;
+    --accent: #2563eb; --accent-soft: #e8effd; --null: #9aa1ac; --num: #0f766e;
+    --warn: #b45309; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --panel: #1b1f26; --line: #2c323c; --text: #e6e9ee; --muted: #98a0ad;
+      --accent: #6ea8fe; --accent-soft: #1e2a44; --null: #6b7280; --num: #5eead4;
+      --warn: #fbbf24;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; grid-template-columns: 300px 1fr; height: 100%;
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  aside header { padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+  aside h1 { font-size: 14px; margin: 0 0 2px; }
+  aside .sub { color: var(--muted); font-size: 11px; font-family: var(--mono); word-break: break-all; }
+  #navFilter { width: 100%; margin: 8px 0 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+  #objects { overflow: auto; padding: 6px 6px 20px; min-height: 0; }
+  .groupLabel { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 10px 8px 4px; }
+  .obj { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+  .obj:hover { background: var(--accent-soft); }
+  .obj.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+  .obj .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .obj .cnt { color: var(--muted); font-size: 11px; font-family: var(--mono); }
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  .bar .title { font-weight: 600; font-family: var(--mono); }
+  .badge { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .badge.view { background: #f3e8ff; color: #7c3aed; }
+  @media (prefers-color-scheme: dark) { .badge.view { background: #2a1f3d; color: #c4b5fd; } }
+  input[type=search], input[type=text], select, textarea, button {
+    font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 8px;
+  }
+  input[type=search] { min-width: 220px; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { color: #fff; opacity: .9; }
+  .spacer { flex: 1; }
+  #wrap { overflow: auto; flex: 1; min-height: 0; background: var(--panel); }
+  table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: 12.5px; }
+  th, td { padding: 5px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+  th { position: sticky; top: 0; background: var(--panel); z-index: 2; cursor: pointer; user-select: none; border-bottom: 2px solid var(--line); }
+  th:hover { color: var(--accent); }
+  th .t { color: var(--muted); font-weight: 400; font-size: 10.5px; }
+  th .arrow { color: var(--accent); }
+  tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg) 55%, transparent); }
+  tbody tr:hover { background: var(--accent-soft); }
+  td.num { text-align: right; font-family: var(--mono); color: var(--num); }
+  td.pk { font-weight: 600; }
+  .null { color: var(--null); font-style: italic; }
+  .cut { color: var(--warn); cursor: help; }
+  .status { padding: 6px 14px; border-top: 1px solid var(--line); background: var(--panel); color: var(--muted); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 12px; }
+  .status b { color: var(--text); font-weight: 600; }
+  dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); max-width: 900px; width: 92vw; max-height: 86vh; padding: 0; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlgHead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+  .dlgHead h2 { font-size: 13px; margin: 0; font-family: var(--mono); }
+  .dlgBody { padding: 10px 14px 20px; overflow: auto; max-height: 74vh; }
+  .kv { display: grid; grid-template-columns: 220px 1fr; gap: 2px 12px; }
+  .kv dt { font-family: var(--mono); color: var(--muted); padding: 4px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+  .kv dd { margin: 0; padding: 4px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; white-space: pre-wrap; }
+  pre { margin: 0; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+  .sqlwrap { display: none; flex-direction: column; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .sqlwrap.on { display: flex; }
+  textarea { width: 100%; min-height: 90px; font-family: var(--mono); }
+  .err { color: #dc2626; font-family: var(--mono); white-space: pre-wrap; }
+  @media (prefers-color-scheme: dark) { .err { color: #f87171; } }
+  .hint { color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1>Baza analiz</h1>
+    <div class="sub" id="dbPath">…</div>
+    <input id="navFilter" type="search" placeholder="filtruj tabele/widoki…" autocomplete="off">
+  </header>
+  <div id="objects"></div>
+</aside>
+
+<main>
+  <div class="bar">
+    <span class="title" id="objName">—</span>
+    <span class="badge" id="objType" style="display:none"></span>
+    <select id="qcol" title="ogranicz szukanie do kolumny"></select>
+    <input id="q" type="search" placeholder="szukaj (LIKE)…" autocomplete="off">
+    <select id="limit">
+      <option>25</option><option selected>100</option><option>250</option><option>1000</option>
+    </select>
+    <button id="btnRefresh" title="odśwież">Odśwież</button>
+    <button id="btnSchema">Schemat</button>
+    <button id="btnSql">SQL</button>
+    <span class="spacer"></span>
+    <button id="btnCsv">CSV</button>
+    <button id="btnJson">JSON</button>
+  </div>
+
+  <div class="sqlwrap" id="sqlwrap">
+    <textarea id="sql" spellcheck="false" placeholder="SELECT … (tylko zapytania czytające; Ctrl+Enter uruchamia)"></textarea>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="primary" id="btnRunSql">Uruchom (Ctrl+Enter)</button>
+      <button id="btnClearSql">Wyczyść</button>
+      <span class="hint">Wynik pokazuje się w tabeli poniżej; zakładka obiektu wraca przyciskiem „Odśwież”.</span>
+    </div>
+  </div>
+
+  <div id="wrap"></div>
+  <div class="status">
+    <span id="stRows">—</span>
+    <span id="stTotal"></span>
+    <span id="stTime"></span>
+    <span class="spacer"></span>
+    <button id="btnFirst">«</button>
+    <button id="btnPrev">‹</button>
+    <span id="stPage"></span>
+    <button id="btnNext">›</button>
+    <button id="btnLast">»</button>
+  </div>
+</main>
+
+<dialog id="dlg">
+  <div class="dlgHead">
+    <h2 id="dlgTitle">—</h2>
+    <span class="spacer" style="flex:1"></span>
+    <button id="btnCopy">Kopiuj JSON</button>
+    <button id="btnClose">Zamknij (Esc)</button>
+  </div>
+  <div class="dlgBody" id="dlgBody"></div>
+</dialog>
+
+<script>
+const S = { obj: null, type: null, columns: [], limit: 100, offset: 0,
+            sort: null, dir: 'asc', q: '', qcol: '', data: null, meta: null, counts: {} };
+
+const $ = (id) => document.getElementById(id);
+const api = async (path, params) => {
+  const url = '/api/' + path + (params ? '?' + new URLSearchParams(params) : '');
+  const res = await fetch(url);
+  const body = await res.json().catch(() => ({ error: 'nieprawidłowa odpowiedź serwera' }));
+  if (!res.ok || body.error) throw new Error(body.error || res.statusText);
+  return body;
+};
+const fmtCount = (n) => n === null || n === undefined ? '—' : Number(n).toLocaleString('pl-PL');
+
+/* ---------------- sidebar ---------------- */
+async function loadMeta() {
+  S.meta = await api('meta');
+  $('dbPath').textContent = S.meta.db;
+  renderObjects();
+  api('counts').then(d => { S.counts = d.counts || {}; renderObjects(); }).catch(() => {});
+}
+
+function renderObjects() {
+  const f = $('navFilter').value.toLowerCase();
+  const host = $('objects');
+  host.textContent = '';
+  for (const kind of ['table', 'view']) {
+    const items = (S.meta.objects || []).filter(o => o.type === kind &&
+      (!f || o.name.toLowerCase().includes(f)));
+    if (!items.length) continue;
+    const label = document.createElement('div');
+    label.className = 'groupLabel';
+    label.textContent = kind === 'table' ? 'Tabele' : 'Widoki';
+    host.appendChild(label);
+    for (const o of items) {
+      const row = document.createElement('div');
+      row.className = 'obj' + (o.name === S.obj ? ' sel' : '');
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = o.name;
+      const cnt = document.createElement('span'); cnt.className = 'cnt';
+      cnt.textContent = fmtCount(S.counts[o.name]);
+      row.append(nm, cnt);
+      row.title = o.name + ' · ' + o.columns.map(c => c.name).join(', ');
+      row.onclick = () => selectObject(o);
+      host.appendChild(row);
+    }
+  }
+}
+
+function selectObject(o) {
+  S.obj = o.name; S.type = o.type; S.columns = o.columns || [];
+  S.offset = 0; S.sort = null; S.dir = 'asc'; S.q = ''; S.qcol = '';
+  $('q').value = ''; $('sqlwrap').classList.remove('on');
+  $('objName').textContent = o.name;
+  const t = $('objType'); t.style.display = ''; t.textContent = o.type;
+  t.className = 'badge' + (o.type === 'view' ? ' view' : '');
+  const sel = $('qcol'); sel.textContent = '';
+  sel.appendChild(new Option('wszystkie kolumny', ''));
+  for (const c of S.columns) sel.appendChild(new Option(c.name, c.name));
+  renderObjects();
+  loadRows();
+}
+
+/* ---------------- tabela ---------------- */
+async function loadRows() {
+  if (!S.obj) return;
+  setToolbarMode(true);
+  const params = { name: S.obj, limit: S.limit, offset: S.offset, dir: S.dir };
+  if (S.sort) params.sort = S.sort;
+  if (S.q) { params.q = S.q; if (S.qcol) params.qcol = S.qcol; }
+  try {
+    const data = await api('rows', params);
+    S.data = data; renderTable(data);
+  } catch (e) { showError(e.message); }
+}
+
+/* Pola obiektu (filtr/limit/eksport) mają sens tylko dla tabel i widoków. */
+function setToolbarMode(objectMode) {
+  for (const id of ['q', 'qcol', 'limit']) $(id).disabled = !objectMode;
+  $('btnCsv').disabled = $('btnJson').disabled = !objectMode;
+}
+
+function renderTable(data) {
+  const host = $('wrap'); host.textContent = '';
+  const table = document.createElement('table');
+  const thead = document.createElement('thead'); const htr = document.createElement('tr');
+  for (const c of data.columns) {
+    const th = document.createElement('th');
+    th.appendChild(document.createTextNode(c.name));
+    if (c.type) { const t = document.createElement('span'); t.className = 't'; t.textContent = ' ' + c.type; th.appendChild(t); }
+    if (S.sort === c.name) { const a = document.createElement('span'); a.className = 'arrow'; a.textContent = S.dir === 'desc' ? ' ▼' : ' ▲'; th.appendChild(a); }
+    th.title = 'sortuj po ' + c.name;
+    th.onclick = () => {
+      if (S.sort === c.name) S.dir = S.dir === 'asc' ? 'desc' : 'asc';
+      else { S.sort = c.name; S.dir = 'asc'; }
+      S.offset = 0; loadRows();
+    };
+    htr.appendChild(th);
+  }
+  thead.appendChild(htr); table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const cut = new Set((data.truncated || []).map(t => t[0] + ':' + t[1]));
+  data.rows.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    row.forEach((v, ci) => {
+      const td = document.createElement('td');
+      if (v === null) { const s = document.createElement('span'); s.className = 'null'; s.textContent = 'NULL'; td.appendChild(s); }
+      else if (typeof v === 'number') { td.className = 'num'; td.textContent = v; }
+      else {
+        td.textContent = String(v);
+        if (cut.has(ri + ':' + ci)) { td.classList.add('cut'); td.title = 'wartość obcięta - kliknij wiersz, aby zobaczyć całość'; }
+      }
+      tr.appendChild(td);
+    });
+    tr.onclick = () => openDetail(ri);
+    tr.title = 'kliknij, aby zobaczyć pełny wiersz';
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody); host.appendChild(table);
+
+  $('stRows').innerHTML = data.rows.length
+    ? `wiersze <b>${data.offset + 1}–${data.offset + data.rows.length}</b>`
+    : 'brak wierszy';
+  $('stTotal').innerHTML = data.total !== null && data.total !== undefined
+    ? `z <b>${fmtCount(data.total)}</b>` : '(liczba wierszy nieznana)';
+  $('stTime').textContent = `${data.ms} ms · ${data.columns.length} kolumn`;
+  $('stPage').textContent = `strona ${Math.floor(data.offset / data.limit) + 1}`;
+  $('btnPrev').disabled = $('btnFirst').disabled = data.offset === 0;
+  const last = data.total !== null && data.total !== undefined &&
+               data.offset + data.rows.length >= data.total;
+  $('btnNext').disabled = $('btnLast').disabled = last || !data.rows.length;
+}
+
+function showError(msg) {
+  const host = $('wrap'); host.textContent = '';
+  const p = document.createElement('pre'); p.className = 'err'; p.textContent = msg;
+  host.appendChild(p);
+}
+
+/* ---------------- szczegóły wiersza ---------------- */
+async function openDetail(ri) {
+  const d = S.data; if (!d) return;
+  const cut = new Set((d.truncated || []).filter(t => t[0] === ri).map(t => t[1]));
+  $('dlgTitle').textContent = `${d.name} · wiersz ${d.offset + ri + 1}`;
+  const body = $('dlgBody'); body.textContent = '';
+  const dl = document.createElement('dl'); dl.className = 'kv';
+  const obj = {};
+  for (let ci = 0; ci < d.columns.length; ci++) {
+    const col = d.columns[ci].name;
+    let val = d.rows[ri][ci];
+    const dt = document.createElement('dt'); dt.textContent = col + (d.columns[ci].type ? ' : ' + d.columns[ci].type : '');
+    const dd = document.createElement('dd');
+    if (cut.has(ci)) {
+      dd.textContent = 'wczytywanie pełnej wartości…';
+      api('value', { name: d.name, col: col, offset: d.offset + ri, sort: S.sort || '', dir: S.dir, q: S.q || '', qcol: S.qcol || '' })
+        .then(r => { dd.textContent = ''; appendValue(dd, r.value, r.length); })
+        .catch(e => { dd.textContent = 'błąd: ' + e.message; });
+      val = '…';
+    } else { appendValue(dd, val); }
+    obj[col] = val;
+    dl.append(dt, dd);
+  }
+  body.appendChild(dl);
+  $('dlg').dataset.json = JSON.stringify(obj, null, 1);
+  $('dlg').showModal();
+}
+
+function appendValue(dd, val, length) {
+  if (val === null || val === undefined) {
+    const s = document.createElement('span'); s.className = 'null'; s.textContent = 'NULL';
+    dd.appendChild(s); return;
+  }
+  if (typeof val === 'object') {
+    const pre = document.createElement('pre'); pre.textContent = JSON.stringify(val, null, 1);
+    dd.appendChild(pre); return;
+  }
+  const text = String(val);
+  const looksJson = /^\s*[{[]/.test(text) && text.length > 2;
+  if (looksJson) {
+    try {
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(JSON.parse(text), null, 1);
+      dd.appendChild(pre);
+      return;
+    } catch (e) { /* zwykły tekst */ }
+  }
+  dd.textContent = text;
+  if (length) {
+    const hint = document.createElement('div'); hint.className = 'hint';
+    hint.textContent = `${length} znaków`;
+    dd.appendChild(hint);
+  }
+}
+
+/* ---------------- SQL ---------------- */
+async function runSql() {
+  const q = $('sql').value.trim();
+  if (!q) return;
+  try {
+    const data = await api('sql', { q, limit: S.limit });
+    S.data = data; S.obj = null; $('objName').textContent = 'SQL';
+    $('objType').style.display = 'none';
+    setToolbarMode(false);
+    renderTable(data);
+    if (data.more) $('stTotal').textContent += ' (wynik obcięty)';
+  } catch (e) { showError(e.message); }
+}
+
+/* ---------------- schemat ---------------- */
+async function showSchema() {
+  if (!S.obj) return;
+  try {
+    const s = await api('schema', { name: S.obj });
+    $('dlgTitle').textContent = `schemat · ${s.name} (${s.type})`;
+    const body = $('dlgBody'); body.textContent = '';
+    const dl = document.createElement('dl'); dl.className = 'kv';
+    for (const c of s.columns) {
+      dl.append(row(c.name, `${c.type || '—'}${c.notnull ? ' NOT NULL' : ''}${c.pk ? ' PK' : ''}${c.dflt !== null ? ' default ' + c.dflt : ''}`));
+    }
+    if (s.foreign_keys.length) {
+      dl.append(section('klucze obce'));
+      for (const f of s.foreign_keys) dl.append(row(f.from, `→ ${f.table}.${f.to}`));
+    }
+    if (s.indexes.length) {
+      dl.append(section('indeksy'));
+      for (const i of s.indexes) dl.append(row(i.name, `${i.unique ? 'UNIQUE ' : ''}(${i.columns.join(', ')})`));
+    }
+    if (s.sql) { dl.append(section('SQL')); const pre = document.createElement('pre'); pre.textContent = s.sql; const dd = document.createElement('dd'); dd.appendChild(pre); dl.append(document.createElement('dt'), dd); }
+    body.appendChild(dl);
+    $('dlg').dataset.json = JSON.stringify(s, null, 1);
+    $('dlg').showModal();
+  } catch (e) { showError(e.message); }
+}
+function row(k, v) { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; return [dt, dd]; }
+function section(t) { const dt = document.createElement('dt'); dt.style.gridColumn = '1 / -1'; dt.style.borderTop = 'none'; dt.style.color = 'var(--accent)'; dt.textContent = '— ' + t + ' —'; return dt; }
+
+/* ---------------- zdarzenia ---------------- */
+$('navFilter').oninput = renderObjects;
+$('q').oninput = debounce(() => { S.q = $('q').value.trim(); S.offset = 0; loadRows(); }, 350);
+$('qcol').onchange = () => { S.qcol = $('qcol').value; S.q = $('q').value.trim(); S.offset = 0; if (S.q) loadRows(); };
+$('limit').onchange = () => { S.limit = parseInt($('limit').value, 10); S.offset = 0; loadRows(); };
+$('btnRefresh').onclick = () => { $('sqlwrap').classList.remove('on'); loadRows(); };
+$('btnSchema').onclick = showSchema;
+$('btnSql').onclick = () => { $('sqlwrap').classList.toggle('on'); if ($('sqlwrap').classList.contains('on')) $('sql').focus(); };
+$('btnRunSql').onclick = runSql;
+$('btnClearSql').onclick = () => { $('sql').value = ''; };
+$('sql').onkeydown = (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runSql(); };
+$('btnFirst').onclick = () => { S.offset = 0; loadRows(); };
+$('btnPrev').onclick = () => { S.offset = Math.max(0, S.offset - S.limit); loadRows(); };
+$('btnNext').onclick = () => { S.offset += S.limit; loadRows(); };
+$('btnLast').onclick = () => { if (S.data && S.data.total !== null) { S.offset = Math.max(0, Math.floor((S.data.total - 1) / S.limit) * S.limit); loadRows(); } };
+$('btnCsv').onclick = () => download('csv');
+$('btnJson').onclick = () => download('json');
+$('btnClose').onclick = () => $('dlg').close();
+$('btnCopy').onclick = async () => { try { await navigator.clipboard.writeText($('dlg').dataset.json || ''); $('btnCopy').textContent = 'Skopiowano'; setTimeout(() => $('btnCopy').textContent = 'Kopiuj JSON', 1200); } catch (e) {} };
+document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); $('q').focus(); } });
+
+function download(format) {
+  if (!S.obj) return;
+  const p = { name: S.obj, format, dir: S.dir };
+  if (S.sort) p.sort = S.sort;
+  if (S.q) { p.q = S.q; if (S.qcol) p.qcol = S.qcol; }
+  window.location = '/api/export?' + new URLSearchParams(p);
+}
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+loadMeta().then(() => {
+  const first = (S.meta.objects || []).find(o => o.type === 'table');
+  if (first) selectObject(first);
+}).catch(e => showError(e.message));</script>
+</body>
+</html>

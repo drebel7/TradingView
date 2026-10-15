@@ -1,0 +1,147 @@
+// perf_opt_sig_caplow - sweep of the "CapLow" (Capitulation Low) signal.
+// Swept inputs (own group "Signal: Capitulation Low"):
+//   iCapLowMinVolPercentile {90,95,100} x the 3 booleans (both states)
+//   lookbacks kept at defaults (200/150); name = capLow<V><C><H>_<minVolPct>
+//   -> 24 variants. Sanity check: capLowTFT_95 == original default.
+
+//@version=6
+indicator("perf opt sig caplow", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+//signal performance check inputs (same defaults as ETSB)
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+//common computations
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0)) // max loss capped by higher of: current or prev. day low OR max % loss
+
+//shared prerequisites (ETSB defaults, NOT swept)
+gVolMa = ta.sma(volume, 30)
+
+//variant factory; lookbacks fixed at ETSB defaults (200/150)
+capLowCalc(int _lowLookback, int _volLookback, int _minVolPct, bool _volAboveAvg, bool _closeAboveThird, bool _highAbovePrev) =>
+    float _lowestPrice = ta.lowest(_lowLookback)
+    float _volPct = ta.percentrank(volume, _volLookback)
+    bool _lphv = low == _lowestPrice and _volPct >= _minVolPct
+    bool _volCond = _volAboveAvg and volume > gVolMa and volume > volume[1] / 3 or not _volAboveAvg
+    bool _candleCond = _closeAboveThird and close > low[1] + (high[1] - low[1]) / 3 or not _closeAboveThird
+    bool _highCond = _highAbovePrev and high > high[1] or not _highAbovePrev
+    (_lphv[1] or _lphv) and low > low[1] and _volCond and _candleCond and _highCond
+
+//quality metrics wrapper -> [win%, N, avgR, PF, maxDD, score, sumWinR, sumLossR]
+q(series bool _sig) =>
+    [_sr, _sc, _n, _ar, _sro, _srs, _wr, _wc, _avgR, _medR, _stdR, _pf, _wlb, _mfe, _mae, _dd, _mls, _score, _qok, _swr, _slr] = dreperf.signalQualityFull(_sig, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+    [_wr, _n, _avgR, _pf, _dd, _score, _swr, _slr]
+
+//------------------------------------------------------------------------------
+//24 variants
+//------------------------------------------------------------------------------
+capLowTTT_90 = capLowCalc(200, 150, 90, true, true, true)
+[capLowTTT_90_wr, capLowTTT_90_n, capLowTTT_90_ar, capLowTTT_90_pf, capLowTTT_90_dd, capLowTTT_90_sc, capLowTTT_90_swr, capLowTTT_90_slr] = q(capLowTTT_90)
+capLowTTT_95 = capLowCalc(200, 150, 95, true, true, true)
+[capLowTTT_95_wr, capLowTTT_95_n, capLowTTT_95_ar, capLowTTT_95_pf, capLowTTT_95_dd, capLowTTT_95_sc, capLowTTT_95_swr, capLowTTT_95_slr] = q(capLowTTT_95)
+capLowTTT_100 = capLowCalc(200, 150, 100, true, true, true)
+[capLowTTT_100_wr, capLowTTT_100_n, capLowTTT_100_ar, capLowTTT_100_pf, capLowTTT_100_dd, capLowTTT_100_sc, capLowTTT_100_swr, capLowTTT_100_slr] = q(capLowTTT_100)
+capLowTTF_90 = capLowCalc(200, 150, 90, true, true, false)
+[capLowTTF_90_wr, capLowTTF_90_n, capLowTTF_90_ar, capLowTTF_90_pf, capLowTTF_90_dd, capLowTTF_90_sc, capLowTTF_90_swr, capLowTTF_90_slr] = q(capLowTTF_90)
+capLowTTF_95 = capLowCalc(200, 150, 95, true, true, false)
+[capLowTTF_95_wr, capLowTTF_95_n, capLowTTF_95_ar, capLowTTF_95_pf, capLowTTF_95_dd, capLowTTF_95_sc, capLowTTF_95_swr, capLowTTF_95_slr] = q(capLowTTF_95)
+capLowTTF_100 = capLowCalc(200, 150, 100, true, true, false)
+[capLowTTF_100_wr, capLowTTF_100_n, capLowTTF_100_ar, capLowTTF_100_pf, capLowTTF_100_dd, capLowTTF_100_sc, capLowTTF_100_swr, capLowTTF_100_slr] = q(capLowTTF_100)
+capLowTFT_90 = capLowCalc(200, 150, 90, true, false, true)
+[capLowTFT_90_wr, capLowTFT_90_n, capLowTFT_90_ar, capLowTFT_90_pf, capLowTFT_90_dd, capLowTFT_90_sc, capLowTFT_90_swr, capLowTFT_90_slr] = q(capLowTFT_90)
+capLowTFT_95 = capLowCalc(200, 150, 95, true, false, true)
+[capLowTFT_95_wr, capLowTFT_95_n, capLowTFT_95_ar, capLowTFT_95_pf, capLowTFT_95_dd, capLowTFT_95_sc, capLowTFT_95_swr, capLowTFT_95_slr] = q(capLowTFT_95)
+capLowTFT_100 = capLowCalc(200, 150, 100, true, false, true)
+[capLowTFT_100_wr, capLowTFT_100_n, capLowTFT_100_ar, capLowTFT_100_pf, capLowTFT_100_dd, capLowTFT_100_sc, capLowTFT_100_swr, capLowTFT_100_slr] = q(capLowTFT_100)
+capLowTFF_90 = capLowCalc(200, 150, 90, true, false, false)
+[capLowTFF_90_wr, capLowTFF_90_n, capLowTFF_90_ar, capLowTFF_90_pf, capLowTFF_90_dd, capLowTFF_90_sc, capLowTFF_90_swr, capLowTFF_90_slr] = q(capLowTFF_90)
+capLowTFF_95 = capLowCalc(200, 150, 95, true, false, false)
+[capLowTFF_95_wr, capLowTFF_95_n, capLowTFF_95_ar, capLowTFF_95_pf, capLowTFF_95_dd, capLowTFF_95_sc, capLowTFF_95_swr, capLowTFF_95_slr] = q(capLowTFF_95)
+capLowTFF_100 = capLowCalc(200, 150, 100, true, false, false)
+[capLowTFF_100_wr, capLowTFF_100_n, capLowTFF_100_ar, capLowTFF_100_pf, capLowTFF_100_dd, capLowTFF_100_sc, capLowTFF_100_swr, capLowTFF_100_slr] = q(capLowTFF_100)
+capLowFTT_90 = capLowCalc(200, 150, 90, false, true, true)
+[capLowFTT_90_wr, capLowFTT_90_n, capLowFTT_90_ar, capLowFTT_90_pf, capLowFTT_90_dd, capLowFTT_90_sc, capLowFTT_90_swr, capLowFTT_90_slr] = q(capLowFTT_90)
+capLowFTT_95 = capLowCalc(200, 150, 95, false, true, true)
+[capLowFTT_95_wr, capLowFTT_95_n, capLowFTT_95_ar, capLowFTT_95_pf, capLowFTT_95_dd, capLowFTT_95_sc, capLowFTT_95_swr, capLowFTT_95_slr] = q(capLowFTT_95)
+capLowFTT_100 = capLowCalc(200, 150, 100, false, true, true)
+[capLowFTT_100_wr, capLowFTT_100_n, capLowFTT_100_ar, capLowFTT_100_pf, capLowFTT_100_dd, capLowFTT_100_sc, capLowFTT_100_swr, capLowFTT_100_slr] = q(capLowFTT_100)
+capLowFTF_90 = capLowCalc(200, 150, 90, false, true, false)
+[capLowFTF_90_wr, capLowFTF_90_n, capLowFTF_90_ar, capLowFTF_90_pf, capLowFTF_90_dd, capLowFTF_90_sc, capLowFTF_90_swr, capLowFTF_90_slr] = q(capLowFTF_90)
+capLowFTF_95 = capLowCalc(200, 150, 95, false, true, false)
+[capLowFTF_95_wr, capLowFTF_95_n, capLowFTF_95_ar, capLowFTF_95_pf, capLowFTF_95_dd, capLowFTF_95_sc, capLowFTF_95_swr, capLowFTF_95_slr] = q(capLowFTF_95)
+capLowFTF_100 = capLowCalc(200, 150, 100, false, true, false)
+[capLowFTF_100_wr, capLowFTF_100_n, capLowFTF_100_ar, capLowFTF_100_pf, capLowFTF_100_dd, capLowFTF_100_sc, capLowFTF_100_swr, capLowFTF_100_slr] = q(capLowFTF_100)
+capLowFFT_90 = capLowCalc(200, 150, 90, false, false, true)
+[capLowFFT_90_wr, capLowFFT_90_n, capLowFFT_90_ar, capLowFFT_90_pf, capLowFFT_90_dd, capLowFFT_90_sc, capLowFFT_90_swr, capLowFFT_90_slr] = q(capLowFFT_90)
+capLowFFT_95 = capLowCalc(200, 150, 95, false, false, true)
+[capLowFFT_95_wr, capLowFFT_95_n, capLowFFT_95_ar, capLowFFT_95_pf, capLowFFT_95_dd, capLowFFT_95_sc, capLowFFT_95_swr, capLowFFT_95_slr] = q(capLowFFT_95)
+capLowFFT_100 = capLowCalc(200, 150, 100, false, false, true)
+[capLowFFT_100_wr, capLowFFT_100_n, capLowFFT_100_ar, capLowFFT_100_pf, capLowFFT_100_dd, capLowFFT_100_sc, capLowFFT_100_swr, capLowFFT_100_slr] = q(capLowFFT_100)
+capLowFFF_90 = capLowCalc(200, 150, 90, false, false, false)
+[capLowFFF_90_wr, capLowFFF_90_n, capLowFFF_90_ar, capLowFFF_90_pf, capLowFFF_90_dd, capLowFFF_90_sc, capLowFFF_90_swr, capLowFFF_90_slr] = q(capLowFFF_90)
+capLowFFF_95 = capLowCalc(200, 150, 95, false, false, false)
+[capLowFFF_95_wr, capLowFFF_95_n, capLowFFF_95_ar, capLowFFF_95_pf, capLowFFF_95_dd, capLowFFF_95_sc, capLowFFF_95_swr, capLowFFF_95_slr] = q(capLowFFF_95)
+capLowFFF_100 = capLowCalc(200, 150, 100, false, false, false)
+[capLowFFF_100_wr, capLowFFF_100_n, capLowFFF_100_ar, capLowFFF_100_pf, capLowFFF_100_dd, capLowFFF_100_sc, capLowFFF_100_swr, capLowFFF_100_slr] = q(capLowFFF_100)
+
+//------------------------------------------------------------------------------
+//print sig performance table (schema v3: sig | win% | N | avgR | PF | maxDD | score | winR | lossR)
+//------------------------------------------------------------------------------
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 27)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "capLowTTT_90", capLowTTT_90_wr, capLowTTT_90_n, capLowTTT_90_ar, capLowTTT_90_pf, capLowTTT_90_dd, capLowTTT_90_sc, capLowTTT_90_swr, capLowTTT_90_slr)
+    renderRow(tbl, 4, "capLowTTT_95", capLowTTT_95_wr, capLowTTT_95_n, capLowTTT_95_ar, capLowTTT_95_pf, capLowTTT_95_dd, capLowTTT_95_sc, capLowTTT_95_swr, capLowTTT_95_slr)
+    renderRow(tbl, 5, "capLowTTT_100", capLowTTT_100_wr, capLowTTT_100_n, capLowTTT_100_ar, capLowTTT_100_pf, capLowTTT_100_dd, capLowTTT_100_sc, capLowTTT_100_swr, capLowTTT_100_slr)
+    renderRow(tbl, 6, "capLowTTF_90", capLowTTF_90_wr, capLowTTF_90_n, capLowTTF_90_ar, capLowTTF_90_pf, capLowTTF_90_dd, capLowTTF_90_sc, capLowTTF_90_swr, capLowTTF_90_slr)
+    renderRow(tbl, 7, "capLowTTF_95", capLowTTF_95_wr, capLowTTF_95_n, capLowTTF_95_ar, capLowTTF_95_pf, capLowTTF_95_dd, capLowTTF_95_sc, capLowTTF_95_swr, capLowTTF_95_slr)
+    renderRow(tbl, 8, "capLowTTF_100", capLowTTF_100_wr, capLowTTF_100_n, capLowTTF_100_ar, capLowTTF_100_pf, capLowTTF_100_dd, capLowTTF_100_sc, capLowTTF_100_swr, capLowTTF_100_slr)
+    renderRow(tbl, 9, "capLowTFT_90", capLowTFT_90_wr, capLowTFT_90_n, capLowTFT_90_ar, capLowTFT_90_pf, capLowTFT_90_dd, capLowTFT_90_sc, capLowTFT_90_swr, capLowTFT_90_slr)
+    renderRow(tbl, 10, "capLowTFT_95", capLowTFT_95_wr, capLowTFT_95_n, capLowTFT_95_ar, capLowTFT_95_pf, capLowTFT_95_dd, capLowTFT_95_sc, capLowTFT_95_swr, capLowTFT_95_slr)
+    renderRow(tbl, 11, "capLowTFT_100", capLowTFT_100_wr, capLowTFT_100_n, capLowTFT_100_ar, capLowTFT_100_pf, capLowTFT_100_dd, capLowTFT_100_sc, capLowTFT_100_swr, capLowTFT_100_slr)
+    renderRow(tbl, 12, "capLowTFF_90", capLowTFF_90_wr, capLowTFF_90_n, capLowTFF_90_ar, capLowTFF_90_pf, capLowTFF_90_dd, capLowTFF_90_sc, capLowTFF_90_swr, capLowTFF_90_slr)
+    renderRow(tbl, 13, "capLowTFF_95", capLowTFF_95_wr, capLowTFF_95_n, capLowTFF_95_ar, capLowTFF_95_pf, capLowTFF_95_dd, capLowTFF_95_sc, capLowTFF_95_swr, capLowTFF_95_slr)
+    renderRow(tbl, 14, "capLowTFF_100", capLowTFF_100_wr, capLowTFF_100_n, capLowTFF_100_ar, capLowTFF_100_pf, capLowTFF_100_dd, capLowTFF_100_sc, capLowTFF_100_swr, capLowTFF_100_slr)
+    renderRow(tbl, 15, "capLowFTT_90", capLowFTT_90_wr, capLowFTT_90_n, capLowFTT_90_ar, capLowFTT_90_pf, capLowFTT_90_dd, capLowFTT_90_sc, capLowFTT_90_swr, capLowFTT_90_slr)
+    renderRow(tbl, 16, "capLowFTT_95", capLowFTT_95_wr, capLowFTT_95_n, capLowFTT_95_ar, capLowFTT_95_pf, capLowFTT_95_dd, capLowFTT_95_sc, capLowFTT_95_swr, capLowFTT_95_slr)
+    renderRow(tbl, 17, "capLowFTT_100", capLowFTT_100_wr, capLowFTT_100_n, capLowFTT_100_ar, capLowFTT_100_pf, capLowFTT_100_dd, capLowFTT_100_sc, capLowFTT_100_swr, capLowFTT_100_slr)
+    renderRow(tbl, 18, "capLowFTF_90", capLowFTF_90_wr, capLowFTF_90_n, capLowFTF_90_ar, capLowFTF_90_pf, capLowFTF_90_dd, capLowFTF_90_sc, capLowFTF_90_swr, capLowFTF_90_slr)
+    renderRow(tbl, 19, "capLowFTF_95", capLowFTF_95_wr, capLowFTF_95_n, capLowFTF_95_ar, capLowFTF_95_pf, capLowFTF_95_dd, capLowFTF_95_sc, capLowFTF_95_swr, capLowFTF_95_slr)
+    renderRow(tbl, 20, "capLowFTF_100", capLowFTF_100_wr, capLowFTF_100_n, capLowFTF_100_ar, capLowFTF_100_pf, capLowFTF_100_dd, capLowFTF_100_sc, capLowFTF_100_swr, capLowFTF_100_slr)
+    renderRow(tbl, 21, "capLowFFT_90", capLowFFT_90_wr, capLowFFT_90_n, capLowFFT_90_ar, capLowFFT_90_pf, capLowFFT_90_dd, capLowFFT_90_sc, capLowFFT_90_swr, capLowFFT_90_slr)
+    renderRow(tbl, 22, "capLowFFT_95", capLowFFT_95_wr, capLowFFT_95_n, capLowFFT_95_ar, capLowFFT_95_pf, capLowFFT_95_dd, capLowFFT_95_sc, capLowFFT_95_swr, capLowFFT_95_slr)
+    renderRow(tbl, 23, "capLowFFT_100", capLowFFT_100_wr, capLowFFT_100_n, capLowFFT_100_ar, capLowFFT_100_pf, capLowFFT_100_dd, capLowFFT_100_sc, capLowFFT_100_swr, capLowFFT_100_slr)
+    renderRow(tbl, 24, "capLowFFF_90", capLowFFF_90_wr, capLowFFF_90_n, capLowFFF_90_ar, capLowFFF_90_pf, capLowFFF_90_dd, capLowFFF_90_sc, capLowFFF_90_swr, capLowFFF_90_slr)
+    renderRow(tbl, 25, "capLowFFF_95", capLowFFF_95_wr, capLowFFF_95_n, capLowFFF_95_ar, capLowFFF_95_pf, capLowFFF_95_dd, capLowFFF_95_sc, capLowFFF_95_swr, capLowFFF_95_slr)
+    renderRow(tbl, 26, "capLowFFF_100", capLowFFF_100_wr, capLowFFF_100_n, capLowFFF_100_ar, capLowFFF_100_pf, capLowFFF_100_dd, capLowFFF_100_sc, capLowFFF_100_swr, capLowFFF_100_slr)
