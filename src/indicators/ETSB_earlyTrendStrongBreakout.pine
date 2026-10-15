@@ -159,7 +159,7 @@ etc1sb = etsb and (rmv1Cond or lowRmv1)
 etc2sb = etsb and (rmv2Cond or lowRmv2)
 etc3sb = etsb and (rmv3Cond or lowRmv3)
 
-iDivergence = input.int(50, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, display = display.none, group = 'Signal: Obv-price divergence sb')
+iDivergence = input.int(30, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, display = display.none, group = 'Signal: Obv-price divergence sb')
 obvMa = ta.sma(ta.obv, 100)
 priceMa = ta.sma(close, 100)
 risingObv = obvMa > obvMa[1]
@@ -195,7 +195,7 @@ countChanges(series, length) =>
 
 iOneilPercentileLookback = input.int(200, title = 'Main percentile lookback', minval = 20, maxval = 756, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
 iOneilEpsYearsCheck = input.int(3, title = 'Eps years check', minval = 1, maxval = 5, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
-iOneilMinPercentileAvg = input.float(70, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
+iOneilMinPercentileAvg = input.float(65, title = 'Min. percentile average', minval = 50, maxval = 99, display = display.none, group = "Signal: O''Neil Inspired: hi-percentile sb")
 oiObvPercentile = ta.percentrank(ta.obv, iOneilPercentileLookback)
 oiRsPercentile = ta.percentrank(rs, iOneilPercentileLookback)
 totalShares1M = syminfo.shares_outstanding_total / 1000000.0
