@@ -1,0 +1,8 @@
+# SQLite - pliki tymczasowe obok db/analysis.db (sama baza jest commitowana)
+db/*.db-wal
+db/*.db-shm
+db/*.db-journal
+
+# Python
+__pycache__/
+*.pyc

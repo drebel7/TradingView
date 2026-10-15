@@ -1,0 +1,3 @@
+# Binarne pliki bazy SQLite - nie pokazuj diffów tekstowych
+*.db binary -diff
+*.sqlite binary -diff
