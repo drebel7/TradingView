@@ -8,6 +8,248 @@ indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 
 import drebel/DRELib/39 as drelib
 import drebel/DREPerf/27 as dreperf
 
+// ============================================================================================
+// DESIGN NOTES - signal concepts (implementation-agnostic)
+// --------------------------------------------------------------------------------------------
+// Purpose: this block describes the IDEA and the market rationale behind every signal produced
+// by this script. It is written to support an independent re-implementation: it deliberately
+// avoids formulas, lookback lengths and other parameter choices of the current code, and it
+// should not be treated as its specification. Recreate the concepts from the rationale below
+// and re-derive the mechanics from scratch.
+//
+// Name decoder:
+//   et      - "early trend": a composite state describing an emerging bullish trend
+//   sb      - "strong breakout": a fresh price ceiling break on expanding, time-of-day aware
+//             relative volume
+//   rmv     - "relative measured volatility": contraction / expansion of short-term volatility
+//   etc     - early trend + volatility contraction + strong breakout
+//   mt      - Minervini-style trend template; mtc = the template + a volatility contraction
+//   p1D     - the signal confirmed on the NEXT day by an opening-range breakout
+//   WON     - William O'Neil inspired setups; hp = high percentile; 1YH = fresh one-year high
+//   vip     - volume institutional push
+//   CapLow  - capitulation low; FlatB = flat-base breakout
+//   The digits 1/2/3 (rmv1..3, etc1sb..3sb, mtc1sb..3sb) are NOT a priority. They are the same
+//   concept measured on different horizons: 1 = very short (fast, noisy), 2 = short (swing),
+//   3 = medium (base / position level). Treat them as interchangeable alternative triggers.
+//
+// How the signals relate:
+//   - Every signal is an independent, standalone long trigger; they are not meant to be AND-ed
+//     with each other. Confluence is expressed through the shared building blocks below.
+//   - What is plotted and alerted is additionally gated by the historical quality check (see
+//     "Signal quality model" below): in the default mode only signals whose statistics pass the
+//     configured gates are surfaced. The script is a research lab for a given instrument, not
+//     just a chart overlay.
+//
+// --------------------------------------------------------------------------------------------
+// SHARED BUILDING BLOCKS
+// --------------------------------------------------------------------------------------------
+//
+// 1) Universe / general filter
+//    A tradeable long candidate must be a stock (not an ETF or index), with sufficient
+//    liquidity (average and median turnover above a floor, so a position can be entered and
+//    exited), sufficient volatility (average daily range above a floor - a signal needs
+//    something to move), the price inside a sane band, and the price must not sit too far above
+//    the day's low at the moment of the signal (the entry must not chase an already extended
+//    intraday move; the distance is measured in units of the average daily range). In addition,
+//    the broad benchmark must not be in a fresh bearish trend state.
+//
+// 2) Regime modifier (broad index + sector index)
+//    The state of the broad market index and of the matching sector index (each classified as
+//    recently bullish / recently bearish / neutral) yields a small integer modifier. It makes
+//    the environment-adaptive parts of the script slightly looser in a bullish regime and
+//    slightly stricter in a bearish one: the breakout volume requirement, the allowed distance
+//    from the day's low, and the earnings requirement of the trend template (waived when the
+//    environment is already strongly bullish). Weak market structure (too few meaningful swings
+//    in the recent window) tightens the breakout volume requirement as well. Conceptually: the
+//    same setup deserves a different amount of confirmation depending on the tape.
+//
+// 3) Strong breakout (the "sb" building block)
+//    A breakout is a close above the recent price ceiling. "Strong" adds three ideas on top of
+//    the bare new-high condition:
+//      - multi-horizon freshness: the ceiling is measured over several nested horizons (the base
+//        lookback and its multiples), and the break must be fresh - the same ceiling must not
+//        have been broken already in the immediately preceding bars - so the signal marks the
+//        start of an expansion, not a continuation of an old one;
+//      - time-of-day aware relative volume: volume is compared to its recent average and scaled
+//        by how much of the session has elapsed, because raw volume early in the day is
+//        naturally low. The required multiple is high at the open and decays towards the close,
+//        so a move late in the session needs less relative volume to be credible. This
+//        distinguishes an intraday spike from a close-validated breakout;
+//      - price above the VWAP anchored at the most recent local high: the breakout must reclaim
+//        the average price paid by everyone who traded around the recent top - a genuine change
+//        of control, not a bounce below supply.
+//
+// 4) Volatility contraction / expansion (the "rmv" building block)
+//    Volatility is cyclical: quiet contracting phases (bases) precede directional expansion.
+//    "Measured volatility" is the typical short-term candle range. "Contraction" means this
+//    measure sits at the low end of its OWN recent range - a relative, self-normalized level,
+//    not an absolute threshold, so it works across instruments. The bullish event is the moment
+//    contraction ends and volatility expands again, typically confirmed by: price turning up
+//    versus the recent bars, volume above its average, price back above short-term averages,
+//    and the expansion happening late in the session so that the close validates it. The
+//    contraction measure is also used on its own as a state filter (see etc / mtc signals).
+//
+// 5) Signal quality model (DREPerf library)
+//    Every signal is continuously validated against the history of the instrument on the chart.
+//    Outcome model: entry at the close of the signal candle; stop placed under the most recent
+//    short-term lows but never risking more than a capped percentage (the higher of the two
+//    levels is used); "success" = the price does not violate the stop within the check window;
+//    "failure" = the stop is hit and the trade is accounted with the stop-loss return. Metrics:
+//    success rate (no stop hit), mixed average return per signal, win rate, Wilson score lower
+//    bound of the win rate (sample-size aware reliability), R-multiple statistics (average,
+//    median, standard deviation, profit factor), average favorable and adverse excursion,
+//    maximum drawdown of the signal equity curve in R, longest losing streak, and a
+//    sample-aware score. The quality gate passes only when the success-rate and average-return
+//    thresholds are met AND the completed sample is large enough AND the Wilson lower bound
+//    clears its threshold. The minimum average return is expressed as a multiple of the
+//    instrument's average daily range, so the bar scales with the instrument's volatility.
+//
+// --------------------------------------------------------------------------------------------
+// SIGNALS
+// --------------------------------------------------------------------------------------------
+//
+// et3sb / et4sb - early trend + strong breakout
+//   Idea: catch a stock in the earliest phase of a new uptrend, right as it breaks out. The
+//   "early trend" is a composite of four independent descriptions of a trend; the signal
+//   requires either all four (et4) or at least three of four (et3), combined with the strong
+//   breakout:
+//     - relative strength: the stock outperforms the broad benchmark - its relative-strength
+//       line against the benchmark is above its own average, so the outperformance is a trend,
+//       not noise;
+//     - volume flow: the cumulative on-balance volume sits decisively above its own recent norm
+//       (accumulation), with hysteresis so the state does not flip on single bars;
+//     - trend filter: price above the Ichimoku cloud (an established, smoothed trend / momentum
+//       state);
+//     - market structure: within the recent window the lows hold better than the highs do - the
+//       sequence of lows is not being broken while overhead highs are being absorbed (a rising
+//       staircase), with a minimum amount of overall structure so pure chop does not qualify.
+//   The 3-of-4 version tolerates one missing descriptor (e.g. structure already repaired while
+//   volume flow has not confirmed yet); the 4-of-4 version demands full agreement.
+//
+// et1YHsb - early trend + fresh one-year leadership extreme + strong breakout
+//   Idea: the early-trend composite has been true recently, and the stock demonstrates
+//   leadership with a fresh one-year high in its volume flow (OBV) or in its relative-strength
+//   line, while breaking out strongly now. The freshness of the leadership extreme is the
+//   point: a stock that has just printed a yearly high in OBV or RS while a breakout starts is
+//   a potential new leader, unlike a stock whose leadership is old.
+//
+// rmv1 / rmv2 / rmv3 - expansion out of a volatility contraction
+//   Idea: see the "rmv" building block above. The bullish signal fires when the contraction
+//   state ends and volatility expands, or when an extreme expansion follows a contraction
+//   within a couple of bars (an explosive move right out of a quiet base). It is confirmed by
+//   price turning up, relative volume, price above short-term averages and a late-session
+//   timing so the close validates the expansion. Variants 1/2/3 are the same concept on very
+//   short / short / medium horizons (fast and noisy vs. slow and structural).
+//
+// etc1sb / etc2sb / etc3sb - early trend + contraction + strong breakout
+//   Idea: a stock that is already in an early uptrend (et3sb or et4sb) and is breaking out
+//   strongly while its short-term volatility sits at the low end of its own range - the classic
+//   quiet base under a breakout. The contraction is required either as a state (volatility
+//   still compressed) or as a fresh expansion event (see rmv). Variants 1/2/3 measure the
+//   contraction on three horizons.
+//
+// obvDiv - positive OBV / price divergence + strong breakout
+//   Idea: stealth accumulation. Volume flow (OBV) is trending up while price is not - buyers
+//   keep absorbing supply without the price moving yet. A sustained count of such divergence
+//   bars followed by a strong breakout suggests the accumulated position is being marked up.
+//
+// mtsb / mtc1sb / mtc2sb / mtc3sb - Minervini-style trend + strong breakout
+//   Idea: trade breakouts only in stocks that already satisfy a growth-leadership trend
+//   template: price above the key averages, the averages stacked in bullish order, the
+//   long-term average rising, price well above the yearly low and near the yearly high,
+//   outperformance versus the benchmark, and improving earnings (the trend must be backed by
+//   results; this requirement is waived when the market regime is strongly bullish). The
+//   template state must be fresh (it held recently), not historical. mtsb = template + strong
+//   breakout. mtc1sb/2sb/3sb = the same plus a volatility contraction on one of three horizons
+//   (a quiet base under the breakout of a leader).
+//
+// rag-pb - runaway gap pullback
+//   Idea: a "runaway gap" - the entire candle, including its low, opens and trades above the
+//   previous high by more than a multiple of the average daily range, on above-average volume -
+//   is an institutional footprint (someone is in a hurry). The stock then pulls back, returns
+//   to the low of the gap day and defends it (touch-and-go of the gap low) while the short-term
+//   trend is still up. Entry is the reclaim of the gap-day low after the pullback: buying the
+//   retest of the footprint level.
+//
+// WON:hp-sb - O'Neil inspired: high-percentile leadership + strong breakout
+//   Idea: CANSLIM-style leadership expressed as percentile ranks - volume flow (OBV), relative
+//   strength versus the benchmark and earnings (EPS) all sit at high percentiles of their own
+//   history, and the high-percentile state is fresh. Earnings are actually being updated
+//   (recent reporting activity). Combined with a volatility contraction and a strong breakout:
+//   buy the breakout of a stock that leads on all three fronts (price, volume flow,
+//   fundamentals).
+//
+// WON:turnUp - O'Neil inspired: turnaround GO
+//   Idea: a bottom-turning signal (originally for broad indexes, it also works on big stocks).
+//   A recent low is confirmed - it is the extreme of a wider window too, it occurred within a
+//   short window of time and below the main average, i.e. a real correction, not a shallow
+//   wiggle - and then a sequence of "GO days" appears: up days on expanding volume (the
+//   accumulation days of a rally attempt). A minimum number of GO days after a confirmed
+//   bottom is the "follow-through" that marks a turnaround. The signal is debounced, so one
+//   turnaround produces one signal.
+//
+// ridingVwapTAG - riding anchored VWAP: touch and go
+//   Idea: anchored VWAPs as the market's memory of the average price paid since a meaningful
+//   low. Starting from the major low of the recent past, every new local low below the previous
+//   anchored VWAP starts a new anchor - a ladder of cost-basis levels, each defended by a
+//   different cohort of buyers. The signal fires when price touches and reclaims one of these
+//   levels (touch-and-go) while the structure stays clean: few violations below the level, only
+//   the most recent / single level in play (not a late-stage pile-up of simultaneous levels),
+//   a volume flush at the low (capitulation-style selling absorbed), price back above
+//   short-term references, the main average rising, and optionally a contraction in place.
+//   Confirmation: a close above the previous bar's high. Conceptually: institutions defend
+//   their average price; buying the successful defense means joining the trend early.
+//
+// CapLow - capitulation low
+//   Idea: the classic selling climax. The lowest price of a long window is printed on climax
+//   volume (extreme volume percentile) - capitulation, all remaining sellers are flushed. The
+//   entry is not on the climax bar itself but on the confirmation day: price holds above the
+//   climax low, volume stays above average and, optionally, the day shows strength against the
+//   climax bar (high above the previous high / close recovering a meaningful part of the
+//   previous bar). The alert is emitted only near the end of the session, so the confirmation
+//   is close-validated.
+//
+// FlatB - flat-base breakout
+//   Idea: a breakout from a flat consolidation. For a while the price ceiling is completely
+//   flat (no new highs for several bars), then the closing price jumps to the very top of its
+//   long-term range in one step (the percentile rank of the close jumps to the maximum).
+//   Volume must be good (the same time-of-day aware relative volume as the strong breakout),
+//   and the stock must not be overextended above its main average (a low percentile of the
+//   distance to the average), so the breakout comes from rest, not from an already stretched
+//   move.
+//
+// vip - volume institutional push
+//   Idea: accumulation shows up as a cluster of "accumulation days": days with above-average
+//   volume and a close not lower than the previous close. Four such days in a row, or five out
+//   of six, mean institutions have been pushing for a week - a footprint, not a single event.
+//   The signal must be fresh (not a repetition of a recent cluster), optionally at least one of
+//   the days must carry very high volume (a real institutional print), and the stock must not
+//   already be at the top of its range - accumulation happens before the breakout, not after.
+//
+// p1D variants (opening-range breakout on the day after the signal)
+//   Idea (Qullamaggie inspired): a main signal is often only an alert; the actual entry can be
+//   deferred to the next session and taken only if the stock confirms by breaking its opening
+//   range (price closes at the session high after the opening range has formed, opening above
+//   the previous close, within the first half of the session). For less liquid stocks the
+//   opening range is measured over a longer initial window, for liquid ones over a shorter one
+//   - the noise of the first minutes differs with turnover. Each signal family has its own
+//   next-day variant; the aggregate "best LONG" alert fires for any of them.
+//
+// --------------------------------------------------------------------------------------------
+// LIBRARY PROVENANCE (for re-implementation)
+// --------------------------------------------------------------------------------------------
+// Part of the logic lives in two shared libraries and must be recreated as independent modules:
+//   - DRELib: benchmark and sector-index selection and regime classification, the trend
+//     template (Minervini-style, including the earnings component), Ichimoku cloud state,
+//     OBV-above-norm state with hysteresis, the non-broken-extremes structure measure, relative
+//     measured volatility (rmv), the strong breakout (multi-horizon fresh highs + time-of-day
+//     aware relative volume + anchored-VWAP condition), the opening-range breakout, the O'Neil
+//     turnaround GO signal, the general universe filter and the time-of-session percentage.
+//   - DREPerf: the signal quality / statistics model (outcome model, success rate, mixed
+//     return, win rate, Wilson lower bound, R-multiple statistics, excursions, drawdown,
+//     score, quality gate).
+// ============================================================================================
+
 //common filters inputs
 iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', display = display.none, group = 'General filter for signal')
 iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, display = display.none, group = 'General filter for signal')
