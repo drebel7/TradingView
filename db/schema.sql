@@ -442,7 +442,7 @@ agg AS (
         SUM(CASE WHEN status = 'ok' AND max_dd IS NOT NULL THEN max_dd * n END)
             / NULLIF(SUM(CASE WHEN status = 'ok' THEN n END), 0)             AS max_dd,
         AVG(CASE WHEN status = 'ok' THEN score END)                          AS score_mean,
-        SUM(CASE WHEN status = 'ok' THEN score END)                          AS score_sum,
+        COALESCE(SUM(CASE WHEN status = 'ok' THEN score END), 0.0)           AS score_sum,
         COUNT(CASE WHEN status = 'ok' AND score IS NOT NULL THEN 1 END)      AS score_cnt,
         COUNT(CASE WHEN status = 'ok' AND score > 0 THEN 1 END)              AS score_pos_cnt,
         SUM(sum_win_r)                                                       AS gross_win_r,

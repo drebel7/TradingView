@@ -10,6 +10,15 @@ indicator(title = 'ETSB-ia', overlay = true, calc_bars_count = 12 * 252, max_bar
 
 import drebel/DREPerf/27 as dreperf
 
+//General filter inputs - first group in the UI (as in ETSB_earlyTrendStrongBreakout.pine)
+iGeneralFilterCond = input.bool(defval = true, title = 'General filter ON', group = 'General filter for signal', display = display.none)
+iGenTurnoverLen = input.int(defval = 30, title = 'Turnover/median len', minval = 5, group = 'General filter for signal', display = display.none)
+iGenMinTurnoverM = input.float(defval = 0.20, title = 'Min. turnover [M]', minval = 0.0, step = 0.05, group = 'General filter for signal', display = display.none)
+iGenMinAdrPct = input.float(defval = 3.0, title = 'Min. ADR [pct]', minval = 0.0, step = 0.2, group = 'General filter for signal', display = display.none)
+iGenMinPrice = input.float(defval = 1.0, title = 'Min. price', minval = 0.0, group = 'General filter for signal', display = display.none)
+iGenMaxPrice = input.float(defval = 1750.0, title = 'Max. price', minval = 0.0, group = 'General filter for signal', display = display.none)
+iGenMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [pct]', minval = 0, maxval = 300, step = 5, group = 'General filter for signal', display = display.none)
+
 //signals switches
 iShowAiEt3 = input.bool(defval = true, title = 'Show ai-et3', group = 'Signals', display = display.none)
 iShowAiEt4 = input.bool(defval = true, title = 'Show ai-et4', group = 'Signals', display = display.none)
@@ -41,9 +50,10 @@ iShowAiHtf100 = input.bool(defval = true, title = '100', group = 'Signals', inli
 iShowAiHtfTight = input.bool(defval = true, title = 'tight', group = 'Signals', inline = 'htf', display = display.none)
 iShowAiEp = input.bool(defval = true, title = 'Show ai-ep', group = 'Signals', inline = 'ep', display = display.none)
 iShowAiEp20 = input.bool(defval = true, title = '20', group = 'Signals', inline = 'ep', display = display.none)
+iShowAiEpq = input.bool(defval = true, title = 'Show ai-epq (strict Q.)', group = 'Signals', display = display.none)
 
 iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
-iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. win rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signals')
 iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Signals')
 iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Signals')
@@ -69,7 +79,7 @@ sessionLenMs = time_close - time
 sessionPct = sessionLenMs > 0 ? (math.min(timenow, time_close) - time) * 1.0 / sessionLenMs : 1.0
 sessionLenMinutes = sessionLenMs / 60000.0
 
-autoBench = syminfo.prefix == 'GPW' ? 'GPW:WIG' : syminfo.prefix == 'NEWCONNECT' ? 'NEWCONNECT:NCINDEX' : syminfo.prefix == 'NASDAQ' ? 'NASDAQ:NDX' : 'SP:SPX'
+autoBench = syminfo.prefix == 'GPW' ? 'GPW:WIG' : syminfo.prefix == 'NEWCONNECT' ? 'NEWCONNECT:NCINDEX' : syminfo.prefix == 'NASDAQ' ? 'NASDAQ:QQQ' : 'AMEX:SPY'
 benchTicker = iBenchmarkTicker != '' ? iBenchmarkTicker : autoBench
 benchClose = request.security(benchTicker, timeframe.period, close)
 benchVolume = request.security(benchTicker, timeframe.period, volume)
@@ -149,7 +159,7 @@ f_rmvPos(int _mainLen, int _shortLen, int _smooth) =>
     (_range - _lo) / _den * 100.0
 
 //breakout parameters (shared by all breakout-based signals)
-iBrkLookback = input.int(defval = 7, title = 'Base breakout lookback', minval = 1, maxval = 63, group = 'Breakout parameters (shared)', display = display.none)
+iBrkLookback = input.int(defval = 14, title = 'Base breakout lookback', minval = 1, maxval = 63, group = 'Breakout parameters (shared)', display = display.none)
 iBrkUseMulti = input.bool(defval = true, title = 'Also accept multiples of the lookback', group = 'Breakout parameters (shared)', display = display.none)
 iBrkVolReqOpen = input.float(defval = 6.0, title = 'Required rel. volume at open', minval = 0.5, maxval = 20.0, step = 0.1, group = 'Breakout parameters (shared)', display = display.none)
 iBrkVolReqClose = input.float(defval = 1.5, title = 'Required rel. volume at close', minval = 0.5, maxval = 20.0, step = 0.05, group = 'Breakout parameters (shared)', display = display.none)
@@ -159,6 +169,103 @@ iBrkVwapLookback = input.int(defval = 100, title = 'Anchored VWAP high lookback'
 
 breakoutVolMul = 1.0 - regimeMod * iRegimeVolStep
 strongBreakout = f_strongBreakout(iBrkLookback, iBrkUseMulti, iBrkVolReqOpen, iBrkVolReqClose, iBrkVolDecayPow, iBrkUseVwap, iBrkVwapLookback, breakoutVolMul)
+
+//IT12 experiment (local, not in the library yet): breakout from a TIGHT BASE with a strong close.
+//The shared strongBreakout only asks for a fresh ceiling break - a stock in a wild, extended run qualifies
+//the same way as a quiet base breaking out. This candidate requires the preceding N bars to be tight
+//(range <= maxRangePct), the breakout close in the upper part of the day's range, relative volume expansion
+//and the trend filter. If it proves itself it moves into DRELib.
+iQbrkBaseLen = input.int(defval = 20, title = 'Tight base lookback [bars]', minval = 5, maxval = 100, group = 'Breakout experiment (IT12)', display = display.none)
+iQbrkMaxRangePct = input.float(defval = 12.0, title = 'Max. base range [pct]', minval = 2.0, maxval = 60.0, step = 0.5, group = 'Breakout experiment (IT12)', display = display.none)
+iQbrkMinClosePos = input.float(defval = 0.5, title = 'Min. close position in range [0-1]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Breakout experiment (IT12)', display = display.none)
+iQbrkVolMult = input.float(defval = 1.5, title = 'Min. relative volume', minval = 0.5, maxval = 5.0, step = 0.1, group = 'Breakout experiment (IT12)', display = display.none)
+iQbrkTrendLen = input.int(defval = 50, title = 'Trend MA len', minval = 10, maxval = 200, group = 'Breakout experiment (IT12)', display = display.none)
+
+f_qualityBreakout(int _len, float _maxRangePct, float _minClosePos, float _volMult, int _trendLen) =>
+    float _hi = ta.highest(high, _len)[1]
+    float _lo = ta.lowest(low, _len)[1]
+    float _rangePct = _lo > 0 ? (_hi - _lo) / _lo * 100.0 : 999.0
+    bool _tight = _rangePct <= _maxRangePct
+    bool _brk = close > _hi
+    float _pos = (close - low) / math.max(high - low, syminfo.mintick)
+    bool _closeOk = _pos >= _minClosePos
+    float _relVol = volume / ta.sma(volume, iVolMaLen)
+    bool _volOk = _relVol > _volMult
+    bool _trendOk = close > ta.sma(close, _trendLen)
+    _tight and _brk and _closeOk and _volOk and _trendOk
+
+qBreakout = f_qualityBreakout(iQbrkBaseLen, iQbrkMaxRangePct, iQbrkMinClosePos, iQbrkVolMult, iQbrkTrendLen)
+
+//IT13 experiment (local): ADR-normalised breakout. The shared strongBreakout accepts a break of the ceiling by a
+//single tick; the profile study showed the edge of this family lives in *expansion* (high ADR, fat tails), so the
+//candidate requires the close to clear the base ceiling by a fraction of the stock's own ADR, caps how far above
+//the 50-day average the breakout may sit (do not chase extended moves) and keeps the volume/VWAP confirmation.
+iBrkV2MinClrAdr = input.float(defval = 0.5, title = 'V2: min. clearance above base high [x ADR]', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Breakout experiment (IT13)', display = display.none)
+iBrkV2MaxExtAdr = input.float(defval = 6.0, title = 'V2: max. extension above SMA50 [x ADR]', minval = 1.0, maxval = 30.0, step = 0.5, group = 'Breakout experiment (IT13)', display = display.none)
+iBrkV2UseExt = input.bool(defval = true, title = 'V2: cap extension above SMA50', group = 'Breakout experiment (IT13)', display = display.none)
+iBrkV2VolMult = input.float(defval = 1.5, title = 'V2: min. relative volume', minval = 0.5, maxval = 5.0, step = 0.05, group = 'Breakout experiment (IT13)', display = display.none)
+iBrkV2VwapLen = input.int(defval = 100, title = 'V2: anchored VWAP lookback', minval = 10, maxval = 300, group = 'Breakout experiment (IT13)', display = display.none)
+
+f_breakoutV2(int _lookback, float _volMult, int _vwapLen, float _minClrAdr, float _maxExtAdr, bool _useExt) =>
+    float _hi = ta.highest(high, _lookback)[1]
+    bool _brk = close > _hi
+    bool _clrOk = (close - _hi) >= _minClrAdr * adr * close
+    bool _volOk = volume > _volMult * ta.sma(volume, iVolMaLen)
+    bool _vwapOk = close > f_anchoredVwap(_vwapLen)
+    float _ma50 = ta.sma(close, 50)
+    bool _extOk = not _useExt or (_ma50 > 0 and close <= _ma50 * (1.0 + _maxExtAdr * adr))
+    _brk and _clrOk and _volOk and _vwapOk and _extOk
+
+bkv2a = f_breakoutV2(iBrkLookback, iBrkV2VolMult, iBrkV2VwapLen, 0.25, iBrkV2MaxExtAdr, iBrkV2UseExt)
+bkv2b = f_breakoutV2(iBrkLookback, iBrkV2VolMult, iBrkV2VwapLen, 0.50, iBrkV2MaxExtAdr, iBrkV2UseExt)
+bkv2c = f_breakoutV2(iBrkLookback, iBrkV2VolMult, iBrkV2VwapLen, 1.00, iBrkV2MaxExtAdr, iBrkV2UseExt)
+bkv2d = f_breakoutV2(iBrkLookback, iBrkV2VolMult, iBrkV2VwapLen, 0.50, 3.0, true)
+bkv2e = f_breakoutV2(iBrkLookback, iBrkV2VolMult, 50, 0.50, iBrkV2MaxExtAdr, iBrkV2UseExt)
+
+//IT14 experiment (local): profile gate. The profile study showed that the mtsb family earns its edge in
+//high-volatility names (fat tails); low-ADR names produce many small, noisy breakouts. Gate the family on the
+//stock's own ADR at the signal bar (point-in-time, no lookahead). Kept as a switch so the A/B can be reverted.
+iProfileGateOn = input.bool(defval = true, title = 'Profile gate ON', group = 'Profile gate (IT14)', display = display.none)
+iProfileMinAdrPct = input.float(defval = 5.0, title = 'Min. ADR [pct]', minval = 0.0, maxval = 20.0, step = 0.5, group = 'Profile gate (IT14)', display = display.none)
+
+profileAdrOk = not iProfileGateOn or adrPct >= iProfileMinAdrPct
+iProfileAdr4 = input.float(defval = 4.0, title = 'Reduced ADR gate [pct]', minval = 0.0, maxval = 20.0, step = 0.5, group = 'Profile gate (IT14)', display = display.none)
+profileAdrOk4 = not iProfileGateOn or adrPct >= iProfileAdr4
+iProfileAdr6 = input.float(defval = 6.0, title = 'High-quality ADR gate [pct]', minval = 0.0, maxval = 20.0, step = 0.5, group = 'Profile gate (IT14)', display = display.none)
+profileAdrOk6 = not iProfileGateOn or adrPct >= iProfileAdr6
+
+//IT17 experiments (local): (a) quiet families get the opposite profile rule - on GPW htf/htftight prefer
+//low ADR and ragpb prefers low ADR everywhere; on US htf/htftight prefer high ADR. (b) A/B of a 30-day ADR
+//instead of the 100-day ADR on the high-sample rmv family (the profile study used a 30-day ADR).
+isGpw = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT'
+profileQuietOk = not iProfileGateOn or (isGpw ? adrPct < iProfileMinAdrPct : adrPct >= iProfileMinAdrPct)
+profileLowAdrOk = not iProfileGateOn or adrPct < iProfileMinAdrPct
+iProfileAdrLen = input.int(defval = 30, title = 'Profile ADR len (A/B)', minval = 5, maxval = 200, group = 'Profile gate (IT14)', display = display.none)
+profileAdr30Pct = 100.0 * (ta.sma(high / low, iProfileAdrLen) - 1.0)
+profileAdr30Ok = not iProfileGateOn or profileAdr30Pct >= iProfileMinAdrPct
+
+//IT19 experiments (local): (a) ADR percentile (top 30% of the stock's own 252-day ADR) instead of the absolute
+//6% threshold on aiMtsb; (b) market-specific liquidity gate on aiRmv1 (GPW >=2M, US >=50M average turnover).
+iProfileAdrPctileMin = input.int(defval = 70, title = 'Min. ADR percentile (252d)', minval = 50, maxval = 95, step = 1, group = 'Profile gate (IT14)', display = display.none)
+profileAdrPctileRank = ta.percentrank(adrPct, 252)
+profileAdrPctileOk = not iProfileGateOn or profileAdrPctileRank >= iProfileAdrPctileMin
+iLiqGateOn = input.bool(defval = true, title = 'Liquidity gate ON', group = 'Liquidity gate (IT19)', display = display.none)
+iLiqTurnoverLen = input.int(defval = 30, title = 'Turnover SMA len', minval = 5, group = 'Liquidity gate (IT19)', display = display.none)
+iLiqMinTurnoverGpwM = input.float(defval = 2.0, title = 'Min. turnover GPW [M]', minval = 0.0, step = 0.5, group = 'Liquidity gate (IT19)', display = display.none)
+iLiqMinTurnoverUsM = input.float(defval = 50.0, title = 'Min. turnover US [M]', minval = 0.0, step = 5.0, group = 'Liquidity gate (IT19)', display = display.none)
+turnoverM = ta.sma(close * volume, iLiqTurnoverLen) / 1000000.0
+profileLiqOk = not iLiqGateOn or turnoverM >= (isGpw ? iLiqMinTurnoverGpwM : iLiqMinTurnoverUsM)
+
+//IT18 experiment (local): expansion-day filter. The profile study says the edge is in volatility expansion,
+//so the breakout candle itself should be an expansion day: range >= a fraction of the stock's ADR and a close
+//in the upper part of its own range. Applied to aiMtsb only as an A/B.
+iExpGateOn = input.bool(defval = true, title = 'Expansion-day gate ON', group = 'Expansion day (IT18)', display = display.none)
+iExpMinRangeAdr = input.float(defval = 0.8, title = 'Min. day range [x ADR]', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Expansion day (IT18)', display = display.none)
+iExpMinClosePos = input.float(defval = 0.6, title = 'Min. close position in range [0-1]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Expansion day (IT18)', display = display.none)
+
+expDayRangePct = (high - low) / close * 100.0
+expDayClosePos = (close - low) / math.max(high - low, syminfo.mintick)
+expansionDayOk = not iExpGateOn or (expDayRangePct >= iExpMinRangeAdr * adrPct and expDayClosePos >= iExpMinClosePos)
 
 //universe filter (shared) - gates the alerts only
 iUnivFilterOn = input.bool(defval = true, title = 'Universe filter ON', group = 'Universe filter (shared)', display = display.none)
@@ -203,6 +310,7 @@ iMktGateOn = input.bool(defval = true, title = 'Enable market timing gate', grou
 iMktBlockOnCorrection = input.bool(defval = true, title = 'Block signals when the market is in correction', group = 'Market timing (IBD)', display = display.none)
 iMktRequireFtd = input.bool(defval = true, title = 'Require a fresh follow-through day', group = 'Market timing (IBD)', display = display.none)
 iMktDistDropPct = input.float(defval = 0.2, title = 'Distribution day: min. index drop [pct]', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Market timing (IBD)', display = display.none)
+iMktDistDropPctNoVol = input.float(defval = 0.4, title = 'Distribution day: min. index drop, benchmark without volume [pct]', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Market timing (IBD)', display = display.none)
 iMktDistWindow = input.int(defval = 25, title = 'Distribution days window [bars]', minval = 5, maxval = 60, group = 'Market timing (IBD)', display = display.none)
 iMktDistUnderPressure = input.int(defval = 5, title = 'Distribution days: uptrend under pressure', minval = 1, maxval = 20, group = 'Market timing (IBD)', display = display.none)
 iMktDistCorrection = input.int(defval = 6, title = 'Distribution days: market in correction', minval = 1, maxval = 25, group = 'Market timing (IBD)', display = display.none)
@@ -214,7 +322,9 @@ iMktFtdValidBars = input.int(defval = 60, title = 'Follow-through: valid for [ba
 iMktShowState = input.bool(defval = false, title = 'Show market state (debug)', group = 'Market timing (IBD)', display = display.none)
 
 //distribution days on the benchmark index
-mktDistDay = benchClose < benchClose[1] * (1.0 - iMktDistDropPct / 100.0) and (na(benchVolume) or benchVolume > benchVolume[1])
+benchVolumeMissing = na(benchVolume) or benchVolume <= 0
+mktDistDropPct = benchVolumeMissing ? iMktDistDropPctNoVol : iMktDistDropPct
+mktDistDay = benchClose < benchClose[1] * (1.0 - mktDistDropPct / 100.0) and (benchVolumeMissing or benchVolume > benchVolume[1])
 mktDistCount = math.sum(mktDistDay ? 1 : 0, iMktDistWindow)
 mktUnderPressure = mktDistCount >= iMktDistUnderPressure
 mktInCorrection = mktDistCount >= iMktDistCorrection
@@ -238,7 +348,7 @@ if not mktRallyActive and mktUpDay and mktBelowMa
 else if mktRallyActive
     mktRallyDay += 1
     mktRallyLow := math.min(nz(mktRallyLow, benchClose), benchClose)
-if mktRallyActive and mktRallyDay >= iMktFtdMinDay and mktUpDay and (benchClose / benchClose[1] - 1.0) * 100.0 >= iMktFtdMinGainPct and (na(benchVolume) or benchVolume > benchVolume[1])
+if mktRallyActive and mktRallyDay >= iMktFtdMinDay and mktUpDay and (benchClose / benchClose[1] - 1.0) * 100.0 >= iMktFtdMinGainPct and (benchVolumeMissing or benchVolume > benchVolume[1])
     mktFtdNow := true
     mktFtdAgo := 0
 else
@@ -248,8 +358,26 @@ mktMa = ta.sma(benchClose, iMktTrendMaLen)
 mktMaOk = not na(benchClose) and benchClose > mktMa
 marketGate = iMktUseMaRule ? mktMaOk : ((not iMktBlockOnCorrection or not mktInCorrection) and (not iMktRequireFtd or mktFtdFresh))
 
+//General filter for signal - minimum entry criteria for a stock (modeled on ETSB_earlyTrendStrongBreakout.pine).
+//It blocks every signal (plots, alerts and the performance table) for companies that are too illiquid, too quiet,
+//too cheap/expensive or too extended from the low of the day. Turnover must pass both the average and the median
+//floor so a single spike cannot qualify a thin stock. The filter is independent of the market-timing gate.
+
+genTurnoverMaM = ta.sma(close * volume, iGenTurnoverLen) / 1000000.0
+genTurnoverMedM = ta.median(close * volume, iGenTurnoverLen) / 1000000.0
+genMinTurnoverVolume = ta.lowest(volume, iGenTurnoverLen)
+genTurnoverOk = na(volume) or (genMinTurnoverVolume > 0 and genTurnoverMaM > iGenMinTurnoverM and genTurnoverMedM > iGenMinTurnoverM)
+genAdrOk = adrPct > iGenMinAdrPct
+genPriceOk = close > iGenMinPrice and close < iGenMaxPrice and syminfo.type == 'stock'
+genHiloAvg = ta.sma(high - low, iGenTurnoverLen)
+genLoDDistPct = genHiloAvg > 0 ? 100.0 * (close - low) / genHiloAvg : 0.0
+genDistOk = genLoDDistPct <= iGenMaxDistFromLoDPct * (1.0 + regimeMod * iRegimeVolStep)
+generalFilterOk = genTurnoverOk and genAdrOk and genPriceOk and genDistOk
+generalFilterMask = not iGeneralFilterCond or generalFilterOk
+
 //sigMask gates every signal (plots, alerts and the performance table) when the market timing gate is enabled
-sigMask = iMktGateOn ? marketGate : true
+//and the stock passes the general filter.
+sigMask = (iMktGateOn ? marketGate : true) and generalFilterMask
 f_gate(bool _s) =>
     _s and sigMask
 
@@ -297,8 +425,11 @@ structOk = etLowerLowSteps > etHigherHighSteps and etLowerLowSteps + etHigherHig
 
 etScore = (rsOk ? 1 : 0) + (obvAboveNorm ? 1 : 0) + (aboveCloud ? 1 : 0) + (structOk ? 1 : 0)
 aiEt = etScore >= 3
-aiEt3sb = etScore == 3 and strongBreakout
-aiEt4sb = etScore == 4 and strongBreakout
+//IT15 experiment (local): extend the validated IT14 ADR profile gate to the remaining expansion signals.
+//The profile study found high ADR beneficial for rmv/mtc/et/etc/obvdiv/vwaptag/flatb/caplow/wonhp/wonturn;
+//quiet families (htf, vcp, ragpb) are deliberately left ungated because high ADR hurts them on GPW.
+aiEt3sb = etScore == 3 and strongBreakout and profileAdrOk4
+aiEt4sb = etScore == 4 and strongBreakout and profileAdrOk6
 
 //Signal: ai-et1yh - early trend + fresh one-year leadership extreme + strong breakout
 //Concept: the early-trend composite has been true recently, and the stock demonstrates leadership with a fresh
@@ -363,14 +494,20 @@ iRmvUpBars = input.int(defval = 2, title = 'Close up vs. N bars ago', minval = 1
 iRmvVolMult = input.float(defval = 1.15, title = 'Min. volume multiple of vol SMA', minval = 0.0, maxval = 3.0, step = 0.05, group = 'Signal: ai-rmv confirmation (shared)', display = display.none)
 iRmvLateSession = input.float(defval = 0.85, title = 'Min. session elapsed [0-1]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Signal: ai-rmv confirmation (shared)', display = display.none)
 iRmvUseBoom = input.bool(defval = true, title = 'Allow explosive expansion trigger', group = 'Signal: ai-rmv confirmation (shared)', display = display.none)
+iRmvMinLowBars = input.int(defval = 1, title = 'Min. contraction bars among the last 3', minval = 1, maxval = 3, group = 'Signal: ai-rmv confirmation (shared)', display = display.none)
+iRmvMinClosePos = input.float(defval = 0.0, title = 'Min. close position in range [0-1]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Signal: ai-rmv confirmation (shared)', display = display.none)
 
-rmvConfirm = close > close[iRmvUpBars] and volume > iRmvVolMult * volMa and close > fastMa and close > midMa and sessionPct >= iRmvLateSession
-rmvTrig1 = (not rmvLow1 and (rmvLow1[1] or rmvLow1[2])) or (iRmvUseBoom and rmvVal1 >= iRmv1BoomLvl and (rmvLow1[1] or rmvLow1[2] or rmvLow1[3]))
-rmvTrig2 = (not rmvLow2 and (rmvLow2[1] or rmvLow2[2])) or (iRmvUseBoom and rmvVal2 >= iRmv2BoomLvl and (rmvLow2[1] or rmvLow2[2] or rmvLow2[3]))
-rmvTrig3 = (not rmvLow3 and (rmvLow3[1] or rmvLow3[2])) or (iRmvUseBoom and rmvVal3 >= iRmv3BoomLvl and (rmvLow3[1] or rmvLow3[2] or rmvLow3[3]))
-aiRmv1 = rmvTrig1 and rmvConfirm
-aiRmv2 = rmvTrig2 and rmvConfirm
-aiRmv3 = rmvTrig3 and rmvConfirm
+rmvClosePos = (close - low) / math.max(high - low, syminfo.mintick)
+rmvConfirm = close > close[iRmvUpBars] and volume > iRmvVolMult * volMa and close > fastMa and close > midMa and sessionPct >= iRmvLateSession and rmvClosePos >= iRmvMinClosePos
+rmvLowPrev1 = (rmvLow1[1] ? 1 : 0) + (rmvLow1[2] ? 1 : 0) + (rmvLow1[3] ? 1 : 0)
+rmvLowPrev2 = (rmvLow2[1] ? 1 : 0) + (rmvLow2[2] ? 1 : 0) + (rmvLow2[3] ? 1 : 0)
+rmvLowPrev3 = (rmvLow3[1] ? 1 : 0) + (rmvLow3[2] ? 1 : 0) + (rmvLow3[3] ? 1 : 0)
+rmvTrig1 = ((not rmvLow1 and (rmvLow1[1] or rmvLow1[2])) or (iRmvUseBoom and rmvVal1 >= iRmv1BoomLvl and (rmvLow1[1] or rmvLow1[2] or rmvLow1[3]))) and rmvLowPrev1 >= iRmvMinLowBars
+rmvTrig2 = ((not rmvLow2 and (rmvLow2[1] or rmvLow2[2])) or (iRmvUseBoom and rmvVal2 >= iRmv2BoomLvl and (rmvLow2[1] or rmvLow2[2] or rmvLow2[3]))) and rmvLowPrev2 >= iRmvMinLowBars
+rmvTrig3 = ((not rmvLow3 and (rmvLow3[1] or rmvLow3[2])) or (iRmvUseBoom and rmvVal3 >= iRmv3BoomLvl and (rmvLow3[1] or rmvLow3[2] or rmvLow3[3]))) and rmvLowPrev3 >= iRmvMinLowBars
+aiRmv1 = rmvTrig1 and rmvConfirm and profileAdrOk6
+aiRmv2 = rmvTrig2 and rmvConfirm and profileAdrOk6
+aiRmv3 = rmvTrig3 and rmvConfirm and profileAdrOk6
 
 //Signal: ai-etc1/2/3 - early trend + contraction + strong breakout
 //Concept: a stock that is already in an early uptrend (ai-et3 / ai-et4 state) and is breaking out strongly while
@@ -379,9 +516,9 @@ aiRmv3 = rmvTrig3 and rmvConfirm
 //ai-etc1/2/3 measure the contraction on three horizons.
 iEtcAllowContractionState = input.bool(defval = true, title = 'Allow "still contracted" state (else require fresh expansion)', group = 'Signal: ai-etc (shared)', display = display.none)
 
-aiEtc1 = (aiEt3sb or aiEt4sb) and (rmvTrig1 or (iEtcAllowContractionState and rmvLow1))
-aiEtc2 = (aiEt3sb or aiEt4sb) and (rmvTrig2 or (iEtcAllowContractionState and rmvLow2))
-aiEtc3 = (aiEt3sb or aiEt4sb) and (rmvTrig3 or (iEtcAllowContractionState and rmvLow3))
+aiEtc1 = (aiEt3sb or aiEt4sb) and (rmvTrig1 or (iEtcAllowContractionState and rmvLow1)) and profileAdrOk
+aiEtc2 = (aiEt3sb or aiEt4sb) and (rmvTrig2 or (iEtcAllowContractionState and rmvLow2)) and profileAdrOk4
+aiEtc3 = (aiEt3sb or aiEt4sb) and (rmvTrig3 or (iEtcAllowContractionState and rmvLow3)) and profileAdrOk
 
 //Signal: ai-obvdiv - positive OBV / price divergence + strong breakout
 //Concept: stealth accumulation - volume flow (OBV) trends up while price does not, i.e. buyers keep absorbing
@@ -389,13 +526,13 @@ aiEtc3 = (aiEt3sb or aiEt4sb) and (rmvTrig3 or (iEtcAllowContractionState and rm
 //suggests the accumulated position is being marked up.
 iObvDivMaLen = input.int(defval = 100, title = 'Slope SMA len', minval = 5, group = 'Signal: ai-obvdiv', display = display.none)
 iObvDivWindow = input.int(defval = 100, title = 'Divergence count window', minval = 10, maxval = 300, group = 'Signal: ai-obvdiv', display = display.none)
-iObvDivMinCount = input.int(defval = 30, title = 'Min. divergence bars in window', minval = 0, group = 'Signal: ai-obvdiv', display = display.none)
+iObvDivMinCount = input.int(defval = 28, title = 'Min. divergence bars in window', minval = 0, group = 'Signal: ai-obvdiv', display = display.none)
 
 obvDivMa = ta.sma(obvVal, iObvDivMaLen)
 obvDivPriceMa = ta.sma(close, iObvDivMaLen)
 obvDivBar = obvDivMa > obvDivMa[1] and not (obvDivPriceMa > obvDivPriceMa[1])
 obvDivCount = math.sum(obvDivBar ? 1 : 0, iObvDivWindow)
-aiObvDiv = obvDivCount > iObvDivMinCount and strongBreakout
+aiObvDiv = obvDivCount > iObvDivMinCount and strongBreakout and profileAdrOk4
 
 //Signal: ai-mtsb / ai-mtc1/2/3 - growth-leadership trend template + strong breakout
 //Concept: trade breakouts only in stocks that already satisfy a growth-leadership trend template: price above the
@@ -434,14 +571,14 @@ epsOk = epsChangeCount == 0 or epsBetterCount * 1.0 / epsChangeCount >= iMtEpsMi
 mtEpsCond = not iMtUseEps or regimeMod >= 1 or epsOk
 mtTrendOk = mtStackOk and mtRangeOk and mtPriceOk and mtRsOk and mtEpsCond
 mtTrendFresh = nz(ta.barssince(not mtTrendOk), 99999) < iMtRecency
-aiMtsb = mtTrendFresh and strongBreakout
+aiMtsb = mtTrendFresh and strongBreakout and profileAdrOk6
 
 //ai-mtc shared control
 iMtcAllowContractionState = input.bool(defval = true, title = 'Allow "still contracted" state (else require fresh expansion)', group = 'Signal: ai-mtc (shared)', display = display.none)
 
-aiMtc1 = mtTrendFresh and (rmvTrig1 or (iMtcAllowContractionState and rmvLow1)) and strongBreakout
-aiMtc2 = mtTrendFresh and (rmvTrig2 or (iMtcAllowContractionState and rmvLow2)) and strongBreakout
-aiMtc3 = mtTrendFresh and (rmvTrig3 or (iMtcAllowContractionState and rmvLow3)) and strongBreakout
+aiMtc1 = mtTrendFresh and (rmvTrig1 or (iMtcAllowContractionState and rmvLow1)) and strongBreakout and profileAdrOk
+aiMtc2 = mtTrendFresh and (rmvTrig2 or (iMtcAllowContractionState and rmvLow2)) and strongBreakout and profileAdrOk
+aiMtc3 = mtTrendFresh and (rmvTrig3 or (iMtcAllowContractionState and rmvLow3)) and strongBreakout and profileAdrOk
 
 //Signal: ai-vcp2 / ai-vcp3 - Volatility Contraction Pattern (Mark Minervini): pivot breakout
 //Signal: ai-vcp2c / ai-vcp3c - the same base structure, but the "cheat" entry (taken before the pivot breaks)
@@ -466,9 +603,9 @@ iVcpPivotLeft = input.int(defval = 3, title = 'Pivot left bars', minval = 1, max
 iVcpPivotRight = input.int(defval = 3, title = 'Pivot right bars', minval = 1, maxval = 20, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpMaxBaseBars = input.int(defval = 120, title = 'Max. base age [bars]', minval = 20, maxval = 400, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpMaxDepthPct = input.float(defval = 35.0, title = 'Max. contraction depth [pct]', minval = 5.0, maxval = 60.0, step = 1.0, group = 'Signal: ai-vcp (Minervini)', display = display.none)
-iVcpMinDepthPct = input.float(defval = 3.0, title = 'Min. contraction depth [pct]', minval = 0.0, maxval = 20.0, step = 0.5, group = 'Signal: ai-vcp (Minervini)', display = display.none)
-iVcpDepthRatio = input.float(defval = 0.85, title = 'Each contraction <= ratio x previous', minval = 0.3, maxval = 1.0, step = 0.05, group = 'Signal: ai-vcp (Minervini)', display = display.none)
-iVcpMaxFromHighPct = input.float(defval = 25.0, title = 'Max. distance from 1Y high [pct]', minval = 0.0, maxval = 60.0, step = 1.0, group = 'Signal: ai-vcp (Minervini)', display = display.none)
+iVcpMinDepthPct = input.float(defval = 2.0, title = 'Min. contraction depth [pct]', minval = 0.0, maxval = 20.0, step = 0.5, group = 'Signal: ai-vcp (Minervini)', display = display.none)
+iVcpDepthRatio = input.float(defval = 0.90, title = 'Each contraction <= ratio x previous', minval = 0.3, maxval = 1.0, step = 0.05, group = 'Signal: ai-vcp (Minervini)', display = display.none)
+iVcpMaxFromHighPct = input.float(defval = 30.0, title = 'Max. distance from 1Y high [pct]', minval = 0.0, maxval = 60.0, step = 1.0, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpVolDryupRatio = input.float(defval = 0.85, title = 'VDU: contraction volume <= ratio x previous', minval = 0.2, maxval = 1.5, step = 0.05, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpUseVduPct = input.bool(defval = false, title = 'Also require low volume percentile (VDU)', group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpVduWindow = input.int(defval = 10, title = 'VDU percentile window', minval = 3, maxval = 50, group = 'Signal: ai-vcp (Minervini)', display = display.none)
@@ -476,9 +613,9 @@ iVcpVduMaxPct = input.float(defval = 40.0, title = 'VDU max. volume percentile',
 iVcpBreakoutVolMult = input.float(defval = 1.5, title = 'Breakout volume multiple', minval = 0.5, maxval = 5.0, step = 0.1, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpRequirePivotCross = input.bool(defval = true, title = 'Require the pivot break on the signal bar', group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpUseStrongBreakout = input.bool(defval = false, title = 'Also require shared strong breakout', group = 'Signal: ai-vcp (Minervini)', display = display.none)
-iVcpCheatMaxDepthPct = input.float(defval = 12.0, title = 'Cheat: max. last contraction depth [pct]', minval = 2.0, maxval = 30.0, step = 1.0, group = 'Signal: ai-vcp (Minervini)', display = display.none)
+iVcpCheatMaxDepthPct = input.float(defval = 14.0, title = 'Cheat: max. last contraction depth [pct]', minval = 2.0, maxval = 30.0, step = 1.0, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpCheatVolMult = input.float(defval = 1.0, title = 'Cheat: min. volume multiple', minval = 0.5, maxval = 3.0, step = 0.1, group = 'Signal: ai-vcp (Minervini)', display = display.none)
-iVcpDebounce = input.int(defval = 10, title = 'Signal debounce [bars]', minval = 0, maxval = 60, group = 'Signal: ai-vcp (Minervini)', display = display.none)
+iVcpDebounce = input.int(defval = 3, title = 'Signal debounce [bars]', minval = 0, maxval = 60, group = 'Signal: ai-vcp (Minervini)', display = display.none)
 iVcpShowPivot = input.bool(defval = false, title = 'Show pivot level (debug)', group = 'Signal: ai-vcp (Minervini)', display = display.none)
 
 //vcp pivot bookkeeping: alternating swing points of the base (oldest first, newest last)
@@ -624,7 +761,7 @@ aiVcp3c = vcp3cRaw and vcp3cAgo > iVcpDebounce
 //whether the shared strong breakout or the Stage-2 template (ai-mt) must confirm as well.
 iHtfPoleLookback = input.int(defval = 63, title = 'Pole lookback [bars]', minval = 20, maxval = 250, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfMinPoleGainPct = input.float(defval = 40.0, title = 'Min. pole gain [pct]', minval = 10.0, maxval = 400.0, step = 5.0, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
-iHtfMinPoleGainPct2 = input.float(defval = 100.0, title = 'Min. pole gain - ai-htf100 [pct]', minval = 20.0, maxval = 600.0, step = 10.0, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
+iHtfMinPoleGainPct2 = input.float(defval = 80.0, title = 'Min. pole gain - ai-htf100 [pct]', minval = 20.0, maxval = 600.0, step = 10.0, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfFlagLookback = input.int(defval = 15, title = 'Flag lookback [bars]', minval = 5, maxval = 60, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfMaxFlagDepthPct = input.float(defval = 30.0, title = 'Max. flag depth [pct]', minval = 5.0, maxval = 60.0, step = 1.0, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfTightFlagDepthPct = input.float(defval = 15.0, title = 'Max. flag depth - ai-htftight [pct]', minval = 3.0, maxval = 40.0, step = 1.0, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
@@ -634,6 +771,8 @@ iHtfMaSurfLen = input.int(defval = 20, title = 'Flag MA len', minval = 5, maxval
 iHtfMaSurfTolPct = input.float(defval = 5.0, title = 'Flag MA tolerance [pct]', minval = 0.0, maxval = 10.0, step = 0.5, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfVolDryupRatio = input.float(defval = 1.0, title = 'VDU: flag volume <= ratio x pole volume', minval = 0.2, maxval = 1.5, step = 0.05, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfBreakoutVolMult = input.float(defval = 1.2, title = 'Breakout volume multiple', minval = 0.5, maxval = 5.0, step = 0.1, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
+iHtfUseMaAlign = input.bool(defval = false, title = 'Require 10 > 20, rising 20, close > 50', group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
+iHtfRequireHigherLows = input.bool(defval = false, title = 'Require higher lows in the flag', group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfRequireFlagCross = input.bool(defval = true, title = 'Require the flag break on the signal bar', group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfRequireStrongClose = input.bool(defval = false, title = 'Require a strong close', group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
 iHtfCloseRangeFrac = input.float(defval = 0.35, title = 'Strong close: max. distance from high [frac of range]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Signal: ai-htf (Qullamaggie)', display = display.none)
@@ -661,6 +800,11 @@ htfPoleAvgVol = ta.sma(volume, iHtfPoleLookback)[iHtfFlagLookback]
 htfFlagAvgVol = ta.sma(volume, iHtfFlagLookback)
 htfVduOk = htfPoleAvgVol > 0 ? htfFlagAvgVol <= htfPoleAvgVol * iHtfVolDryupRatio : true
 htfFastOk = close > fastMa and fastMa > fastMa[1]
+htfMa20 = ta.sma(close, 20)
+htfMaAlignOk = not iHtfUseMaAlign or (fastMa > htfMa20 and htfMa20 > htfMa20[1] and close > midMa)
+htfLow5 = ta.lowest(low, 5)
+htfFlagLow5 = ta.lowest(low, iHtfFlagLookback)[5]
+htfHigherLows = not iHtfRequireHigherLows or htfLow5 > htfFlagLow5
 htfTemplateOk = not iHtfUseTemplate or mtTrendFresh
 
 //breakout: the flag is resolved on the signal bar
@@ -671,7 +815,7 @@ htfStrongOk = not iHtfUseStrongBreakout or strongBreakout
 htfCloseOk = not iHtfRequireStrongClose or close >= high - (high - low) * iHtfCloseRangeFrac
 
 //ai-htf (base case) / ai-htf100 (pole 100%+) / ai-htftight (tightest flag)
-htfBase = htfPoleGainPct >= iHtfMinPoleGainPct and htfFlagDepthPct <= iHtfMaxFlagDepthPct and htfRetracePct <= iHtfMaxRetracePct and htfMaSurfOk and htfVduOk and htfFastOk and htfTemplateOk
+htfBase = htfPoleGainPct >= iHtfMinPoleGainPct and htfFlagDepthPct <= iHtfMaxFlagDepthPct and htfRetracePct <= iHtfMaxRetracePct and htfMaSurfOk and htfVduOk and htfFastOk and htfMaAlignOk and htfHigherLows and htfTemplateOk
 htfBreakout = htfCross and htfVolOk and htfStrongOk and htfCloseOk
 htfRaw = htfBase and htfBreakout
 htf100Raw = htfRaw and htfPoleGainPct >= iHtfMinPoleGainPct2
@@ -702,16 +846,19 @@ aiHtfTight = htfTightRaw and htfTightAgo > iHtfDebounce
 //The inputs control: how big the gap must be (both variants), the volume multiple required, whether the stock
 //must have been sideways before the gap and over how long, how wide that quiet base may be, whether a fresh
 //earnings update is required as the catalyst, and whether the close must keep a minimum part of the gap gain.
-iEpGapPct = input.float(defval = 15.0, title = 'Min. gap [pct]', minval = 3.0, maxval = 50.0, step = 0.5, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
+iEpGapPct = input.float(defval = 8.0, title = 'Min. gap [pct]', minval = 3.0, maxval = 50.0, step = 0.5, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpGapPct2 = input.float(defval = 20.0, title = 'Min. gap - ai-ep20 [pct]', minval = 5.0, maxval = 80.0, step = 1.0, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
-iEpVolMult = input.float(defval = 2.0, title = 'Min. volume multiple of vol SMA', minval = 0.5, maxval = 10.0, step = 0.1, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
+iEpVolMult = input.float(defval = 2.5, title = 'Min. volume multiple of vol SMA', minval = 0.5, maxval = 10.0, step = 0.1, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpQuietBaseOn = input.bool(defval = true, title = 'Require a quiet base before the gap', group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpQuietBaseBars = input.int(defval = 126, title = 'Quiet base lookback [bars]', minval = 20, maxval = 252, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpQuietBaseMaxRangePct = input.float(defval = 45.0, title = 'Quiet base max. range [pct]', minval = 10.0, maxval = 150.0, step = 5.0, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpUseEps = input.bool(defval = false, title = 'Require a fresh earnings update', group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpEpsAgo = input.int(defval = 2, title = 'Earnings update within [bars]', minval = 0, maxval = 10, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 iEpMinCloseGainPct = input.float(defval = 0.0, title = 'Min. close gain vs prev. close [pct] (0 = off)', minval = 0.0, maxval = 30.0, step = 0.5, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
-iEpDebounce = input.int(defval = 10, title = 'Signal debounce [bars]', minval = 0, maxval = 60, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
+iEpUseTrend = input.bool(defval = true, title = 'Require 10/50 rising + close > 50 SMA + rising RS', group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
+iEpUseHigherLows = input.bool(defval = false, title = 'Require higher lows (20d low > 60d low)', group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
+iEpMinClosePos = input.float(defval = 0.0, title = 'Min. close position in day range [0-1]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
+iEpDebounce = input.int(defval = 3, title = 'Signal debounce [bars]', minval = 0, maxval = 60, group = 'Signal: ai-ep (Qullamaggie)', display = display.none)
 
 //episodic pivot: a gap on news that forces a revaluation, on massive volume, ideally out of a quiet base
 epGapPct = close[1] > 0 ? (open / close[1] - 1.0) * 100.0 : 0.0
@@ -724,12 +871,55 @@ epQuietOk = not iEpQuietBaseOn or epBaseRangePct <= iEpQuietBaseMaxRangePct
 epEpsAgo = nz(ta.barssince(epsChanged), 99999)
 epEpsOk = not iEpUseEps or epEpsAgo <= iEpEpsAgo
 epCloseOk = iEpMinCloseGainPct <= 0.0 or close >= close[1] * (1.0 + iEpMinCloseGainPct / 100.0)
-epRaw = epGapOk and epVolOk and epQuietOk and epEpsOk and epCloseOk
+epLow20 = ta.lowest(low, 20)
+epLow60 = ta.lowest(low, 60)
+epHigherLows = not iEpUseHigherLows or epLow20 > epLow60
+epTrendOk = not iEpUseTrend or (na(rsLine) or rsLine > rsLine[20])
+epClosePos = (close - low) / math.max(high - low, syminfo.mintick)
+epClosePosOk = epClosePos >= iEpMinClosePos
+epRaw = epGapOk and epVolOk and epQuietOk and epEpsOk and epCloseOk and epHigherLows and epTrendOk and epClosePosOk
 ep20Raw = epRaw and epGapPct >= iEpGapPct2
 epAgo = nz(ta.barssince(epRaw[1]), 99999)
 ep20Ago = nz(ta.barssince(ep20Raw[1]), 99999)
 aiEp = epRaw and epAgo > iEpDebounce
 aiEp20 = ep20Raw and ep20Ago > iEpDebounce
+
+//IT27 - strict Qullamaggie EP (quality/event signal; deliberately rare, below the 120/240 minimum).
+//The doc's EP is a gap on news/earnings on exceptional volume, out of a base/higher lows, in an uptrend with
+//rising relative strength, entered on the 5-min opening-range high. On daily data we approximate the entry with
+//a strong close; the stop/check horizon stay frozen (the measurement stop is not LOD).
+iEpqGapPct = input.float(defval = 9.0, title = 'EPq: min. gap [pct]', minval = 5.0, maxval = 50.0, step = 0.5, group = 'Signal: ai-epq (strict Q.)', display = display.none)
+iEpqVolMult = input.float(defval = 3.0, title = 'EPq: min. volume multiple', minval = 1.0, maxval = 10.0, step = 0.1, group = 'Signal: ai-epq (strict Q.)', display = display.none)
+iEpqUseTrend = input.bool(defval = true, title = 'EPq: 10/50 rising + close > 50 SMA + rising RS', group = 'Signal: ai-epq (strict Q.)', display = display.none)
+iEpqUseHigherLows = input.bool(defval = false, title = 'EPq: higher lows (20d low > 60d low)', group = 'Signal: ai-epq (strict Q.)', display = display.none)
+iEpqMinClosePos = input.float(defval = 0.0, title = 'EPq: min. close position in range [0-1]', minval = 0.0, maxval = 1.0, step = 0.05, group = 'Signal: ai-epq (strict Q.)', display = display.none)
+iEpqDebounce = input.int(defval = 10, title = 'EPq: debounce [bars]', minval = 0, maxval = 60, group = 'Signal: ai-epq (strict Q.)', display = display.none)
+
+epqLow20 = ta.lowest(low, 20)
+epqLow60 = ta.lowest(low, 60)
+epqHigherLows = not iEpqUseHigherLows or epqLow20 > epqLow60
+epqTrendOk = not iEpqUseTrend or (close > midMa and fastMa > fastMa[1] and midMa > midMa[20] and (na(rsLine) or rsLine > rsLine[20]))
+epqClosePos = (close - low) / math.max(high - low, syminfo.mintick)
+epqClosePosOk = epqClosePos >= iEpqMinClosePos
+epqGapOk = epGapPct >= iEpqGapPct
+epqVolOk = volume > iEpqVolMult * volMa
+epqRaw = epqGapOk and epqVolOk and epQuietOk and epqTrendOk and epqHigherLows and epqClosePosOk
+epqAgo = nz(ta.barssince(epqRaw[1]), 99999)
+aiEpq = epqRaw and epqAgo > iEpqDebounce
+
+//IT12 A/B variants: the same signal conditions with the candidate breakout (tight base + strong close) instead
+//of the shared strongBreakout. Measurement-only twins - no plotshape, no alerts.
+aiMtsbQ = mtTrendFresh and qBreakout
+aiMtc3Q = mtTrendFresh and (rmvTrig3 or (iMtcAllowContractionState and rmvLow3)) and qBreakout
+aiEt4Q = etScore == 4 and qBreakout
+aiObvQ = obvDivCount > iObvDivMinCount and qBreakout
+
+//IT13 A/B variants (measurement only, no plotshape): ai-mtsb with the ADR-normalised breakout.
+aiMtsbV2a = mtTrendFresh and bkv2a and profileAdrOk6
+aiMtsbV2b = mtTrendFresh and bkv2b and profileAdrOk6
+aiMtsbV2c = mtTrendFresh and bkv2c and profileAdrOk
+aiMtsbV2d = mtTrendFresh and bkv2d and profileAdrOk4
+aiMtsbV2e = mtTrendFresh and bkv2e and profileAdrOk6
 
 //Signal: ai-ragpb - runaway gap pullback
 //Concept: a runaway gap (the whole candle, including its low, opens and trades above the previous high by more
@@ -764,14 +954,15 @@ iHpEpsLookback = input.int(defval = 756, title = 'EPS percentile lookback', minv
 iHpMinAvg = input.float(defval = 65.0, title = 'Min. percentile average', minval = 50.0, maxval = 99.0, group = 'Signal: ai-wonhp', display = display.none)
 iHpRecency = input.int(defval = 50, title = 'Freshness [bars]', minval = 1, group = 'Signal: ai-wonhp', display = display.none)
 iHpEpsWindow = input.int(defval = 756, title = 'EPS activity window', minval = 100, group = 'Signal: ai-wonhp', display = display.none)
-iHpMinEpsChanges = input.int(defval = 9, title = 'Min. EPS updates in window', minval = 0, group = 'Signal: ai-wonhp', display = display.none)
+iHpMinEpsChanges = input.int(defval = 3, title = 'Min. EPS updates in window', minval = 0, group = 'Signal: ai-wonhp', display = display.none)
 
 obvPercentile = ta.percentrank(obvVal, iHpLookback)
 rsPercentile = ta.percentrank(rsLine, iHpLookback)
 epsPercentile = ta.percentrank(epsAct, iHpEpsLookback)
-hpAvg = math.avg(obvPercentile, rsPercentile, epsPercentile)
+hpAvg = na(epsPercentile) ? math.avg(obvPercentile, rsPercentile) : math.avg(obvPercentile, rsPercentile, epsPercentile)
 hpFresh = nz(ta.barssince(hpAvg > iHpMinAvg), 99999) < iHpRecency
-hpEpsActive = math.sum(epsChanged ? 1 : 0, iHpEpsWindow) >= iHpMinEpsChanges
+hpEpsCount = math.sum(epsChanged ? 1 : 0, iHpEpsWindow)
+hpEpsActive = na(epsAct) or hpEpsCount >= iHpMinEpsChanges
 aiWonHp = hpAvg > iHpMinAvg and hpFresh and hpEpsActive and (rmvTrig1 or rmvTrig2 or rmvTrig3) and strongBreakout
 
 //Signal: ai-wonturn - O'Neil inspired turnaround GO (up)
@@ -801,7 +992,7 @@ turnGoDay = volume > volume[1] and volume > volMa and (close - close[1]) / close
 turnGoCountWindow = math.max(iTurnMinGoDays, math.min(turnBottomAgo, iTurnMaxAgo))
 turnGoCount = math.sum(turnGoDay ? 1 : 0, turnGoCountWindow)
 turnOk = turnGoCount >= iTurnMinGoDays and turnBottomNearby
-aiWonTurn = nz(ta.barssince(turnOk[1]), 99999) > iTurnDebounce and turnOk
+aiWonTurn = nz(ta.barssince(turnOk[1]), 99999) > iTurnDebounce and turnOk and profileAdrOk4
 
 //Signal: ai-vwaptag - riding anchored VWAP: touch and go
 //Concept: anchored VWAPs as the market's memory of the average price paid since a meaningful low. Starting from
@@ -817,9 +1008,10 @@ iVwapMaxAge = input.int(defval = 150, title = 'Max. anchor age [bars]', minval =
 iVwapViolLen = input.int(defval = 10, title = 'Violations window', minval = 3, group = 'Signal: ai-vwaptag', display = display.none)
 iVwapMaxViol = input.int(defval = 5, title = 'Max. closes below level in window', minval = 0, group = 'Signal: ai-vwaptag', display = display.none)
 iVwapFlushMult = input.float(defval = 1.5, title = 'Volume flush multiple of vol SMA', minval = 1.0, maxval = 5.0, step = 0.1, group = 'Signal: ai-vwaptag', display = display.none)
-iVwapFlushAgo = input.int(defval = 30, title = 'Flush within last bars', minval = 1, group = 'Signal: ai-vwaptag', display = display.none)
+iVwapFlushAgo = input.int(defval = 15, title = 'Flush within last bars', minval = 1, group = 'Signal: ai-vwaptag', display = display.none)
 iVwapUseObv = input.bool(defval = true, title = 'Require OBV above norm', group = 'Signal: ai-vwaptag', display = display.none)
 iVwapUseContr = input.bool(defval = false, title = 'Require volatility contraction', group = 'Signal: ai-vwaptag', display = display.none)
+iVwapReqVolOn = input.bool(defval = true, title = 'Require volume above average on the reclaim day', group = 'Signal: ai-vwaptag', display = display.none)
 iVwapUseRisingMainMa = input.bool(defval = true, title = 'Require rising main MA', group = 'Signal: ai-vwaptag', display = display.none)
 iVwapShowLevels = input.bool(defval = false, title = 'Show anchored VWAP levels (debug)', group = 'Signal: ai-vwaptag', display = display.none)
 
@@ -849,7 +1041,8 @@ vwapRisingMainOk = not iVwapUseRisingMainMa or mainMa > mainMa[1]
 vwapObvOk = not iVwapUseObv or obvAboveNorm
 vwapContrOk = not iVwapUseContr or (rmvLow1 or rmvLow2 or rmvLow3)
 vwapAgeOk = not na(activeAge) and activeAge >= iVwapMinAge and activeAge < iVwapMaxAge
-aiVwapTag = vwapReclaim and vwapAgeOk and vwapViolOk and vwapFlushOk and vwapRisingMainOk and vwapObvOk and vwapContrOk and close >= high[1]
+vwapVolOk = not iVwapReqVolOn or volume > volMa
+aiVwapTag = vwapReclaim and vwapAgeOk and vwapViolOk and vwapFlushOk and vwapRisingMainOk and vwapObvOk and vwapContrOk and vwapVolOk and close >= high[1] and profileAdrOk
 
 //Signal: ai-caplow - capitulation low
 //Concept: the classic selling climax. The lowest price of a long window is printed on climax volume (extreme
@@ -859,7 +1052,7 @@ aiVwapTag = vwapReclaim and vwapAgeOk and vwapViolOk and vwapFlushOk and vwapRis
 //previous bar). The alert is emitted only near the end of the session, so the confirmation is close-validated.
 iCapLowLookback = input.int(defval = 200, title = 'Major low lookback', minval = 20, maxval = 400, group = 'Signal: ai-caplow', display = display.none)
 iCapLowVolLookback = input.int(defval = 150, title = 'Volume percentile lookback', minval = 20, maxval = 400, group = 'Signal: ai-caplow', display = display.none)
-iCapLowMinVolPct = input.int(defval = 95, title = 'Min. volume percentile', minval = 50, maxval = 100, group = 'Signal: ai-caplow', display = display.none)
+iCapLowMinVolPct = input.int(defval = 90, title = 'Min. volume percentile', minval = 50, maxval = 100, group = 'Signal: ai-caplow', display = display.none)
 iCapLowReqVol = input.bool(defval = true, title = '2nd day vol above average', group = 'Signal: ai-caplow', display = display.none)
 iCapLowReqHigh = input.bool(defval = true, title = '2nd day high above prev. high', group = 'Signal: ai-caplow', display = display.none)
 iCapLowReqClose = input.bool(defval = false, title = '2nd day close above 1/3 of prev. candle', group = 'Signal: ai-caplow', display = display.none)
@@ -937,11 +1130,18 @@ orbUp = close == high and orbFormed and (not iP1dRequireOpenAbove or open > clos
 float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0))
 adrCond = iMinSigReturnAdrMultiple * adrPct
 
-iShowSigPerfTable = input.bool(defval = false, title = 'show table', group = 'Sig. performance check', display = display.none)
+iShowSigPerfTable = input.bool(defval = true, title = 'show table', group = 'Sig. performance check', display = display.none)
 iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', group = 'Sig. performance check', display = display.none)
 iUseQualityGate = input.bool(defval = false, title = 'use extended quality gate', display = display.none, group = 'Sig. performance check')
 iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
 iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+//EffOk gate: win rate (not the legacy no-stop success rate) plus average mixed return.
+//With iUseQualityGate it also requires the minimum sample count and Wilson lower bound of the win rate.
+f_effOk(float _winRatePct, float _avgReturnPct, int _sigCount, float _wilsonLbPct) =>
+    bool _baseOk = _winRatePct > iMinSigSuccessRate and _avgReturnPct > adrCond
+    bool _qualityOk = not iUseQualityGate or (_sigCount >= iMinSigCount and _wilsonLbPct >= iMinSigWilsonLb)
+    _baseOk and _qualityOk
 
 showRow(_iShowOnlyGoodSigs, sigOk) =>
     _iShowOnlyGoodSigs and sigOk or not _iShowOnlyGoodSigs
@@ -951,17 +1151,14 @@ showRow(_iShowOnlyGoodSigs, sigOk, _showThisSig) =>
 
 [et3SuccRate, et3SuccCount, et3SigCount, et3AvgReturn, et3SuccRateOk, et3SuccRateStr, et3WinRate, et3WinCount, et3AvgR, et3MedR, et3StdR, et3Pf, et3WilsonLb, et3AvgMfe, et3AvgMae, et3MaxDd, et3MaxLossStreak, et3Score, et3QualityOk, et3SumWinR, et3SumLossR] = dreperf.signalQualityFull(f_gate(aiEt3sb), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [et4SuccRate, et4SuccCount, et4SigCount, et4AvgReturn, et4SuccRateOk, et4SuccRateStr, et4WinRate, et4WinCount, et4AvgR, et4MedR, et4StdR, et4Pf, et4WilsonLb, et4AvgMfe, et4AvgMae, et4MaxDd, et4MaxLossStreak, et4Score, et4QualityOk, et4SumWinR, et4SumLossR] = dreperf.signalQualityFull(f_gate(aiEt4sb), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[et1yhSuccRate, et1yhSuccCount, et1yhSigCount, et1yhAvgReturn, et1yhSuccRateOk, et1yhSuccRateStr, et1yhWinRate, et1yhWinCount, et1yhAvgR, et1yhMedR, et1yhStdR, et1yhPf, et1yhWilsonLb, et1yhAvgMfe, et1yhAvgMae, et1yhMaxDd, et1yhMaxLossStreak, et1yhScore, et1yhQualityOk, et1yhSumWinR, et1yhSumLossR] = dreperf.signalQualityFull(f_gate(aiEt1yh), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [rmv1SuccRate, rmv1SuccCount, rmv1SigCount, rmv1AvgReturn, rmv1SuccRateOk, rmv1SuccRateStr, rmv1WinRate, rmv1WinCount, rmv1AvgR, rmv1MedR, rmv1StdR, rmv1Pf, rmv1WilsonLb, rmv1AvgMfe, rmv1AvgMae, rmv1MaxDd, rmv1MaxLossStreak, rmv1Score, rmv1QualityOk, rmv1SumWinR, rmv1SumLossR] = dreperf.signalQualityFull(f_gate(aiRmv1), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[rmv2SuccRate, rmv2SuccCount, rmv2SigCount, rmv2AvgReturn, rmv2SuccRateOk, rmv2SuccRateStr, rmv2WinRate, rmv2WinCount, rmv2AvgR, rmv2MedR, rmv2StdR, rmv2Pf, rmv2WilsonLb, rmv2AvgMfe, rmv2AvgMae, rmv2MaxDd, rmv2MaxLossStreak, rmv2Score, rmv2QualityOk, rmv2SumWinR, rmv2SumLossR] = dreperf.signalQualityFull(f_gate(aiRmv2), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [rmv3SuccRate, rmv3SuccCount, rmv3SigCount, rmv3AvgReturn, rmv3SuccRateOk, rmv3SuccRateStr, rmv3WinRate, rmv3WinCount, rmv3AvgR, rmv3MedR, rmv3StdR, rmv3Pf, rmv3WilsonLb, rmv3AvgMfe, rmv3AvgMae, rmv3MaxDd, rmv3MaxLossStreak, rmv3Score, rmv3QualityOk, rmv3SumWinR, rmv3SumLossR] = dreperf.signalQualityFull(f_gate(aiRmv3), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [etc1SuccRate, etc1SuccCount, etc1SigCount, etc1AvgReturn, etc1SuccRateOk, etc1SuccRateStr, etc1WinRate, etc1WinCount, etc1AvgR, etc1MedR, etc1StdR, etc1Pf, etc1WilsonLb, etc1AvgMfe, etc1AvgMae, etc1MaxDd, etc1MaxLossStreak, etc1Score, etc1QualityOk, etc1SumWinR, etc1SumLossR] = dreperf.signalQualityFull(f_gate(aiEtc1), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[etc2SuccRate, etc2SuccCount, etc2SigCount, etc2AvgReturn, etc2SuccRateOk, etc2SuccRateStr, etc2WinRate, etc2WinCount, etc2AvgR, etc2MedR, etc2StdR, etc2Pf, etc2WilsonLb, etc2AvgMfe, etc2AvgMae, etc2MaxDd, etc2MaxLossStreak, etc2Score, etc2QualityOk, etc2SumWinR, etc2SumLossR] = dreperf.signalQualityFull(f_gate(aiEtc2), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [etc3SuccRate, etc3SuccCount, etc3SigCount, etc3AvgReturn, etc3SuccRateOk, etc3SuccRateStr, etc3WinRate, etc3WinCount, etc3AvgR, etc3MedR, etc3StdR, etc3Pf, etc3WilsonLb, etc3AvgMfe, etc3AvgMae, etc3MaxDd, etc3MaxLossStreak, etc3Score, etc3QualityOk, etc3SumWinR, etc3SumLossR] = dreperf.signalQualityFull(f_gate(aiEtc3), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [obvdivSuccRate, obvdivSuccCount, obvdivSigCount, obvdivAvgReturn, obvdivSuccRateOk, obvdivSuccRateStr, obvdivWinRate, obvdivWinCount, obvdivAvgR, obvdivMedR, obvdivStdR, obvdivPf, obvdivWilsonLb, obvdivAvgMfe, obvdivAvgMae, obvdivMaxDd, obvdivMaxLossStreak, obvdivScore, obvdivQualityOk, obvdivSumWinR, obvdivSumLossR] = dreperf.signalQualityFull(f_gate(aiObvDiv), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [mtsbSuccRate, mtsbSuccCount, mtsbSigCount, mtsbAvgReturn, mtsbSuccRateOk, mtsbSuccRateStr, mtsbWinRate, mtsbWinCount, mtsbAvgR, mtsbMedR, mtsbStdR, mtsbPf, mtsbWilsonLb, mtsbAvgMfe, mtsbAvgMae, mtsbMaxDd, mtsbMaxLossStreak, mtsbScore, mtsbQualityOk, mtsbSumWinR, mtsbSumLossR] = dreperf.signalQualityFull(f_gate(aiMtsb), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[mtsbv2cSuccRate, mtsbv2cSuccCount, mtsbv2cSigCount, mtsbv2cAvgReturn, mtsbv2cSuccRateOk, mtsbv2cSuccRateStr, mtsbv2cWinRate, mtsbv2cWinCount, mtsbv2cAvgR, mtsbv2cMedR, mtsbv2cStdR, mtsbv2cPf, mtsbv2cWilsonLb, mtsbv2cAvgMfe, mtsbv2cAvgMae, mtsbv2cMaxDd, mtsbv2cMaxLossStreak, mtsbv2cScore, mtsbv2cQualityOk, mtsbv2cSumWinR, mtsbv2cSumLossR] = dreperf.signalQualityFull(f_gate(aiMtsbV2c), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [mtc1SuccRate, mtc1SuccCount, mtc1SigCount, mtc1AvgReturn, mtc1SuccRateOk, mtc1SuccRateStr, mtc1WinRate, mtc1WinCount, mtc1AvgR, mtc1MedR, mtc1StdR, mtc1Pf, mtc1WilsonLb, mtc1AvgMfe, mtc1AvgMae, mtc1MaxDd, mtc1MaxLossStreak, mtc1Score, mtc1QualityOk, mtc1SumWinR, mtc1SumLossR] = dreperf.signalQualityFull(f_gate(aiMtc1), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[mtc2SuccRate, mtc2SuccCount, mtc2SigCount, mtc2AvgReturn, mtc2SuccRateOk, mtc2SuccRateStr, mtc2WinRate, mtc2WinCount, mtc2AvgR, mtc2MedR, mtc2StdR, mtc2Pf, mtc2WilsonLb, mtc2AvgMfe, mtc2AvgMae, mtc2MaxDd, mtc2MaxLossStreak, mtc2Score, mtc2QualityOk, mtc2SumWinR, mtc2SumLossR] = dreperf.signalQualityFull(f_gate(aiMtc2), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [mtc3SuccRate, mtc3SuccCount, mtc3SigCount, mtc3AvgReturn, mtc3SuccRateOk, mtc3SuccRateStr, mtc3WinRate, mtc3WinCount, mtc3AvgR, mtc3MedR, mtc3StdR, mtc3Pf, mtc3WilsonLb, mtc3AvgMfe, mtc3AvgMae, mtc3MaxDd, mtc3MaxLossStreak, mtc3Score, mtc3QualityOk, mtc3SumWinR, mtc3SumLossR] = dreperf.signalQualityFull(f_gate(aiMtc3), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [ragpbSuccRate, ragpbSuccCount, ragpbSigCount, ragpbAvgReturn, ragpbSuccRateOk, ragpbSuccRateStr, ragpbWinRate, ragpbWinCount, ragpbAvgR, ragpbMedR, ragpbStdR, ragpbPf, ragpbWilsonLb, ragpbAvgMfe, ragpbAvgMae, ragpbMaxDd, ragpbMaxLossStreak, ragpbScore, ragpbQualityOk, ragpbSumWinR, ragpbSumLossR] = dreperf.signalQualityFull(f_gate(aiRagPb), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [wonhpSuccRate, wonhpSuccCount, wonhpSigCount, wonhpAvgReturn, wonhpSuccRateOk, wonhpSuccRateStr, wonhpWinRate, wonhpWinCount, wonhpAvgR, wonhpMedR, wonhpStdR, wonhpPf, wonhpWilsonLb, wonhpAvgMfe, wonhpAvgMae, wonhpMaxDd, wonhpMaxLossStreak, wonhpScore, wonhpQualityOk, wonhpSumWinR, wonhpSumLossR] = dreperf.signalQualityFull(f_gate(aiWonHp), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
@@ -971,48 +1168,35 @@ showRow(_iShowOnlyGoodSigs, sigOk, _showThisSig) =>
 [flatbSuccRate, flatbSuccCount, flatbSigCount, flatbAvgReturn, flatbSuccRateOk, flatbSuccRateStr, flatbWinRate, flatbWinCount, flatbAvgR, flatbMedR, flatbStdR, flatbPf, flatbWilsonLb, flatbAvgMfe, flatbAvgMae, flatbMaxDd, flatbMaxLossStreak, flatbScore, flatbQualityOk, flatbSumWinR, flatbSumLossR] = dreperf.signalQualityFull(f_gate(aiFlatB), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [vipSuccRate, vipSuccCount, vipSigCount, vipAvgReturn, vipSuccRateOk, vipSuccRateStr, vipWinRate, vipWinCount, vipAvgR, vipMedR, vipStdR, vipPf, vipWilsonLb, vipAvgMfe, vipAvgMae, vipMaxDd, vipMaxLossStreak, vipScore, vipQualityOk, vipSumWinR, vipSumLossR] = dreperf.signalQualityFull(f_gate(aiVip), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [vcp2SuccRate, vcp2SuccCount, vcp2SigCount, vcp2AvgReturn, vcp2SuccRateOk, vcp2SuccRateStr, vcp2WinRate, vcp2WinCount, vcp2AvgR, vcp2MedR, vcp2StdR, vcp2Pf, vcp2WilsonLb, vcp2AvgMfe, vcp2AvgMae, vcp2MaxDd, vcp2MaxLossStreak, vcp2Score, vcp2QualityOk, vcp2SumWinR, vcp2SumLossR] = dreperf.signalQualityFull(f_gate(aiVcp2), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[vcp3SuccRate, vcp3SuccCount, vcp3SigCount, vcp3AvgReturn, vcp3SuccRateOk, vcp3SuccRateStr, vcp3WinRate, vcp3WinCount, vcp3AvgR, vcp3MedR, vcp3StdR, vcp3Pf, vcp3WilsonLb, vcp3AvgMfe, vcp3AvgMae, vcp3MaxDd, vcp3MaxLossStreak, vcp3Score, vcp3QualityOk, vcp3SumWinR, vcp3SumLossR] = dreperf.signalQualityFull(f_gate(aiVcp3), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[vcp2cSuccRate, vcp2cSuccCount, vcp2cSigCount, vcp2cAvgReturn, vcp2cSuccRateOk, vcp2cSuccRateStr, vcp2cWinRate, vcp2cWinCount, vcp2cAvgR, vcp2cMedR, vcp2cStdR, vcp2cPf, vcp2cWilsonLb, vcp2cAvgMfe, vcp2cAvgMae, vcp2cMaxDd, vcp2cMaxLossStreak, vcp2cScore, vcp2cQualityOk, vcp2cSumWinR, vcp2cSumLossR] = dreperf.signalQualityFull(f_gate(aiVcp2c), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[vcp3cSuccRate, vcp3cSuccCount, vcp3cSigCount, vcp3cAvgReturn, vcp3cSuccRateOk, vcp3cSuccRateStr, vcp3cWinRate, vcp3cWinCount, vcp3cAvgR, vcp3cMedR, vcp3cStdR, vcp3cPf, vcp3cWilsonLb, vcp3cAvgMfe, vcp3cAvgMae, vcp3cMaxDd, vcp3cMaxLossStreak, vcp3cScore, vcp3cQualityOk, vcp3cSumWinR, vcp3cSumLossR] = dreperf.signalQualityFull(f_gate(aiVcp3c), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [htfSuccRate, htfSuccCount, htfSigCount, htfAvgReturn, htfSuccRateOk, htfSuccRateStr, htfWinRate, htfWinCount, htfAvgR, htfMedR, htfStdR, htfPf, htfWilsonLb, htfAvgMfe, htfAvgMae, htfMaxDd, htfMaxLossStreak, htfScore, htfQualityOk, htfSumWinR, htfSumLossR] = dreperf.signalQualityFull(f_gate(aiHtf), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[htf100SuccRate, htf100SuccCount, htf100SigCount, htf100AvgReturn, htf100SuccRateOk, htf100SuccRateStr, htf100WinRate, htf100WinCount, htf100AvgR, htf100MedR, htf100StdR, htf100Pf, htf100WilsonLb, htf100AvgMfe, htf100AvgMae, htf100MaxDd, htf100MaxLossStreak, htf100Score, htf100QualityOk, htf100SumWinR, htf100SumLossR] = dreperf.signalQualityFull(f_gate(aiHtf100), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [htfTightSuccRate, htfTightSuccCount, htfTightSigCount, htfTightAvgReturn, htfTightSuccRateOk, htfTightSuccRateStr, htfTightWinRate, htfTightWinCount, htfTightAvgR, htfTightMedR, htfTightStdR, htfTightPf, htfTightWilsonLb, htfTightAvgMfe, htfTightAvgMae, htfTightMaxDd, htfTightMaxLossStreak, htfTightScore, htfTightQualityOk, htfTightSumWinR, htfTightSumLossR] = dreperf.signalQualityFull(f_gate(aiHtfTight), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[epSuccRate, epSuccCount, epSigCount, epAvgReturn, epSuccRateOk, epSuccRateStr, epWinRate, epWinCount, epAvgR, epMedR, epStdR, epPf, epWilsonLb, epAvgMfe, epAvgMae, epMaxDd, epMaxLossStreak, epScore, epQualityOk, epSumWinR, epSumLossR] = dreperf.signalQualityFull(f_gate(aiEp), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[ep20SuccRate, ep20SuccCount, ep20SigCount, ep20AvgReturn, ep20SuccRateOk, ep20SuccRateStr, ep20WinRate, ep20WinCount, ep20AvgR, ep20MedR, ep20StdR, ep20Pf, ep20WilsonLb, ep20AvgMfe, ep20AvgMae, ep20MaxDd, ep20MaxLossStreak, ep20Score, ep20QualityOk, ep20SumWinR, ep20SumLossR] = dreperf.signalQualityFull(f_gate(aiEp20), sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[epuSuccRate, epuSuccCount, epuSigCount, epuAvgReturn, epuSuccRateOk, epuSuccRateStr, epuWinRate, epuWinCount, epuAvgR, epuMedR, epuStdR, epuPf, epuWilsonLb, epuAvgMfe, epuAvgMae, epuMaxDd, epuMaxLossStreak, epuScore, epuQualityOk, epuSumWinR, epuSumLossR] = dreperf.signalQualityFull(aiEp and generalFilterMask, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 
-et3EffOk = iUseQualityGate ? et3QualityOk : et3SuccRateOk
-et4EffOk = iUseQualityGate ? et4QualityOk : et4SuccRateOk
-et1yhEffOk = iUseQualityGate ? et1yhQualityOk : et1yhSuccRateOk
-rmv1EffOk = iUseQualityGate ? rmv1QualityOk : rmv1SuccRateOk
-rmv2EffOk = iUseQualityGate ? rmv2QualityOk : rmv2SuccRateOk
-rmv3EffOk = iUseQualityGate ? rmv3QualityOk : rmv3SuccRateOk
-etc1EffOk = iUseQualityGate ? etc1QualityOk : etc1SuccRateOk
-etc2EffOk = iUseQualityGate ? etc2QualityOk : etc2SuccRateOk
-etc3EffOk = iUseQualityGate ? etc3QualityOk : etc3SuccRateOk
-obvdivEffOk = iUseQualityGate ? obvdivQualityOk : obvdivSuccRateOk
-mtsbEffOk = iUseQualityGate ? mtsbQualityOk : mtsbSuccRateOk
-mtc1EffOk = iUseQualityGate ? mtc1QualityOk : mtc1SuccRateOk
-mtc2EffOk = iUseQualityGate ? mtc2QualityOk : mtc2SuccRateOk
-mtc3EffOk = iUseQualityGate ? mtc3QualityOk : mtc3SuccRateOk
-ragpbEffOk = iUseQualityGate ? ragpbQualityOk : ragpbSuccRateOk
-wonhpEffOk = iUseQualityGate ? wonhpQualityOk : wonhpSuccRateOk
-wonturnEffOk = iUseQualityGate ? wonturnQualityOk : wonturnSuccRateOk
-vwaptagEffOk = iUseQualityGate ? vwaptagQualityOk : vwaptagSuccRateOk
-caplowEffOk = iUseQualityGate ? caplowQualityOk : caplowSuccRateOk
-flatbEffOk = iUseQualityGate ? flatbQualityOk : flatbSuccRateOk
-vipEffOk = iUseQualityGate ? vipQualityOk : vipSuccRateOk
-vcp2EffOk = iUseQualityGate ? vcp2QualityOk : vcp2SuccRateOk
-vcp3EffOk = iUseQualityGate ? vcp3QualityOk : vcp3SuccRateOk
-vcp2cEffOk = iUseQualityGate ? vcp2cQualityOk : vcp2cSuccRateOk
-vcp3cEffOk = iUseQualityGate ? vcp3cQualityOk : vcp3cSuccRateOk
-htfEffOk = iUseQualityGate ? htfQualityOk : htfSuccRateOk
-htf100EffOk = iUseQualityGate ? htf100QualityOk : htf100SuccRateOk
-htfTightEffOk = iUseQualityGate ? htfTightQualityOk : htfTightSuccRateOk
-epEffOk = iUseQualityGate ? epQualityOk : epSuccRateOk
-ep20EffOk = iUseQualityGate ? ep20QualityOk : ep20SuccRateOk
+et3EffOk = f_effOk(et3WinRate, et3AvgReturn, et3SigCount, et3WilsonLb)
+et4EffOk = f_effOk(et4WinRate, et4AvgReturn, et4SigCount, et4WilsonLb)
+rmv1EffOk = f_effOk(rmv1WinRate, rmv1AvgReturn, rmv1SigCount, rmv1WilsonLb)
+rmv3EffOk = f_effOk(rmv3WinRate, rmv3AvgReturn, rmv3SigCount, rmv3WilsonLb)
+etc1EffOk = f_effOk(etc1WinRate, etc1AvgReturn, etc1SigCount, etc1WilsonLb)
+etc3EffOk = f_effOk(etc3WinRate, etc3AvgReturn, etc3SigCount, etc3WilsonLb)
+obvdivEffOk = f_effOk(obvdivWinRate, obvdivAvgReturn, obvdivSigCount, obvdivWilsonLb)
+mtsbEffOk = f_effOk(mtsbWinRate, mtsbAvgReturn, mtsbSigCount, mtsbWilsonLb)
+mtc1EffOk = f_effOk(mtc1WinRate, mtc1AvgReturn, mtc1SigCount, mtc1WilsonLb)
+mtc3EffOk = f_effOk(mtc3WinRate, mtc3AvgReturn, mtc3SigCount, mtc3WilsonLb)
+ragpbEffOk = f_effOk(ragpbWinRate, ragpbAvgReturn, ragpbSigCount, ragpbWilsonLb)
+wonhpEffOk = f_effOk(wonhpWinRate, wonhpAvgReturn, wonhpSigCount, wonhpWilsonLb)
+wonturnEffOk = f_effOk(wonturnWinRate, wonturnAvgReturn, wonturnSigCount, wonturnWilsonLb)
+vwaptagEffOk = f_effOk(vwaptagWinRate, vwaptagAvgReturn, vwaptagSigCount, vwaptagWilsonLb)
+caplowEffOk = f_effOk(caplowWinRate, caplowAvgReturn, caplowSigCount, caplowWilsonLb)
+flatbEffOk = f_effOk(flatbWinRate, flatbAvgReturn, flatbSigCount, flatbWilsonLb)
+vipEffOk = f_effOk(vipWinRate, vipAvgReturn, vipSigCount, vipWilsonLb)
+vcp2EffOk = f_effOk(vcp2WinRate, vcp2AvgReturn, vcp2SigCount, vcp2WilsonLb)
+htfEffOk = f_effOk(htfWinRate, htfAvgReturn, htfSigCount, htfWilsonLb)
+htfTightEffOk = f_effOk(htfTightWinRate, htfTightAvgReturn, htfTightSigCount, htfTightWilsonLb)
+epuEffOk = f_effOk(epuWinRate, epuAvgReturn, epuSigCount, epuWilsonLb)
+mtsbv2cEffOk = f_effOk(mtsbv2cWinRate, mtsbv2cAvgReturn, mtsbv2cSigCount, mtsbv2cWilsonLb)
 
 //gated signal aggregate + ai-p1d (opening-range breakout the day after any gated signal)
-anyGatedSig = (f_gate(aiEt3sb) and et3EffOk) or (f_gate(aiEt4sb) and et4EffOk) or (f_gate(aiEt1yh) and et1yhEffOk) or (f_gate(aiRmv1) and rmv1EffOk) or (f_gate(aiRmv2) and rmv2EffOk) or (f_gate(aiRmv3) and rmv3EffOk) or (f_gate(aiEtc1) and etc1EffOk) or (f_gate(aiEtc2) and etc2EffOk) or (f_gate(aiEtc3) and etc3EffOk) or (f_gate(aiObvDiv) and obvdivEffOk) or (f_gate(aiMtsb) and mtsbEffOk) or (f_gate(aiMtc1) and mtc1EffOk) or (f_gate(aiMtc2) and mtc2EffOk) or (f_gate(aiMtc3) and mtc3EffOk) or (f_gate(aiRagPb) and ragpbEffOk) or (f_gate(aiWonHp) and wonhpEffOk) or (f_gate(aiWonTurn) and wonturnEffOk) or (f_gate(aiVwapTag) and vwaptagEffOk) or (f_gate(aiCapLow) and caplowEffOk) or (f_gate(aiFlatB) and flatbEffOk) or (f_gate(aiVip) and vipEffOk) or (f_gate(aiVcp2) and vcp2EffOk) or (f_gate(aiVcp3) and vcp3EffOk) or (f_gate(aiVcp2c) and vcp2cEffOk) or (f_gate(aiVcp3c) and vcp3cEffOk) or (f_gate(aiHtf) and htfEffOk) or (f_gate(aiHtf100) and htf100EffOk) or (f_gate(aiHtfTight) and htfTightEffOk) or (f_gate(aiEp) and epEffOk) or (f_gate(aiEp20) and ep20EffOk)
+anyGatedSig = (f_gate(aiEt3sb) and et3EffOk) or (f_gate(aiEt4sb) and et4EffOk) or (f_gate(aiRmv1) and rmv1EffOk) or (f_gate(aiRmv3) and rmv3EffOk) or (f_gate(aiEtc1) and etc1EffOk) or (f_gate(aiEtc3) and etc3EffOk) or (f_gate(aiObvDiv) and obvdivEffOk) or (f_gate(aiMtsb) and mtsbEffOk) or (f_gate(aiMtc1) and mtc1EffOk) or (f_gate(aiMtc3) and mtc3EffOk) or (f_gate(aiRagPb) and ragpbEffOk) or (f_gate(aiWonHp) and wonhpEffOk) or (f_gate(aiWonTurn) and wonturnEffOk) or (f_gate(aiVwapTag) and vwaptagEffOk) or (f_gate(aiCapLow) and caplowEffOk) or (f_gate(aiFlatB) and flatbEffOk) or (f_gate(aiVip) and vipEffOk) or (f_gate(aiVcp2) and vcp2EffOk) or (f_gate(aiHtf) and htfEffOk) or (f_gate(aiHtfTight) and htfTightEffOk)
 aiP1d = anyGatedSig[1] and orbUp
 
 //plot sig performance
@@ -1049,7 +1233,8 @@ renderQualityRow(table _tbl, int _row, string _name, color _color, bool _sigOk, 
         table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
 
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 9, rows = 33)
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 46)
+    table.clear(tbl, 0, 0, 8, 45)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
@@ -1064,49 +1249,37 @@ if barstate.islast and iShowSigPerfTable
 
     renderQualityRow(tbl, 3, "ai-et3", et3SigColor, et3EffOk, iShowAiEt3, et3WinRate, et3SigCount, et3AvgR, et3Pf, et3MaxDd, et3Score, et3SumWinR, et3SumLossR)
     renderQualityRow(tbl, 4, "ai-et4", et4SigColor, et4EffOk, iShowAiEt4, et4WinRate, et4SigCount, et4AvgR, et4Pf, et4MaxDd, et4Score, et4SumWinR, et4SumLossR)
-    renderQualityRow(tbl, 5, "ai-et1yh", et1yhSigColor, et1yhEffOk, iShowAiEt1yh, et1yhWinRate, et1yhSigCount, et1yhAvgR, et1yhPf, et1yhMaxDd, et1yhScore, et1yhSumWinR, et1yhSumLossR)
-    renderQualityRow(tbl, 6, "ai-rmv1", rmvSigColor, rmv1EffOk, iShowAiRmv1, rmv1WinRate, rmv1SigCount, rmv1AvgR, rmv1Pf, rmv1MaxDd, rmv1Score, rmv1SumWinR, rmv1SumLossR)
-    renderQualityRow(tbl, 7, "ai-rmv2", rmvSigColor, rmv2EffOk, iShowAiRmv2, rmv2WinRate, rmv2SigCount, rmv2AvgR, rmv2Pf, rmv2MaxDd, rmv2Score, rmv2SumWinR, rmv2SumLossR)
-    renderQualityRow(tbl, 8, "ai-rmv3", rmvSigColor, rmv3EffOk, iShowAiRmv3, rmv3WinRate, rmv3SigCount, rmv3AvgR, rmv3Pf, rmv3MaxDd, rmv3Score, rmv3SumWinR, rmv3SumLossR)
-    renderQualityRow(tbl, 9, "ai-etc1", etcSigColor, etc1EffOk, iShowAiEtc1, etc1WinRate, etc1SigCount, etc1AvgR, etc1Pf, etc1MaxDd, etc1Score, etc1SumWinR, etc1SumLossR)
-    renderQualityRow(tbl, 10, "ai-etc2", etcSigColor, etc2EffOk, iShowAiEtc2, etc2WinRate, etc2SigCount, etc2AvgR, etc2Pf, etc2MaxDd, etc2Score, etc2SumWinR, etc2SumLossR)
-    renderQualityRow(tbl, 11, "ai-etc3", etcSigColor, etc3EffOk, iShowAiEtc3, etc3WinRate, etc3SigCount, etc3AvgR, etc3Pf, etc3MaxDd, etc3Score, etc3SumWinR, etc3SumLossR)
-    renderQualityRow(tbl, 12, "ai-obvdiv", obvdivSigColor, obvdivEffOk, iShowAiObvDiv, obvdivWinRate, obvdivSigCount, obvdivAvgR, obvdivPf, obvdivMaxDd, obvdivScore, obvdivSumWinR, obvdivSumLossR)
-    renderQualityRow(tbl, 13, "ai-mtsb", mtsbSigColor, mtsbEffOk, iShowAiMtsb, mtsbWinRate, mtsbSigCount, mtsbAvgR, mtsbPf, mtsbMaxDd, mtsbScore, mtsbSumWinR, mtsbSumLossR)
-    renderQualityRow(tbl, 14, "ai-mtc1", mtsbSigColor, mtc1EffOk, iShowAiMtc1, mtc1WinRate, mtc1SigCount, mtc1AvgR, mtc1Pf, mtc1MaxDd, mtc1Score, mtc1SumWinR, mtc1SumLossR)
-    renderQualityRow(tbl, 15, "ai-mtc2", mtsbSigColor, mtc2EffOk, iShowAiMtc2, mtc2WinRate, mtc2SigCount, mtc2AvgR, mtc2Pf, mtc2MaxDd, mtc2Score, mtc2SumWinR, mtc2SumLossR)
-    renderQualityRow(tbl, 16, "ai-mtc3", mtsbSigColor, mtc3EffOk, iShowAiMtc3, mtc3WinRate, mtc3SigCount, mtc3AvgR, mtc3Pf, mtc3MaxDd, mtc3Score, mtc3SumWinR, mtc3SumLossR)
-    renderQualityRow(tbl, 17, "ai-ragpb", ragpbSigColor, ragpbEffOk, iShowAiRagPb, ragpbWinRate, ragpbSigCount, ragpbAvgR, ragpbPf, ragpbMaxDd, ragpbScore, ragpbSumWinR, ragpbSumLossR)
-    renderQualityRow(tbl, 18, "ai-wonhp", wonhpSigColor, wonhpEffOk, iShowAiWonHp, wonhpWinRate, wonhpSigCount, wonhpAvgR, wonhpPf, wonhpMaxDd, wonhpScore, wonhpSumWinR, wonhpSumLossR)
-    renderQualityRow(tbl, 19, "ai-wonturn", wonturnSigColor, wonturnEffOk, iShowAiWonTurn, wonturnWinRate, wonturnSigCount, wonturnAvgR, wonturnPf, wonturnMaxDd, wonturnScore, wonturnSumWinR, wonturnSumLossR)
-    renderQualityRow(tbl, 20, "ai-vwaptag", vwaptagSigColor, vwaptagEffOk, iShowAiVwapTag, vwaptagWinRate, vwaptagSigCount, vwaptagAvgR, vwaptagPf, vwaptagMaxDd, vwaptagScore, vwaptagSumWinR, vwaptagSumLossR)
-    renderQualityRow(tbl, 21, "ai-caplow", caplowSigColor, caplowEffOk, iShowAiCapLow, caplowWinRate, caplowSigCount, caplowAvgR, caplowPf, caplowMaxDd, caplowScore, caplowSumWinR, caplowSumLossR)
-    renderQualityRow(tbl, 22, "ai-flatb", flatbSigColor, flatbEffOk, iShowAiFlatB, flatbWinRate, flatbSigCount, flatbAvgR, flatbPf, flatbMaxDd, flatbScore, flatbSumWinR, flatbSumLossR)
-    renderQualityRow(tbl, 23, "ai-vip", vipSigColor, vipEffOk, iShowAiVip, vipWinRate, vipSigCount, vipAvgR, vipPf, vipMaxDd, vipScore, vipSumWinR, vipSumLossR)
-    renderQualityRow(tbl, 24, "ai-vcp2", vcpSigColor, vcp2EffOk, iShowAiVcp2, vcp2WinRate, vcp2SigCount, vcp2AvgR, vcp2Pf, vcp2MaxDd, vcp2Score, vcp2SumWinR, vcp2SumLossR)
-    renderQualityRow(tbl, 25, "ai-vcp3", vcpSigColor, vcp3EffOk, iShowAiVcp3, vcp3WinRate, vcp3SigCount, vcp3AvgR, vcp3Pf, vcp3MaxDd, vcp3Score, vcp3SumWinR, vcp3SumLossR)
-    renderQualityRow(tbl, 26, "ai-vcp2c", vcpCheatSigColor, vcp2cEffOk, iShowAiVcp2c, vcp2cWinRate, vcp2cSigCount, vcp2cAvgR, vcp2cPf, vcp2cMaxDd, vcp2cScore, vcp2cSumWinR, vcp2cSumLossR)
-    renderQualityRow(tbl, 27, "ai-vcp3c", vcpCheatSigColor, vcp3cEffOk, iShowAiVcp3c, vcp3cWinRate, vcp3cSigCount, vcp3cAvgR, vcp3cPf, vcp3cMaxDd, vcp3cScore, vcp3cSumWinR, vcp3cSumLossR)
-    renderQualityRow(tbl, 28, "ai-htf", htfSigColor, htfEffOk, iShowAiHtf, htfWinRate, htfSigCount, htfAvgR, htfPf, htfMaxDd, htfScore, htfSumWinR, htfSumLossR)
-    renderQualityRow(tbl, 29, "ai-htf100", htfSigColor, htf100EffOk, iShowAiHtf100, htf100WinRate, htf100SigCount, htf100AvgR, htf100Pf, htf100MaxDd, htf100Score, htf100SumWinR, htf100SumLossR)
-    renderQualityRow(tbl, 30, "ai-htftight", htfSigColor, htfTightEffOk, iShowAiHtfTight, htfTightWinRate, htfTightSigCount, htfTightAvgR, htfTightPf, htfTightMaxDd, htfTightScore, htfTightSumWinR, htfTightSumLossR)
-    renderQualityRow(tbl, 31, "ai-ep", epSigColor, epEffOk, iShowAiEp, epWinRate, epSigCount, epAvgR, epPf, epMaxDd, epScore, epSumWinR, epSumLossR)
-    renderQualityRow(tbl, 32, "ai-ep20", epSigColor, ep20EffOk, iShowAiEp20, ep20WinRate, ep20SigCount, ep20AvgR, ep20Pf, ep20MaxDd, ep20Score, ep20SumWinR, ep20SumLossR)
+    renderQualityRow(tbl, 5, "ai-rmv1", rmvSigColor, rmv1EffOk, iShowAiRmv1, rmv1WinRate, rmv1SigCount, rmv1AvgR, rmv1Pf, rmv1MaxDd, rmv1Score, rmv1SumWinR, rmv1SumLossR)
+    renderQualityRow(tbl, 6, "ai-rmv3", rmvSigColor, rmv3EffOk, iShowAiRmv3, rmv3WinRate, rmv3SigCount, rmv3AvgR, rmv3Pf, rmv3MaxDd, rmv3Score, rmv3SumWinR, rmv3SumLossR)
+    renderQualityRow(tbl, 7, "ai-etc1", etcSigColor, etc1EffOk, iShowAiEtc1, etc1WinRate, etc1SigCount, etc1AvgR, etc1Pf, etc1MaxDd, etc1Score, etc1SumWinR, etc1SumLossR)
+    renderQualityRow(tbl, 8, "ai-etc3", etcSigColor, etc3EffOk, iShowAiEtc3, etc3WinRate, etc3SigCount, etc3AvgR, etc3Pf, etc3MaxDd, etc3Score, etc3SumWinR, etc3SumLossR)
+    renderQualityRow(tbl, 9, "ai-obvdiv", obvdivSigColor, obvdivEffOk, iShowAiObvDiv, obvdivWinRate, obvdivSigCount, obvdivAvgR, obvdivPf, obvdivMaxDd, obvdivScore, obvdivSumWinR, obvdivSumLossR)
+    renderQualityRow(tbl, 10, "ai-mtsb", mtsbSigColor, mtsbEffOk, iShowAiMtsb, mtsbWinRate, mtsbSigCount, mtsbAvgR, mtsbPf, mtsbMaxDd, mtsbScore, mtsbSumWinR, mtsbSumLossR)
+    renderQualityRow(tbl, 11, "ai-mtsbv2c", mtsbSigColor, mtsbv2cEffOk, iShowAiMtsb, mtsbv2cWinRate, mtsbv2cSigCount, mtsbv2cAvgR, mtsbv2cPf, mtsbv2cMaxDd, mtsbv2cScore, mtsbv2cSumWinR, mtsbv2cSumLossR)
+    renderQualityRow(tbl, 12, "ai-mtc1", mtsbSigColor, mtc1EffOk, iShowAiMtc1, mtc1WinRate, mtc1SigCount, mtc1AvgR, mtc1Pf, mtc1MaxDd, mtc1Score, mtc1SumWinR, mtc1SumLossR)
+    renderQualityRow(tbl, 13, "ai-mtc3", mtsbSigColor, mtc3EffOk, iShowAiMtc3, mtc3WinRate, mtc3SigCount, mtc3AvgR, mtc3Pf, mtc3MaxDd, mtc3Score, mtc3SumWinR, mtc3SumLossR)
+    renderQualityRow(tbl, 14, "ai-ragpb", ragpbSigColor, ragpbEffOk, iShowAiRagPb, ragpbWinRate, ragpbSigCount, ragpbAvgR, ragpbPf, ragpbMaxDd, ragpbScore, ragpbSumWinR, ragpbSumLossR)
+    renderQualityRow(tbl, 15, "ai-wonhp", wonhpSigColor, wonhpEffOk, iShowAiWonHp, wonhpWinRate, wonhpSigCount, wonhpAvgR, wonhpPf, wonhpMaxDd, wonhpScore, wonhpSumWinR, wonhpSumLossR)
+    renderQualityRow(tbl, 16, "ai-wonturn", wonturnSigColor, wonturnEffOk, iShowAiWonTurn, wonturnWinRate, wonturnSigCount, wonturnAvgR, wonturnPf, wonturnMaxDd, wonturnScore, wonturnSumWinR, wonturnSumLossR)
+    renderQualityRow(tbl, 17, "ai-vwaptag", vwaptagSigColor, vwaptagEffOk, iShowAiVwapTag, vwaptagWinRate, vwaptagSigCount, vwaptagAvgR, vwaptagPf, vwaptagMaxDd, vwaptagScore, vwaptagSumWinR, vwaptagSumLossR)
+    renderQualityRow(tbl, 18, "ai-caplow", caplowSigColor, caplowEffOk, iShowAiCapLow, caplowWinRate, caplowSigCount, caplowAvgR, caplowPf, caplowMaxDd, caplowScore, caplowSumWinR, caplowSumLossR)
+    renderQualityRow(tbl, 19, "ai-flatb", flatbSigColor, flatbEffOk, iShowAiFlatB, flatbWinRate, flatbSigCount, flatbAvgR, flatbPf, flatbMaxDd, flatbScore, flatbSumWinR, flatbSumLossR)
+    renderQualityRow(tbl, 20, "ai-vip", vipSigColor, vipEffOk, iShowAiVip, vipWinRate, vipSigCount, vipAvgR, vipPf, vipMaxDd, vipScore, vipSumWinR, vipSumLossR)
+    renderQualityRow(tbl, 21, "ai-vcp2", vcpSigColor, vcp2EffOk, iShowAiVcp2, vcp2WinRate, vcp2SigCount, vcp2AvgR, vcp2Pf, vcp2MaxDd, vcp2Score, vcp2SumWinR, vcp2SumLossR)
+    renderQualityRow(tbl, 22, "ai-htf", htfSigColor, htfEffOk, iShowAiHtf, htfWinRate, htfSigCount, htfAvgR, htfPf, htfMaxDd, htfScore, htfSumWinR, htfSumLossR)
+    renderQualityRow(tbl, 23, "ai-htftight", htfSigColor, htfTightEffOk, iShowAiHtfTight, htfTightWinRate, htfTightSigCount, htfTightAvgR, htfTightPf, htfTightMaxDd, htfTightScore, htfTightSumWinR, htfTightSumLossR)
+    renderQualityRow(tbl, 24, "ai-epu", epSigColor, epuEffOk, iShowAiEp, epuWinRate, epuSigCount, epuAvgR, epuPf, epuMaxDd, epuScore, epuSumWinR, epuSumLossR)
 
 //plot signals on price chart
 plotshape(f_gate(aiEt3sb) and showRow(iShowOnlyGoodSigs, et3EffOk, iShowAiEt3), title = 'ai-et3', location = location.belowbar, color = et3SigColor, style = shape.triangleup, text = 'ai-et3', textcolor = et3SigColor)
 plotshape(f_gate(aiEt4sb) and showRow(iShowOnlyGoodSigs, et4EffOk, iShowAiEt4), title = 'ai-et4', location = location.belowbar, color = et4SigColor, style = shape.triangleup, text = 'ai-et4', textcolor = et4SigColor)
-plotshape(f_gate(aiEt1yh) and showRow(iShowOnlyGoodSigs, et1yhEffOk, iShowAiEt1yh), title = 'ai-et1yh', location = location.belowbar, color = et1yhSigColor, style = shape.triangleup, text = 'ai-et1yh', textcolor = et1yhSigColor)
 plotshape(f_gate(aiRmv1) and showRow(iShowOnlyGoodSigs, rmv1EffOk, iShowAiRmv1), title = 'ai-rmv1', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'ai-rmv1', textcolor = rmvSigColor)
-plotshape(f_gate(aiRmv2) and showRow(iShowOnlyGoodSigs, rmv2EffOk, iShowAiRmv2), title = 'ai-rmv2', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'ai-rmv2', textcolor = rmvSigColor)
 plotshape(f_gate(aiRmv3) and showRow(iShowOnlyGoodSigs, rmv3EffOk, iShowAiRmv3), title = 'ai-rmv3', location = location.belowbar, color = rmvSigColor, style = shape.triangleup, text = 'ai-rmv3', textcolor = rmvSigColor)
 plotshape(f_gate(aiEtc1) and showRow(iShowOnlyGoodSigs, etc1EffOk, iShowAiEtc1), title = 'ai-etc1', location = location.belowbar, color = etcSigColor, style = shape.triangleup, text = 'ai-etc1', textcolor = etcSigColor)
-plotshape(f_gate(aiEtc2) and showRow(iShowOnlyGoodSigs, etc2EffOk, iShowAiEtc2), title = 'ai-etc2', location = location.belowbar, color = etcSigColor, style = shape.triangleup, text = 'ai-etc2', textcolor = etcSigColor)
 plotshape(f_gate(aiEtc3) and showRow(iShowOnlyGoodSigs, etc3EffOk, iShowAiEtc3), title = 'ai-etc3', location = location.belowbar, color = etcSigColor, style = shape.triangleup, text = 'ai-etc3', textcolor = etcSigColor)
 plotshape(f_gate(aiObvDiv) and showRow(iShowOnlyGoodSigs, obvdivEffOk, iShowAiObvDiv), title = 'ai-obvdiv', location = location.belowbar, color = obvdivSigColor, style = shape.triangleup, text = 'ai-obvdiv', textcolor = obvdivSigColor)
 plotshape(f_gate(aiMtsb) and showRow(iShowOnlyGoodSigs, mtsbEffOk, iShowAiMtsb), title = 'ai-mtsb', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'ai-mtsb', textcolor = mtsbSigColor)
 plotshape(f_gate(aiMtc1) and showRow(iShowOnlyGoodSigs, mtc1EffOk, iShowAiMtc1), title = 'ai-mtc1', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'ai-mtc1', textcolor = mtsbSigColor)
-plotshape(f_gate(aiMtc2) and showRow(iShowOnlyGoodSigs, mtc2EffOk, iShowAiMtc2), title = 'ai-mtc2', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'ai-mtc2', textcolor = mtsbSigColor)
 plotshape(f_gate(aiMtc3) and showRow(iShowOnlyGoodSigs, mtc3EffOk, iShowAiMtc3), title = 'ai-mtc3', location = location.belowbar, color = mtsbSigColor, style = shape.triangleup, text = 'ai-mtc3', textcolor = mtsbSigColor)
 plotshape(f_gate(aiRagPb) and showRow(iShowOnlyGoodSigs, ragpbEffOk, iShowAiRagPb), title = 'ai-ragpb', location = location.belowbar, color = ragpbSigColor, style = shape.triangleup, text = 'ai-ragpb', textcolor = ragpbSigColor)
 plotshape(f_gate(aiWonHp) and showRow(iShowOnlyGoodSigs, wonhpEffOk, iShowAiWonHp), title = 'ai-wonhp', location = location.belowbar, color = wonhpSigColor, style = shape.triangleup, text = 'ai-wonhp', textcolor = wonhpSigColor)
@@ -1116,14 +1289,8 @@ plotshape(f_gate(aiCapLow) and showRow(iShowOnlyGoodSigs, caplowEffOk, iShowAiCa
 plotshape(f_gate(aiFlatB) and showRow(iShowOnlyGoodSigs, flatbEffOk, iShowAiFlatB), title = 'ai-flatb', location = location.belowbar, color = flatbSigColor, style = shape.triangleup, text = 'ai-flatb', textcolor = flatbSigColor)
 plotshape(f_gate(aiVip) and showRow(iShowOnlyGoodSigs, vipEffOk, iShowAiVip), title = 'ai-vip', location = location.belowbar, color = vipSigColor, style = shape.triangleup, text = 'ai-vip', textcolor = vipSigColor)
 plotshape(f_gate(aiVcp2) and showRow(iShowOnlyGoodSigs, vcp2EffOk, iShowAiVcp2), title = 'ai-vcp2', location = location.belowbar, color = vcpSigColor, style = shape.triangleup, text = 'ai-vcp2', textcolor = vcpSigColor)
-plotshape(f_gate(aiVcp3) and showRow(iShowOnlyGoodSigs, vcp3EffOk, iShowAiVcp3), title = 'ai-vcp3', location = location.belowbar, color = vcpSigColor, style = shape.triangleup, text = 'ai-vcp3', textcolor = vcpSigColor)
-plotshape(f_gate(aiVcp2c) and showRow(iShowOnlyGoodSigs, vcp2cEffOk, iShowAiVcp2c), title = 'ai-vcp2c', location = location.belowbar, color = vcpCheatSigColor, style = shape.triangleup, text = 'ai-vcp2c', textcolor = vcpCheatSigColor)
-plotshape(f_gate(aiVcp3c) and showRow(iShowOnlyGoodSigs, vcp3cEffOk, iShowAiVcp3c), title = 'ai-vcp3c', location = location.belowbar, color = vcpCheatSigColor, style = shape.triangleup, text = 'ai-vcp3c', textcolor = vcpCheatSigColor)
 plotshape(f_gate(aiHtf) and showRow(iShowOnlyGoodSigs, htfEffOk, iShowAiHtf), title = 'ai-htf', location = location.belowbar, color = htfSigColor, style = shape.triangleup, text = 'ai-htf', textcolor = htfSigColor)
-plotshape(f_gate(aiHtf100) and showRow(iShowOnlyGoodSigs, htf100EffOk, iShowAiHtf100), title = 'ai-htf100', location = location.belowbar, color = htfSigColor, style = shape.triangleup, text = 'ai-htf100', textcolor = htfSigColor)
 plotshape(f_gate(aiHtfTight) and showRow(iShowOnlyGoodSigs, htfTightEffOk, iShowAiHtfTight), title = 'ai-htftight', location = location.belowbar, color = htfSigColor, style = shape.triangleup, text = 'ai-htftight', textcolor = htfSigColor)
-plotshape(f_gate(aiEp) and showRow(iShowOnlyGoodSigs, epEffOk, iShowAiEp), title = 'ai-ep', location = location.belowbar, color = epSigColor, style = shape.triangleup, text = 'ai-ep', textcolor = epSigColor)
-plotshape(f_gate(aiEp20) and showRow(iShowOnlyGoodSigs, ep20EffOk, iShowAiEp20), title = 'ai-ep20', location = location.belowbar, color = epSigColor, style = shape.triangleup, text = 'ai-ep20', textcolor = epSigColor)
 
 //market timing debug: follow-through day marker + market in correction background
 // [plot limit 64] plotshape(iMktShowState and mktFtdNow, title = 'FTD', location = location.belowbar, color = color.new(color.green, 0), style = shape.labelup, text = 'FTD', textcolor = color.white)
@@ -1144,17 +1311,13 @@ bgcolor(iMktShowState and mktInCorrection ? color.new(color.red, 92) : na, title
 //issuing alerts
 alertcondition(univOk and (f_gate(aiEt3sb) and et3EffOk), title = 'ai-et3', message = 'ai-et3')
 alertcondition(univOk and (f_gate(aiEt4sb) and et4EffOk), title = 'ai-et4', message = 'ai-et4')
-alertcondition(univOk and (f_gate(aiEt1yh) and et1yhEffOk), title = 'ai-et1yh', message = 'ai-et1yh')
 alertcondition(univOk and (f_gate(aiRmv1) and rmv1EffOk), title = 'ai-rmv1', message = 'ai-rmv1')
-alertcondition(univOk and (f_gate(aiRmv2) and rmv2EffOk), title = 'ai-rmv2', message = 'ai-rmv2')
 alertcondition(univOk and (f_gate(aiRmv3) and rmv3EffOk), title = 'ai-rmv3', message = 'ai-rmv3')
 alertcondition(univOk and (f_gate(aiEtc1) and etc1EffOk), title = 'ai-etc1', message = 'ai-etc1')
-alertcondition(univOk and (f_gate(aiEtc2) and etc2EffOk), title = 'ai-etc2', message = 'ai-etc2')
 alertcondition(univOk and (f_gate(aiEtc3) and etc3EffOk), title = 'ai-etc3', message = 'ai-etc3')
 alertcondition(univOk and (f_gate(aiObvDiv) and obvdivEffOk), title = 'ai-obvdiv', message = 'ai-obvdiv')
 alertcondition(univOk and (f_gate(aiMtsb) and mtsbEffOk), title = 'ai-mtsb', message = 'ai-mtsb')
 alertcondition(univOk and (f_gate(aiMtc1) and mtc1EffOk), title = 'ai-mtc1', message = 'ai-mtc1')
-alertcondition(univOk and (f_gate(aiMtc2) and mtc2EffOk), title = 'ai-mtc2', message = 'ai-mtc2')
 alertcondition(univOk and (f_gate(aiMtc3) and mtc3EffOk), title = 'ai-mtc3', message = 'ai-mtc3')
 alertcondition(univOk and (f_gate(aiRagPb) and ragpbEffOk), title = 'ai-ragpb', message = 'ai-ragpb')
 alertcondition(univOk and (f_gate(aiWonHp) and wonhpEffOk), title = 'ai-wonhp', message = 'ai-wonhp')
@@ -1164,13 +1327,7 @@ alertcondition(univOk and (f_gate(aiCapLow) and caplowEffOk) and (not iCapLowAle
 alertcondition(univOk and (f_gate(aiFlatB) and flatbEffOk), title = 'ai-flatb', message = 'ai-flatb')
 alertcondition(univOk and (f_gate(aiVip) and vipEffOk), title = 'ai-vip', message = 'ai-vip')
 alertcondition(univOk and (f_gate(aiVcp2) and vcp2EffOk), title = 'ai-vcp2', message = 'ai-vcp2')
-alertcondition(univOk and (f_gate(aiVcp3) and vcp3EffOk), title = 'ai-vcp3', message = 'ai-vcp3')
-alertcondition(univOk and (f_gate(aiVcp2c) and vcp2cEffOk), title = 'ai-vcp2c', message = 'ai-vcp2c')
-alertcondition(univOk and (f_gate(aiVcp3c) and vcp3cEffOk), title = 'ai-vcp3c', message = 'ai-vcp3c')
 alertcondition(univOk and (f_gate(aiHtf) and htfEffOk), title = 'ai-htf', message = 'ai-htf')
-alertcondition(univOk and (f_gate(aiHtf100) and htf100EffOk), title = 'ai-htf100', message = 'ai-htf100')
 alertcondition(univOk and (f_gate(aiHtfTight) and htfTightEffOk), title = 'ai-htftight', message = 'ai-htftight')
-alertcondition(univOk and (f_gate(aiEp) and epEffOk), title = 'ai-ep', message = 'ai-ep')
-alertcondition(univOk and (f_gate(aiEp20) and ep20EffOk), title = 'ai-ep20', message = 'ai-ep20')
 alertcondition(univOk and aiP1d, title = 'ai-p1d', message = 'ai-p1d')
 alertcondition(univOk and (anyGatedSig or aiP1d), title = 'ai-all', message = 'ai-all')

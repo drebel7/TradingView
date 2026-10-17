@@ -288,7 +288,8 @@ def import_csv(con, path: Path, salvage: bool, keep_raw: bool, stats: dict):
             note = (r.get("raw") or "").strip() or "brak danych"
             recovered = salvage_rows(note) if salvage else None
             if recovered:
-                symbol_rows[(iid, grp)] = ("recovered", note[:500])
+                if symbol_rows.get((iid, grp), ("",))[0] != "ok":
+                    symbol_rows[(iid, grp)] = ("recovered", note[:500])
                 for cells in recovered:
                     name = (cells[0] if cells else "").strip()
                     if not name or name == "sig" or name not in variants:
@@ -302,7 +303,8 @@ def import_csv(con, path: Path, salvage: bool, keep_raw: bool, stats: dict):
                         " | ".join(str(c) for c in cells)))
                     stats["recovered"] += 1
             else:
-                symbol_rows[(iid, grp)] = ("no_data", note[:500])
+                if symbol_rows.get((iid, grp), ("",))[0] != "ok":
+                    symbol_rows[(iid, grp)] = ("no_data", note[:500])
                 stats["no_data"] += 1
             continue
 
@@ -328,7 +330,7 @@ def import_csv(con, path: Path, salvage: bool, keep_raw: bool, stats: dict):
             stats["measurements_ok"] += 1
         else:
             stats["measurements_no_signal"] += 1
-        symbol_rows.setdefault((iid, grp), ("ok", None))
+        symbol_rows[(iid, grp)] = ("ok", None)
 
     con.executemany(
         """INSERT OR REPLACE INTO measurement(run_id, instrument_id, variant_id,
