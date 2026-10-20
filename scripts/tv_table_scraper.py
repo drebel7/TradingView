@@ -44,9 +44,9 @@ A progress file lets the run resume with --start / is written every symbol.
 Usage
 -----
   python tv_table_scraper.py \
-      --watchlist watchlist/GPW_NC.txt \
+      --watchlist watchlist/.PL.txt \
       --outdir analysis \
-      --tag GPW_NC_ETSB \
+      --tag PL_ETSB \
       --indicator "early trend strong breakout" \
       [--resolution D] [--min-rows 5] \
       [--limit 10] [--start 0] [--timeout 25] [--settle 0.6] \

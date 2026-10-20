@@ -8,12 +8,12 @@ Folder zawierający gotowe **listy tickerów** (watchlisty) do importu w Trading
 - `GPW_WIG.txt`, `GPW_WIG20.txt`, `GPW_WIG140.txt`
 - `GPW_Indeksy.txt`
 - Sektorowe: `GPW_WIG-Banki.txt`, `GPW_WIG-Informatyka.txt`, `GPW_WIG-Gornictwo.txt` itd.
-- `GPW_NewConnect.txt`, `GPW_NC.txt`
+- `GPW_NewConnect.txt`, `.PL.txt`
 
 ### Zagraniczne / Tematy
 - `_ETFy.txt`
 - `_miners_Gold.txt`, `_miners_Silver.txt`, `_miners_Uranium.txt`, `_miners_Coal.txt`, `_miners_PGM.txt`
-- `us BIG.txt`
+- `.US.txt`
 - `mForex - forex.txt`, `mForex - futures.txt`, `mForex - indices.txt`
 - `mBank - uranium.txt`
 
@@ -24,4 +24,4 @@ Folder zawierający gotowe **listy tickerów** (watchlisty) do importu w Trading
 
 Pliki `.txt` są gotowe do zaimportowania jako Watchlist w TradingView.
 
-**Ostatnia aktualizacja:** 2026-05-10
+**Ostatnia aktualizacja:** 2026-10-20

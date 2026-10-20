@@ -87,9 +87,9 @@ over CDP (same transport the `tradingview-desktop` MCP server uses) and, per sym
 
 ```bash
 python3 scripts/tv_table_scraper.py \
-  --watchlist watchlist/.GPW_NC.txt \
+  --watchlist watchlist/.PL.txt \
   --outdir analysis \
-  --tag GPW_NC_ETSB \
+  --tag PL_ETSB \
   --indicator "early trend strong breakout" \
   --resolution D \
   --timeout 20 --settle 0.6
@@ -99,9 +99,9 @@ PowerShell (Windows) equivalent:
 
 ```powershell
 python scripts\tv_table_scraper.py `
-  --watchlist watchlist\.GPW_NC.txt `
+  --watchlist watchlist\.PL.txt `
   --outdir analysis `
-  --tag GPW_NC_ETSB `
+  --tag PL_ETSB `
   --indicator "early trend strong breakout" `
   --resolution D `
   --timeout 20 --settle 0.6
@@ -190,7 +190,7 @@ A progress checkpoint is written to `analysis/.<tag>_progress.json`.
 ```bash
 python3 scripts/summarize_signals.py \
   --out analysis/SIGNAL_SUMMARY.csv \
-  analysis/GPW_NC_ETSB_20261011.csv analysis/US_BIG_ETSB_20261011.csv
+  analysis/PL_ETSB_20261011.csv analysis/US_ETSB_20261011.csv
 ```
 
 Per signal (`sig`), across all symbols it computes:
@@ -257,7 +257,7 @@ are deliberately **not** exported to the CSV/database.
 
 ```bash
 python3 scripts/tv_info_scraper.py \
-  --watchlist watchlist/.GPW_NC.txt \
+  --watchlist watchlist/.PL.txt \
   --outdir analysis \
   --resolution D \
   --timeout 20 --settle 0.6
@@ -267,15 +267,15 @@ PowerShell (Windows) equivalent:
 
 ```powershell
 python scripts\tv_info_scraper.py `
-  --watchlist watchlist\.GPW_NC.txt `
+  --watchlist watchlist\.PL.txt `
   --outdir analysis `
   --resolution D `
   --timeout 20 --settle 0.6
 ```
 
 `--tag` is optional: without it the output name is derived from the watchlist,
-e.g. `watchlist/.GPW_NC.txt` -> `analysis/GPW_NC_INFO_20261014.csv`
-(`.us_BIG.txt` -> `US_BIG_INFO_*.csv`).
+e.g. `watchlist/.PL.txt` -> `analysis/PL_INFO_20261014.csv`
+(`.US.txt` -> `US_INFO_*.csv`).
 
 Flags are the same as for the signal scraper (`--limit`, `--start`, `--timeout`,
 `--settle`, `--retries`, `--solo-visibility`, `--tv-*`), with these differences:

@@ -16,7 +16,7 @@ Skrypt:
   4. jest idempotentny (ponowne uruchomienie nic nie zmienia).
 
 Uzycie:
-  python3 scripts/gpw_watchlist_sync.py [--watchlist watchlist/.GPW_NC.txt] [--dry-run]
+  python3 scripts/gpw_watchlist_sync.py [--watchlist watchlist/.PL.txt] [--dry-run]
 """
 
 import argparse
@@ -74,7 +74,7 @@ def existing_gpw_tickers(text):
 def main():
     ap = argparse.ArgumentParser(
         description="Append missing GPW main-market tickers to a watchlist")
-    ap.add_argument("--watchlist", default="watchlist/.GPW_NC.txt")
+    ap.add_argument("--watchlist", default="watchlist/.PL.txt")
     ap.add_argument("--url", default=GPW_URL)
     ap.add_argument("--dry-run", action="store_true", help="tylko pokaz, nie zapisuj")
     args = ap.parse_args()

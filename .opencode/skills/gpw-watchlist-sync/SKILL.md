@@ -1,6 +1,6 @@
 ---
 name: gpw-watchlist-sync
-description: Sync a GPW watchlist file with the GPW main-market company list from https://www.gpw.pl/spolki — report which tickers are missing and append them at the end. Use when the user asks to update/refresh a GPW watchlist, find missing GPW symbols, or add newly listed main-market companies to a watchlist (e.g. watchlist/.GPW_NC.txt, GPW_WIG.txt).
+description: Sync a GPW watchlist file with the GPW main-market company list from https://www.gpw.pl/spolki — report which tickers are missing and append them at the end. Use when the user asks to update/refresh a GPW watchlist, find missing GPW symbols, or add newly listed main-market companies to a watchlist (e.g. watchlist/.PL.txt, GPW_WIG.txt).
 ---
 
 # GPW Watchlist Sync
@@ -31,15 +31,15 @@ Python 3 stdlib only (no dependencies).
 
 ```bash
 # preview only (nothing written)
-python3 scripts/gpw_watchlist_sync.py --watchlist watchlist/.GPW_NC.txt --dry-run
+python3 scripts/gpw_watchlist_sync.py --watchlist watchlist/.PL.txt --dry-run
 
 # apply
-python3 scripts/gpw_watchlist_sync.py --watchlist watchlist/.GPW_NC.txt
+python3 scripts/gpw_watchlist_sync.py --watchlist watchlist/.PL.txt
 ```
 
 | Flag | Meaning |
 | --- | --- |
-| `--watchlist` | path to the watchlist file (default `watchlist/.GPW_NC.txt`) |
+| `--watchlist` | path to the watchlist file (default `watchlist/.PL.txt`) |
 | `--url` | override the source URL (default the `?limit=1000` list) |
 | `--dry-run` | print what would be added, do not modify the file |
 

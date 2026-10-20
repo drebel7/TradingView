@@ -20,8 +20,8 @@ python3 scripts/db_verify.py          # kontrola: widoki vs pliki *_SUMMARY*.csv
 Zbieranie danych spółek (DRE Info):
 
 ```bash
-python3 scripts/tv_info_scraper.py --watchlist watchlist/.GPW_NC.txt
-python3 scripts/tv_info_scraper.py --watchlist watchlist/.us_BIG.txt
+python3 scripts/tv_info_scraper.py --watchlist watchlist/.PL.txt
+python3 scripts/tv_info_scraper.py --watchlist watchlist/.US.txt
 python3 scripts/db_import_company.py
 ```
 
@@ -178,14 +178,14 @@ Zbiera je `scripts/tv_info_scraper.py` (tabela label→wartość wskaźnika
 ```bash
 # 1. Zbieranie (TradingView Desktop z dodanym wskaźnikiem "DRE Info";
 #    scraper sam go uruchomi, ustawi interwał D i wymusi komplet pól karty)
-python3 scripts/tv_info_scraper.py --watchlist watchlist/.GPW_NC.txt
-python3 scripts/tv_info_scraper.py --watchlist watchlist/.us_BIG.txt --tag US_BIG_INFO
+python3 scripts/tv_info_scraper.py --watchlist watchlist/.PL.txt
+python3 scripts/tv_info_scraper.py --watchlist watchlist/.US.txt --tag US_INFO
 
 # 2. Import (snapshot_date z nagłówka '# generated:'; --date nadpisuje)
 python3 scripts/db_import_company.py
 ```
 
-Wynik: `analysis/<TAG>_<YYYYMMDD>.csv` (domyślnie `GPW_NC_INFO_*.csv`) z jednym
+Wynik: `analysis/<TAG>_<YYYYMMDD>.csv` (domyślnie `PL_INFO_*.csv`) z jednym
 wierszem na spółkę: `group, symbol, status, ticker_table, market_cap_m, adr_pct,
 atr, avg_turnover_m, hod_price, ma_dist_prctl, sharpe, eps_up_1y, eps_days_1y,
 eps_up_2y, eps_days_2y, sector, industry, bench_index, bench_mod,

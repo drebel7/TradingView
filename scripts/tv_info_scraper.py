@@ -39,16 +39,16 @@ complete card: all display flags ON, `Calculations Length` and
 configuration.
 
 Output: `<outdir>/<TAG>_<YYYYMMDD>.csv` (default TAG from the watchlist name,
-e.g. `.GPW_NC.txt` -> `GPW_NC_INFO_20261014.csv`), written incrementally, with
+e.g. `.PL.txt` -> `PL_INFO_20261014.csv`), written incrementally, with
 a `.<TAG>_progress.json` resume file. Import to the database with
 `python3 scripts/db_import_company.py`.
 
 Usage
 -----
   python3 scripts/tv_info_scraper.py \
-      --watchlist watchlist/.GPW_NC.txt \
+      --watchlist watchlist/.PL.txt \
       --outdir analysis \
-      [--tag GPW_NC_INFO] [--indicator "DRE Info"] \
+      [--tag PL_INFO] [--indicator "DRE Info"] \
       [--resolution D] [--min-rows 4] [--limit 10] [--start 0] \
       [--timeout 25] [--settle 0.6] [--retries 2] \
       [--no-set-input-defaults] [--tv-port 9222] [--no-tv-autolaunch]
