@@ -226,17 +226,16 @@ import drebel/DREPerf/27 as dreperf
 //   the days must carry very high volume (a real institutional print), and the stock must not
 //   already be at the top of its range - accumulation happens before the breakout, not after.
 //
-// Qul:EP / Qul:EP2 / Qul:EP3 - Qullamaggie Episodic Pivot (EP)
+// Qul:EP2 / Qul:EP3 - Qullamaggie Episodic Pivot (EP)
 //   Idea: an unexpected positive catalyst (earnings/guidance, FDA, contract, theme) produces a gap
-//   up on heavy volume out of a base, not in a downtrend. Daily proxy: gap >= 10% (EP) or 8% (EP3),
-//   relative volume >= 4x (EP), 2x (EP2) or 1.5x (EP3), close above the prior 50-day high (EP/EP2)
-//   or 20-day high (EP3), close above SMA50/SMA200 with SMA50 rising. EP and EP2 require a green
+//   up on heavy volume out of a base, not in a downtrend. Daily proxy: gap >= 10% (EP2) or 8% (EP3),
+//   relative volume >= 2x (EP2) or 1.5x (EP3), close above the prior 50-day high (EP2)
+//   or 20-day high (EP3), close above SMA50/SMA200 with SMA50 rising. EP2 requires a green
 //   close; EP3 drops it and instead requires the gap day to close in the top 10% of its range.
-//   Stop is the ETSB convention (2-day low / 8% cap). The three rows are the same epCalc logic
-//   with three parameter sets: EP = canonical (10%, 4x, 0.50, base 50, green), EP2 = v2
-//   (10%, 2x, 0.50, base 50, green), EP3 = c09_v15_g8_b20_greenOff (8%, 1.5x, 0.90, base 20,
-//   no green requirement). The third variant is named Qul:EP3 because Qul:EP2 is already taken
-//   by the v2 set.
+//   Stop is the ETSB convention (2-day low / 8% cap). The two rows are the same epCalc logic
+//   with two parameter sets: EP2 = v2 (10%, 2x, 0.50, base 50, green), EP3 =
+//   c09_v15_g8_b20_greenOff (8%, 1.5x, 0.90, base 20, no green requirement). The EP3 variant is
+//   named Qul:EP3 because Qul:EP2 is already taken by the v2 set.
 //   Volume is time-of-day projected like strongBreakout: the full-day requirement is projected
 //   from the elapsed session (early threshold = 2x the day-end threshold) and the raw full-day
 //   volume remains a fallback. On closed bars this reduces to the original full-day condition,
@@ -318,7 +317,6 @@ iShowRidingVwapDebug = input.bool(defval = false, title = "Show Riding Vwap Touc
 iShowCapitulationLow = input.bool(defval = true, title = "Show Capitulation Low", display = display.none, group = 'Signals')
 iShowFlatBreakout = input.bool(defval = true, title = "Show FlatBreakout", display = display.none, group = 'Signals')
 iShowVIP = input.bool(defval = true, title = "Show Volume Institutional Push", display = display.none, group = 'Signals')
-iShowQulEp = input.bool(defval = true, title = 'Show Qul:EP', display = display.none, group = 'Signals')
 iShowQulEp2 = input.bool(defval = true, title = 'Show Qul:EP2', display = display.none, group = 'Signals')
 iShowQulEp3 = input.bool(defval = true, title = 'Show Qul:EP3', display = display.none, group = 'Signals')
 iShowQulHtf = input.bool(defval = true, title = 'Show Qul:HTF', display = display.none, group = 'Signals')
@@ -644,7 +642,6 @@ epCalc(int _gapMin, float _volMin, float _closeLocMin, int _baseLookback, bool _
     bool _greenOk = not _requireGreen or close > open
     _gapOk and _volOk and _closeOk and _baseOk and _ma50Ok and _ma200Ok and _sma50RiseOk and _greenOk
 
-qulEp = epCalc(10, 4.0, 0.50, 50, true)
 qulEp2 = epCalc(10, 2.0, 0.50, 50, true)
 qulEp3 = epCalc(8, 1.5, 0.90, 20, false)
 
@@ -737,7 +734,6 @@ float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossM
 [CapLowSuccRate, CapLowSuccCount, CapLowSigCount, CapLowAvgReturn, CapLowSuccRateOk, CapLowSuccRateStr, CapLowWinRate, CapLowWinCount, CapLowAvgR, CapLowMedR, CapLowStdR, CapLowPf, CapLowWilsonLb, CapLowAvgMfe, CapLowAvgMae, CapLowMaxDd, CapLowMaxLossStreak, CapLowScore, CapLowQualityOk, CapLowSumWinR, CapLowSumLossR] = dreperf.signalQualityFull(CapLow, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [FBSuccRate, FBSuccCount, FBSigCount, FBAvgReturn, FBSuccRateOk, FBSuccRateStr, FBWinRate, FBWinCount, FBAvgR, FBMedR, FBStdR, FBPf, FBWilsonLb, FBAvgMfe, FBAvgMae, FBMaxDd, FBMaxLossStreak, FBScore, FBQualityOk, FBSumWinR, FBSumLossR] = dreperf.signalQualityFull(fb, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [vipSuccRate, vipSuccCount, vipSigCount, vipAvgReturn, vipSuccRateOk, vipSuccRateStr, vipWinRate, vipWinCount, vipAvgR, vipMedR, vipStdR, vipPf, vipWilsonLb, vipAvgMfe, vipAvgMae, vipMaxDd, vipMaxLossStreak, vipScore, vipQualityOk, vipSumWinR, vipSumLossR] = dreperf.signalQualityFull(vip, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
-[qulEpSuccRate, qulEpSuccCount, qulEpSigCount, qulEpAvgReturn, qulEpSuccRateOk, qulEpSuccRateStr, qulEpWinRate, qulEpWinCount, qulEpAvgR, qulEpMedR, qulEpStdR, qulEpPf, qulEpWilsonLb, qulEpAvgMfe, qulEpAvgMae, qulEpMaxDd, qulEpMaxLossStreak, qulEpScore, qulEpQualityOk, qulEpSumWinR, qulEpSumLossR] = dreperf.signalQualityFull(qulEp, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [qulEp2SuccRate, qulEp2SuccCount, qulEp2SigCount, qulEp2AvgReturn, qulEp2SuccRateOk, qulEp2SuccRateStr, qulEp2WinRate, qulEp2WinCount, qulEp2AvgR, qulEp2MedR, qulEp2StdR, qulEp2Pf, qulEp2WilsonLb, qulEp2AvgMfe, qulEp2AvgMae, qulEp2MaxDd, qulEp2MaxLossStreak, qulEp2Score, qulEp2QualityOk, qulEp2SumWinR, qulEp2SumLossR] = dreperf.signalQualityFull(qulEp2, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [qulEp3SuccRate, qulEp3SuccCount, qulEp3SigCount, qulEp3AvgReturn, qulEp3SuccRateOk, qulEp3SuccRateStr, qulEp3WinRate, qulEp3WinCount, qulEp3AvgR, qulEp3MedR, qulEp3StdR, qulEp3Pf, qulEp3WilsonLb, qulEp3AvgMfe, qulEp3AvgMae, qulEp3MaxDd, qulEp3MaxLossStreak, qulEp3Score, qulEp3QualityOk, qulEp3SumWinR, qulEp3SumLossR] = dreperf.signalQualityFull(qulEp3, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [qulHtfSuccRate, qulHtfSuccCount, qulHtfSigCount, qulHtfAvgReturn, qulHtfSuccRateOk, qulHtfSuccRateStr, qulHtfWinRate, qulHtfWinCount, qulHtfAvgR, qulHtfMedR, qulHtfStdR, qulHtfPf, qulHtfWilsonLb, qulHtfAvgMfe, qulHtfAvgMae, qulHtfMaxDd, qulHtfMaxLossStreak, qulHtfScore, qulHtfQualityOk, qulHtfSumWinR, qulHtfSumLossR] = dreperf.signalQualityFull(qulHtf, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
@@ -764,7 +760,6 @@ minVwapTAGEffOk = iUseQualityGate ? minVwapTAGQualityOk : minVwapTAGSuccRateOk
 CapLowEffOk = iUseQualityGate ? CapLowQualityOk : CapLowSuccRateOk
 FBEffOk = iUseQualityGate ? FBQualityOk : FBSuccRateOk
 vipEffOk = iUseQualityGate ? vipQualityOk : vipSuccRateOk
-qulEpEffOk = iUseQualityGate ? qulEpQualityOk : qulEpSuccRateOk
 qulEp2EffOk = iUseQualityGate ? qulEp2QualityOk : qulEp2SuccRateOk
 qulEp3EffOk = iUseQualityGate ? qulEp3QualityOk : qulEp3SuccRateOk
 qulHtfEffOk = iUseQualityGate ? qulHtfQualityOk : qulHtfSuccRateOk
@@ -785,7 +780,6 @@ minVwapTAGSigColor = color.new(color.aqua, 0)
 CapLowSigColor = color.new(color.orange, 0)
 FBSigColor = color.new(color.black, 0)
 vipSigColor = color.new(color.silver, 0)
-qulEpSigColor = color.new(color.yellow, 0)
 qulEp2SigColor = color.new(color.orange, 0)
 qulEp3SigColor = color.new(color.purple, 0)
 qulHtfSigColor = color.new(#e91e63, 0)
@@ -806,7 +800,7 @@ renderQualityRow(table _tbl, int _row, string _name, color _color, bool _sigOk, 
         table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
 
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 9, rows = 29)
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 28)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
@@ -840,11 +834,10 @@ if barstate.islast and iShowSigPerfTable
     renderQualityRow(tbl, 21, "CapLow", CapLowSigColor, CapLowEffOk, iShowCapitulationLow, CapLowWinRate, CapLowSigCount, CapLowAvgR, CapLowPf, CapLowMaxDd, CapLowScore, CapLowSumWinR, CapLowSumLossR)
     renderQualityRow(tbl, 22, "FlatB", FBSigColor, FBEffOk, iShowFlatBreakout, FBWinRate, FBSigCount, FBAvgR, FBPf, FBMaxDd, FBScore, FBSumWinR, FBSumLossR)
     renderQualityRow(tbl, 23, "vip", vipSigColor, vipEffOk, iShowVIP, vipWinRate, vipSigCount, vipAvgR, vipPf, vipMaxDd, vipScore, vipSumWinR, vipSumLossR)
-    renderQualityRow(tbl, 24, "Qul:EP", qulEpSigColor, qulEpEffOk, iShowQulEp, qulEpWinRate, qulEpSigCount, qulEpAvgR, qulEpPf, qulEpMaxDd, qulEpScore, qulEpSumWinR, qulEpSumLossR)
-    renderQualityRow(tbl, 25, "Qul:EP2", qulEp2SigColor, qulEp2EffOk, iShowQulEp2, qulEp2WinRate, qulEp2SigCount, qulEp2AvgR, qulEp2Pf, qulEp2MaxDd, qulEp2Score, qulEp2SumWinR, qulEp2SumLossR)
-    renderQualityRow(tbl, 26, "Qul:EP3", qulEp3SigColor, qulEp3EffOk, iShowQulEp3, qulEp3WinRate, qulEp3SigCount, qulEp3AvgR, qulEp3Pf, qulEp3MaxDd, qulEp3Score, qulEp3SumWinR, qulEp3SumLossR)
-    renderQualityRow(tbl, 27, "Qul:HTF", qulHtfSigColor, qulHtfEffOk, iShowQulHtf, qulHtfWinRate, qulHtfSigCount, qulHtfAvgR, qulHtfPf, qulHtfMaxDd, qulHtfScore, qulHtfSumWinR, qulHtfSumLossR)
-    renderQualityRow(tbl, 28, "Qul:HTF2", qulHtf2SigColor, qulHtf2EffOk, iShowQulHtf2, qulHtf2WinRate, qulHtf2SigCount, qulHtf2AvgR, qulHtf2Pf, qulHtf2MaxDd, qulHtf2Score, qulHtf2SumWinR, qulHtf2SumLossR)
+    renderQualityRow(tbl, 24, "Qul:EP2", qulEp2SigColor, qulEp2EffOk, iShowQulEp2, qulEp2WinRate, qulEp2SigCount, qulEp2AvgR, qulEp2Pf, qulEp2MaxDd, qulEp2Score, qulEp2SumWinR, qulEp2SumLossR)
+    renderQualityRow(tbl, 25, "Qul:EP3", qulEp3SigColor, qulEp3EffOk, iShowQulEp3, qulEp3WinRate, qulEp3SigCount, qulEp3AvgR, qulEp3Pf, qulEp3MaxDd, qulEp3Score, qulEp3SumWinR, qulEp3SumLossR)
+    renderQualityRow(tbl, 26, "Qul:HTF", qulHtfSigColor, qulHtfEffOk, iShowQulHtf, qulHtfWinRate, qulHtfSigCount, qulHtfAvgR, qulHtfPf, qulHtfMaxDd, qulHtfScore, qulHtfSumWinR, qulHtfSumLossR)
+    renderQualityRow(tbl, 27, "Qul:HTF2", qulHtf2SigColor, qulHtf2EffOk, iShowQulHtf2, qulHtf2WinRate, qulHtf2SigCount, qulHtf2AvgR, qulHtf2Pf, qulHtf2MaxDd, qulHtf2Score, qulHtf2SumWinR, qulHtf2SumLossR)
 
 //plot signals on price chart
 plotshape(et3sb and showRow(iShowOnlyGoodSigs, et3sbEffOk, iShowEt3sbSig), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -873,7 +866,6 @@ plotshape((minorLow4 or minorLow5 or minorLow6) and showRow(iShowOnlyGoodSigs, m
 plotshape(CapLow and showRow(iShowOnlyGoodSigs, CapLowEffOk, iShowCapitulationLow), title = 'CapLow', location = location.belowbar, color = CapLowSigColor, style = shape.triangleup, text = 'CapLow', textcolor = CapLowSigColor)
 plotshape(fb and showRow(iShowOnlyGoodSigs, FBEffOk, iShowFlatBreakout), title = 'FlatB', location = location.belowbar, color = FBSigColor, style = shape.triangleup, text = 'FlatB', textcolor = FBSigColor)
 plotshape(vip and showRow(iShowOnlyGoodSigs, vipEffOk, iShowVIP), title = 'vip', location = location.belowbar, color = vipSigColor, style = shape.triangleup, text = 'vip', textcolor = vipSigColor)
-plotshape(qulEp and showRow(iShowOnlyGoodSigs, qulEpEffOk, iShowQulEp), title = 'Qul:EP', location = location.belowbar, color = qulEpSigColor, style = shape.triangleup, text = 'Qul:EP', textcolor = qulEpSigColor)
 plotshape(qulEp2 and showRow(iShowOnlyGoodSigs, qulEp2EffOk, iShowQulEp2), title = 'Qul:EP2', location = location.belowbar, color = qulEp2SigColor, style = shape.triangleup, text = 'Qul:EP2', textcolor = qulEp2SigColor)
 plotshape(qulEp3 and showRow(iShowOnlyGoodSigs, qulEp3EffOk, iShowQulEp3), title = 'Qul:EP3', location = location.belowbar, color = qulEp3SigColor, style = shape.triangleup, text = 'Qul:EP3', textcolor = qulEp3SigColor)
 plotshape(qulHtf and showRow(iShowOnlyGoodSigs, qulHtfEffOk, iShowQulHtf), title = 'Qul:HTF', location = location.belowbar, color = qulHtfSigColor, style = shape.triangleup, text = 'Qul:HTF', textcolor = qulHtfSigColor)
@@ -915,13 +907,12 @@ FBSig = fb and FBEffOk
 FBSig_p1D = FBSig[1] and orb
 vipSig = vip and vipEffOk
 vipSig_p1D = vipSig[1] and orb
-qulEpSig = qulEp and qulEpEffOk
 qulEp2Sig = qulEp2 and qulEp2EffOk
 qulEp3Sig = qulEp3 and qulEp3EffOk
 qulHtfSig = qulHtf and qulHtfEffOk
 qulHtf2Sig = qulHtf2 and qulHtf2EffOk
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or et1YHsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLowSig or CapLowSig_p1D or FBSig or FBSig_p1D or vipSig or vipSig_p1D or qulEpSig or qulEp2Sig or qulEp3Sig or qulHtfSig or qulHtf2Sig
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or et1YHsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLowSig or CapLowSig_p1D or FBSig or FBSig_p1D or vipSig or vipSig_p1D or qulEp2Sig or qulEp3Sig or qulHtfSig or qulHtf2Sig
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
@@ -939,7 +930,6 @@ alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullis
 alertcondition(gFilter and sessionCloseToEnd and (CapLowSig or CapLowSig_p1D), title = 'bullish CapLow', message = 'CapLow')
 alertcondition(gFilter and (FBSig or FBSig_p1D), title = 'bullish FlatB', message = 'FlatB')
 alertcondition(gFilter and (vipSig or vipSig_p1D), title = "bullish VIP", message = 'VIP')
-alertcondition(gFilter and qulEpSig, title = "bullish Qul:EP", message = 'Qul:EP')
 alertcondition(gFilter and qulEp2Sig, title = "bullish Qul:EP2", message = 'Qul:EP2')
 alertcondition(gFilter and qulEp3Sig, title = "bullish Qul:EP3", message = 'Qul:EP3')
 alertcondition(gFilter and qulHtfSig, title = "bullish Qul:HTF", message = 'Qul:HTF')
