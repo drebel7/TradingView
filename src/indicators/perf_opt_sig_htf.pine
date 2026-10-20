@@ -1,0 +1,455 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+//calc_bars_count = 3024 (12 years of 252 bars/year) - no need for more
+
+// perf_opt_sig_htf - sweep of the Qullamaggie High Tight Flag (HTF) signal.
+//
+// Source interpretation (yt/docs/trading/Qullamaggie):
+//   qullamaggie-3-timeless-setups.md - "Breakouts" chapter: a big move higher in the past
+//     1-3 months (30-100%+), then an orderly pullback / consolidation with higher lows and a
+//     tightening range (2 weeks - 2 months), then a range expansion out of the consolidation.
+//     The daily-chart version of this setup "can be called a high tight flag".
+//   Qullamaggie-strategia.md - section 6: HTF = large move (often 2-3x in a short time) ->
+//     tight flag with higher lows -> 10/20 MA catch up -> breakout. Q's stock filters:
+//     ADR >= 4-5%, price >= ~8, dollar volume >= 10-20M, RS top 1-2%.
+//   Jack-Corsellis-Qullamaggie-techniki.md - section 5: flag pole >= 100% in < 8 weeks,
+//     peak-to-trough <= 20-25% and < 2x ADR20, base 2.5-8 weeks, higher lows / lower highs,
+//     volume dry-up, price above 10/21/50 MA, breakout through the flag high.
+//
+// Canonical implementation (row "htf"):
+//   flag pole : the highest high of the 80 sessions BEFORE the flag is >= 50% above the
+//               lowest low of the 40 sessions preceding that high (Q: 30-100%+ in < 8 weeks);
+//               lasts at least 5 sessions.
+//   flag      : the last 10 sessions (2 weeks) form a range whose high is the breakout pivot
+//               and whose low is the pullback low; peak-to-trough pullback <= 25%, flag range
+//               <= 25%, recent 5-day range tighter than the preceding 10-day range and the
+//               recent 5-day low above the preceding 10-day low.
+//   trend     : close > SMA10 > SMA20 > SMA50 and SMA50 rising over 5 sessions.
+//   trigger   : close > flag high and close in the upper half of the bar and volume >
+//               1.5 x SMA50(volume); optionally a fresh 52-week high.
+//   risk      : the planned entry is the flag high (Q's buy stop), the stop is the low of the
+//               trigger bar - 0.01. Q's risk rule (<= 5% and <= 0.67 x ADR20) is OFF in the
+//               canonical row because the outcome model below enters at the daily close, not
+//               at the intraday opening-range high; it is tested in the risk* rows.
+//
+// Outcome model (DREPerf.signalQualityFull, same as ETSB):
+//   entry = close of the signal bar, stop = max(low - 0.01, close - 8%), check window = 30
+//   bars. "Success" = the stop is not violated inside the window; the return is measured at
+//   the end of the window (or at the stop when it was hit). The table reports win%, N, avgR,
+//   PF, maxDD, score, sumWinR and sumLossR - the schema consumed by tv_table_scraper.py.
+//
+// The 40 rows are the canonical setup plus 39 parameter perturbations. Row names:
+//   baseN = flag length in sessions, pN = min pole return %, pminN = min pole sessions,
+//   pbN = max pullback / flag range %, padrN = max pullback in ADR20 units,
+//   tightN/hlN/dryY/loose = structural filters, bvolN = breakout volume multiple,
+//   maN = MA alignment off, hi52w = require a 52-week high, risk* = risk filters on.
+// The full parameter set of every row is in the htfCalc(...) calls below.
+//
+// Iteration 9 (i9_*): final HTF validation/robustness sweep around the i8 winner.
+//
+// Iteration 8 (i8_*): combinations of the i7 winners and threshold refinements.
+//
+// Iteration 7 (i7_*): non-obvious context/execution filters applied to the i6 winners
+// (p60+dry10, p60+dry09+hl-off, p60+dry09+pb33), plus parameter refinements.
+//
+// Iteration 6 (i6_*): frequency/expectancy refinement. Iteration 5 showed that loosening
+// pole (75 -> 60/50), dry ratio (0.75 -> 0.90/1.00) and structure filters raises the signal
+// count 2-4x while keeping expectancy above 0.9R. This iteration maps that frontier.
+//
+// Iteration 5 (i5_*): non-obvious context/execution filters on the best i4 cores: relative
+// strength vs benchmark (RS line above its 100-day average or at a 1-year high), market and
+// sector regime, maximum extension above the pivot and from SMA10, range expansion in ADR
+// units, gap breakout, two-day confirmation, 30-day volume reference, liquidity/price/ADR
+// floors, RMV volatility contraction and pole slope.
+//
+// Iteration 4 (i4_*): refinement of the two cross-universe directions found in iteration 3:
+// (a) bvol3 + volume dry-up + high pole threshold (p75/p100), (b) bvol3 + pb33 + risk3.
+// Sweeps pole 60-150%, dry ratio 0.70-0.90, breakout volume 2.5-3.5x, min pole 1-20
+// sessions, base 7/15, flag 20/30, breakout margin 1-2% and the risk/close/pullback
+// interactions.
+//
+// Iteration 3 (i3_*): refinement of the bvol3 family - breakout volume 2.5-4x, volume
+// dry-up ratio 0.6-0.9, close location 0.6-0.9, breakout margin 0-3%, pullback 33/40,
+// flag range 20/30, base 7/15/20 and the risk filter. The close-location filter now
+// rejects zero-range bars (limit-up/halted sessions) instead of treating them as 1.0.
+//
+// Iteration 2 (i2_*): combinations of the best iteration-1 factors (breakout volume,
+// pole strength, pullback width, volume dry-up, risk filter) plus three new execution
+// filters: minimum close location in the signal bar, minimum breakout margin above the
+// pivot, and an optional close-based pivot. maxBaseRange% is now separate from pullback%.
+//
+// Sanity check: i2_htf == original Qullamaggie defaults (with the two documented deviations:
+// volume dry-up and the ADR/risk filter are variants, not hard canonical conditions).
+
+//@version=6
+indicator("HTF Qullamaggie (perf sweep)", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+//signal performance check inputs (same defaults as ETSB)
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+//common computations
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+adr20 = 100.0 * ta.sma((high - low) / close[1], 20) // Qullamaggie ADR: intraday range / prev close, no gaps
+sma10 = ta.sma(close, 10)
+sma20 = ta.sma(close, 20)
+sma50 = ta.sma(close, 50)
+volMa5 = ta.sma(volume, 5)
+volMa50 = ta.sma(volume, 50)
+float sl = math.max(ta.lowest(low, 5), close * (1.0 - iSigStopLossMaxPct / 100.0)) // house model: 5-day low, risk capped at 8%
+maAlign = close > sma10 and sma10 > sma20 and sma20 > sma50 and sma50 > sma50[5]
+tightOk = (ta.highest(high, 5)[1] - ta.lowest(low, 5)[1]) < 0.8 * (ta.highest(high, 10)[6] - ta.lowest(low, 10)[6])
+higherLowsOk = ta.lowest(low, 5)[1] > ta.lowest(low, 10)[6]
+hi52wLevel = ta.highest(high, 252)[1]
+
+//iteration 5 shared context filters
+benchClose = drelib.getDefaultBenchmarkClose()
+rs = close / benchClose
+rsMa = ta.sma(rs, 100)
+rs1YHigh = rs == ta.highest(rs, 252)
+rsHighLately = ta.barssince(rs1YHigh) < 20
+regimeMod = drelib.getWideIndexAndSectorSignalMod(31)
+volMa30 = ta.sma(volume, 30)
+dollarVol20 = ta.sma(close * volume, 20) / 1000000.0
+rmvLow = drelib.rmv(21, 8, 5, 3) <= 25
+
+//flag features for ten base lengths; every variant selects one set with baseIdx()
+const int BASE_N = 10
+var array<float> aBaseHigh = array.new_float(BASE_N)
+var array<float> aBaseHighClose = array.new_float(BASE_N)
+var array<float> aBaseLow = array.new_float(BASE_N)
+var array<float> aPolePeak = array.new_float(BASE_N)
+var array<float> aPoleLow = array.new_float(BASE_N)
+var array<float> aPoleRet = array.new_float(BASE_N)
+var array<float> aPoleBars = array.new_float(BASE_N)
+var array<float> aPullback = array.new_float(BASE_N)
+var array<float> aBaseRange = array.new_float(BASE_N)
+var array<float> aPoleVol = array.new_float(BASE_N)
+
+baseIdx(int _len) =>
+    _len == 3 ? 0 : _len == 5 ? 1 : _len == 7 ? 2 : _len == 10 ? 3 : _len == 15 ? 4 : _len == 20 ? 5 : _len == 25 ? 6 : _len == 30 ? 7 : _len == 40 ? 8 : 9
+
+baseFeatures(int _len, int _idx) =>
+    //flag: last _len sessions before today
+    float _baseHigh = high[1]
+    float _baseHighClose = close[1]
+    float _baseLow = low[1]
+    for _i = 1 to _len
+        _baseHigh := math.max(_baseHigh, high[_i])
+        _baseHighClose := math.max(_baseHighClose, close[_i])
+        _baseLow := math.min(_baseLow, low[_i])
+    //pole peak: highest high of the 80 sessions before the flag
+    int _poleStart = _len + 1
+    int _poleEnd = math.min(_len + 80, bar_index)
+    float _peakHigh = high[_poleStart]
+    int _peakOff = _poleStart
+    for _i = _poleStart to _poleEnd
+        if high[_i] > _peakHigh
+            _peakHigh := high[_i]
+            _peakOff := _i
+    //pole low: lowest low of the 40 sessions before the peak (trough -> peak <= 8 weeks)
+    float _poleLow = low[_peakOff + 1]
+    int _troughOff = _peakOff + 1
+    int _troughEnd = math.min(_peakOff + 40, bar_index)
+    for _i = _peakOff + 1 to _troughEnd
+        if low[_i] < _poleLow
+            _poleLow := low[_i]
+            _troughOff := _i
+    //pole volume (the actual move, trough -> peak)
+    float _volSum = 0.0
+    for _i = _peakOff to _troughOff
+        _volSum += volume[_i]
+    float _poleVolMa = _volSum / (_troughOff - _peakOff + 1)
+    array.set(aBaseHigh, _idx, _baseHigh)
+    array.set(aBaseHighClose, _idx, _baseHighClose)
+    array.set(aBaseLow, _idx, _baseLow)
+    array.set(aPolePeak, _idx, _peakHigh)
+    array.set(aPoleLow, _idx, _poleLow)
+    array.set(aPoleRet, _idx, 100.0 * (_peakHigh / _poleLow - 1.0))
+    array.set(aPoleBars, _idx, _troughOff - _peakOff)
+    array.set(aPullback, _idx, 100.0 * (_peakHigh - _baseLow) / _peakHigh)
+    array.set(aBaseRange, _idx, 100.0 * (_baseHigh - _baseLow) / _baseHigh)
+    array.set(aPoleVol, _idx, _poleVolMa)
+    0
+
+baseFeatures(3, 0)
+baseFeatures(5, 1)
+baseFeatures(7, 2)
+baseFeatures(10, 3)
+baseFeatures(15, 4)
+baseFeatures(20, 5)
+baseFeatures(25, 6)
+baseFeatures(30, 7)
+baseFeatures(40, 8)
+baseFeatures(55, 9)
+
+//variant factory; all thresholds are applied to the shared feature arrays above
+htfCalc(int _baseLen, int _poleMinPct, int _minPoleBars, float _maxPullbackPct, float _maxPullbackAdr, float _maxBaseRangePct, bool _requireTight, bool _requireHigherLows, bool _requireVolDry, float _breakoutVolMult, bool _requireMaAlign, bool _require52w, float _minCloseLoc, float _breakoutMarginPct, bool _useClosePivot, float _maxRiskPct, float _maxRiskAdr, float _dryRatio, int _rsMode, int _regimeMin, float _maxExtPct, float _minRangeAdr, bool _gapBreak, bool _confirm2, bool _useVol30, float _minDollarVolM, float _minAdr, float _minPrice, bool _useRmv, float _maxDistSma10Adr, float _minPoleSlope) =>
+    int _bi = baseIdx(_baseLen)
+    float _baseHigh = array.get(aBaseHigh, _bi)
+    float _baseHighClose = array.get(aBaseHighClose, _bi)
+    float _baseLow = array.get(aBaseLow, _bi)
+    float _poleRet = array.get(aPoleRet, _bi)
+    float _poleBars = array.get(aPoleBars, _bi)
+    float _pullback = array.get(aPullback, _bi)
+    float _baseRange = array.get(aBaseRange, _bi)
+    float _poleVolMa = array.get(aPoleVol, _bi)
+    float _pivot = _useClosePivot ? _baseHighClose : _baseHigh
+    float _barRange = high - low
+    float _closeLoc = _barRange > 0 ? (close - low) / _barRange : 0.0
+    float _volRef = _useVol30 ? volMa30 : volMa50
+    bool _poleOk = not na(_poleRet) and _poleRet >= _poleMinPct and not na(_poleBars) and _poleBars >= _minPoleBars
+    bool _pullbackOk = not na(_pullback) and _pullback >= 0 and _pullback <= _maxPullbackPct and _pullback <= _maxPullbackAdr * adr20
+    bool _rangeOk = not na(_baseRange) and _baseRange <= _maxBaseRangePct
+    bool _structureOk = (not _requireTight or tightOk) and (not _requireHigherLows or higherLowsOk)
+    bool _dryOk = not _requireVolDry or (not na(_poleVolMa) and volMa5[1] < _dryRatio * _poleVolMa)
+    bool _maOk = not _requireMaAlign or maAlign
+    bool _hiOk = not _require52w or close > hi52wLevel
+    float _riskPct = na(_pivot) ? na : 100.0 * (_pivot - low) / _pivot
+    bool _riskOk = _maxRiskAdr >= 100 or (not na(_riskPct) and _riskPct <= _maxRiskPct and _riskPct <= _maxRiskAdr * adr20)
+    bool _rsOk = _rsMode == 0 or (_rsMode == 1 and rs > rsMa) or (_rsMode == 2 and rsHighLately)
+    bool _regimeOk = _regimeMin <= -9 or regimeMod >= _regimeMin
+    float _extPct = na(_pivot) ? na : 100.0 * (close - _pivot) / _pivot
+    bool _extOk = _maxExtPct >= 100 or (not na(_extPct) and _extPct <= _maxExtPct)
+    float _rangeAdr = adr20 > 0 ? 100.0 * (high - low) / close / adr20 : 0.0
+    bool _rangeExpOk = _minRangeAdr <= 0 or _rangeAdr >= _minRangeAdr
+    bool _gapOk = not _gapBreak or (not na(_pivot) and open > _pivot and close > open)
+    bool _conf2Ok = not _confirm2 or (not na(_pivot) and close > _pivot and close[1] > _pivot[1])
+    bool _dvOk = _minDollarVolM <= 0 or dollarVol20 >= _minDollarVolM
+    bool _adrOk = _minAdr <= 0 or adr20 >= _minAdr
+    bool _priceOk = _minPrice <= 0 or close >= _minPrice
+    bool _rmvOk = not _useRmv or rmvLow
+    float _dist10 = sma10 > 0 and adr20 > 0 ? 100.0 * (close - sma10) / sma10 / adr20 : na
+    bool _dist10Ok = _maxDistSma10Adr >= 100 or (not na(_dist10) and _dist10 <= _maxDistSma10Adr)
+    float _poleSlope = not na(_poleBars) and _poleBars > 0 ? _poleRet / _poleBars : 0.0
+    bool _slopeOk = _minPoleSlope <= 0 or _poleSlope >= _minPoleSlope
+    bool _breakoutOk = not na(_pivot) and close > _pivot * (1.0 + _breakoutMarginPct / 100.0) and _closeLoc >= _minCloseLoc and volume > _breakoutVolMult * _volRef
+    _poleOk and _pullbackOk and _rangeOk and _structureOk and _dryOk and _maOk and _hiOk and _riskOk and _breakoutOk and _rsOk and _regimeOk and _extOk and _rangeExpOk and _gapOk and _conf2Ok and _dvOk and _adrOk and _priceOk and _rmvOk and _dist10Ok and _slopeOk
+
+//quality metrics wrapper -> [win%, N, avgR, PF, maxDD, score, sumWinR, sumLossR]
+q(series bool _sig) =>
+    [_sr, _sc, _n, _ar, _sro, _srs, _wr, _wc, _avgR, _medR, _stdR, _pf, _wlb, _mfe, _mae, _dd, _mls, _score, _qok, _swr, _slr] = dreperf.signalQualityFull(_sig, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+    [_wr, _n, _avgR, _pf, _dd, _score, _swr, _slr]
+
+//------------------------------------------------------------------------------
+//iteration 9 - 45 variants (final HTF validation; canonical baseline i9_htf first)
+// robustness perturbations of the i8 winner p65+dry09.5+pb30+RS-new-high and of
+// the high-frequency p65+dry09.5+pb30+min-pole-10: pole 60-70, dry 0.90-1.00,
+// pullback 28-33, breakout volume 2.5-3.5, ADR 3-5%, min pole 7-15, slope 2-3,
+// range 1.5, close 0.60, base 7, regime/extension/vol30 ablation.
+//------------------------------------------------------------------------------
+i9_htf = htfCalc(10, 50, 5, 25.0, 100.0, 25.0, true, true, false, 1.5, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.75, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_htf_wr, i9_htf_n, i9_htf_ar, i9_htf_pf, i9_htf_dd, i9_htf_sc, i9_htf_swr, i9_htf_slr] = q(i9_htf)
+
+i9_p65d95_pb30_rsNh = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_wr, i9_p65d95_pb30_rsNh_n, i9_p65d95_pb30_rsNh_ar, i9_p65d95_pb30_rsNh_pf, i9_p65d95_pb30_rsNh_dd, i9_p65d95_pb30_rsNh_sc, i9_p65d95_pb30_rsNh_swr, i9_p65d95_pb30_rsNh_slr] = q(i9_p65d95_pb30_rsNh)
+
+i9_p60d10_pb30_rsNh = htfCalc(10, 60, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_rsNh_wr, i9_p60d10_pb30_rsNh_n, i9_p60d10_pb30_rsNh_ar, i9_p60d10_pb30_rsNh_pf, i9_p60d10_pb30_rsNh_dd, i9_p60d10_pb30_rsNh_sc, i9_p60d10_pb30_rsNh_swr, i9_p60d10_pb30_rsNh_slr] = q(i9_p60d10_pb30_rsNh)
+
+i9_p60d10_pb30_rsNh_base7 = htfCalc(7, 60, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_rsNh_base7_wr, i9_p60d10_pb30_rsNh_base7_n, i9_p60d10_pb30_rsNh_base7_ar, i9_p60d10_pb30_rsNh_base7_pf, i9_p60d10_pb30_rsNh_base7_dd, i9_p60d10_pb30_rsNh_base7_sc, i9_p60d10_pb30_rsNh_base7_swr, i9_p60d10_pb30_rsNh_base7_slr] = q(i9_p60d10_pb30_rsNh_base7)
+
+i9_p65d95_pb30_mp10 = htfCalc(10, 65, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_wr, i9_p65d95_pb30_mp10_n, i9_p65d95_pb30_mp10_ar, i9_p65d95_pb30_mp10_pf, i9_p65d95_pb30_mp10_dd, i9_p65d95_pb30_mp10_sc, i9_p65d95_pb30_mp10_swr, i9_p65d95_pb30_mp10_slr] = q(i9_p65d95_pb30_mp10)
+
+i9_p60d10_pb30_mp10 = htfCalc(10, 60, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_mp10_wr, i9_p60d10_pb30_mp10_n, i9_p60d10_pb30_mp10_ar, i9_p60d10_pb30_mp10_pf, i9_p60d10_pb30_mp10_dd, i9_p60d10_pb30_mp10_sc, i9_p60d10_pb30_mp10_swr, i9_p60d10_pb30_mp10_slr] = q(i9_p60d10_pb30_mp10)
+
+i9_p60_pb30_rsNh = htfCalc(10, 60, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60_pb30_rsNh_wr, i9_p60_pb30_rsNh_n, i9_p60_pb30_rsNh_ar, i9_p60_pb30_rsNh_pf, i9_p60_pb30_rsNh_dd, i9_p60_pb30_rsNh_sc, i9_p60_pb30_rsNh_swr, i9_p60_pb30_rsNh_slr] = q(i9_p60_pb30_rsNh)
+
+i9_p62_pb30_rsNh = htfCalc(10, 62, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p62_pb30_rsNh_wr, i9_p62_pb30_rsNh_n, i9_p62_pb30_rsNh_ar, i9_p62_pb30_rsNh_pf, i9_p62_pb30_rsNh_dd, i9_p62_pb30_rsNh_sc, i9_p62_pb30_rsNh_swr, i9_p62_pb30_rsNh_slr] = q(i9_p62_pb30_rsNh)
+
+i9_p68_pb30_rsNh = htfCalc(10, 68, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p68_pb30_rsNh_wr, i9_p68_pb30_rsNh_n, i9_p68_pb30_rsNh_ar, i9_p68_pb30_rsNh_pf, i9_p68_pb30_rsNh_dd, i9_p68_pb30_rsNh_sc, i9_p68_pb30_rsNh_swr, i9_p68_pb30_rsNh_slr] = q(i9_p68_pb30_rsNh)
+
+i9_p70_pb30_rsNh = htfCalc(10, 70, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p70_pb30_rsNh_wr, i9_p70_pb30_rsNh_n, i9_p70_pb30_rsNh_ar, i9_p70_pb30_rsNh_pf, i9_p70_pb30_rsNh_dd, i9_p70_pb30_rsNh_sc, i9_p70_pb30_rsNh_swr, i9_p70_pb30_rsNh_slr] = q(i9_p70_pb30_rsNh)
+
+i9_p65dry09_pb30_rsNh = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.90, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65dry09_pb30_rsNh_wr, i9_p65dry09_pb30_rsNh_n, i9_p65dry09_pb30_rsNh_ar, i9_p65dry09_pb30_rsNh_pf, i9_p65dry09_pb30_rsNh_dd, i9_p65dry09_pb30_rsNh_sc, i9_p65dry09_pb30_rsNh_swr, i9_p65dry09_pb30_rsNh_slr] = q(i9_p65dry09_pb30_rsNh)
+
+i9_p65dry10_pb30_rsNh = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65dry10_pb30_rsNh_wr, i9_p65dry10_pb30_rsNh_n, i9_p65dry10_pb30_rsNh_ar, i9_p65dry10_pb30_rsNh_pf, i9_p65dry10_pb30_rsNh_dd, i9_p65dry10_pb30_rsNh_sc, i9_p65dry10_pb30_rsNh_swr, i9_p65dry10_pb30_rsNh_slr] = q(i9_p65dry10_pb30_rsNh)
+
+i9_p65d95_pb28_rsNh = htfCalc(10, 65, 5, 28.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb28_rsNh_wr, i9_p65d95_pb28_rsNh_n, i9_p65d95_pb28_rsNh_ar, i9_p65d95_pb28_rsNh_pf, i9_p65d95_pb28_rsNh_dd, i9_p65d95_pb28_rsNh_sc, i9_p65d95_pb28_rsNh_swr, i9_p65d95_pb28_rsNh_slr] = q(i9_p65d95_pb28_rsNh)
+
+i9_p65d95_pb32_rsNh = htfCalc(10, 65, 5, 32.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb32_rsNh_wr, i9_p65d95_pb32_rsNh_n, i9_p65d95_pb32_rsNh_ar, i9_p65d95_pb32_rsNh_pf, i9_p65d95_pb32_rsNh_dd, i9_p65d95_pb32_rsNh_sc, i9_p65d95_pb32_rsNh_swr, i9_p65d95_pb32_rsNh_slr] = q(i9_p65d95_pb32_rsNh)
+
+i9_p65d95_pb33_rsNh = htfCalc(10, 65, 5, 33.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb33_rsNh_wr, i9_p65d95_pb33_rsNh_n, i9_p65d95_pb33_rsNh_ar, i9_p65d95_pb33_rsNh_pf, i9_p65d95_pb33_rsNh_dd, i9_p65d95_pb33_rsNh_sc, i9_p65d95_pb33_rsNh_swr, i9_p65d95_pb33_rsNh_slr] = q(i9_p65d95_pb33_rsNh)
+
+i9_p65d95_pb30_rsNh_b25 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 2.5, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_b25_wr, i9_p65d95_pb30_rsNh_b25_n, i9_p65d95_pb30_rsNh_b25_ar, i9_p65d95_pb30_rsNh_b25_pf, i9_p65d95_pb30_rsNh_b25_dd, i9_p65d95_pb30_rsNh_b25_sc, i9_p65d95_pb30_rsNh_b25_swr, i9_p65d95_pb30_rsNh_b25_slr] = q(i9_p65d95_pb30_rsNh_b25)
+
+i9_p65d95_pb30_rsNh_b35 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.5, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_b35_wr, i9_p65d95_pb30_rsNh_b35_n, i9_p65d95_pb30_rsNh_b35_ar, i9_p65d95_pb30_rsNh_b35_pf, i9_p65d95_pb30_rsNh_b35_dd, i9_p65d95_pb30_rsNh_b35_sc, i9_p65d95_pb30_rsNh_b35_swr, i9_p65d95_pb30_rsNh_b35_slr] = q(i9_p65d95_pb30_rsNh_b35)
+
+i9_p65d95_pb30_rsNh_adr3 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 3.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_adr3_wr, i9_p65d95_pb30_rsNh_adr3_n, i9_p65d95_pb30_rsNh_adr3_ar, i9_p65d95_pb30_rsNh_adr3_pf, i9_p65d95_pb30_rsNh_adr3_dd, i9_p65d95_pb30_rsNh_adr3_sc, i9_p65d95_pb30_rsNh_adr3_swr, i9_p65d95_pb30_rsNh_adr3_slr] = q(i9_p65d95_pb30_rsNh_adr3)
+
+i9_p65d95_pb30_rsNh_adr4 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 4.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_adr4_wr, i9_p65d95_pb30_rsNh_adr4_n, i9_p65d95_pb30_rsNh_adr4_ar, i9_p65d95_pb30_rsNh_adr4_pf, i9_p65d95_pb30_rsNh_adr4_dd, i9_p65d95_pb30_rsNh_adr4_sc, i9_p65d95_pb30_rsNh_adr4_swr, i9_p65d95_pb30_rsNh_adr4_slr] = q(i9_p65d95_pb30_rsNh_adr4)
+
+i9_p65d95_pb30_rsNh_adr5 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 5.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_adr5_wr, i9_p65d95_pb30_rsNh_adr5_n, i9_p65d95_pb30_rsNh_adr5_ar, i9_p65d95_pb30_rsNh_adr5_pf, i9_p65d95_pb30_rsNh_adr5_dd, i9_p65d95_pb30_rsNh_adr5_sc, i9_p65d95_pb30_rsNh_adr5_swr, i9_p65d95_pb30_rsNh_adr5_slr] = q(i9_p65d95_pb30_rsNh_adr5)
+
+i9_p65d95_pb30_rsNh_mp7 = htfCalc(10, 65, 7, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_mp7_wr, i9_p65d95_pb30_rsNh_mp7_n, i9_p65d95_pb30_rsNh_mp7_ar, i9_p65d95_pb30_rsNh_mp7_pf, i9_p65d95_pb30_rsNh_mp7_dd, i9_p65d95_pb30_rsNh_mp7_sc, i9_p65d95_pb30_rsNh_mp7_swr, i9_p65d95_pb30_rsNh_mp7_slr] = q(i9_p65d95_pb30_rsNh_mp7)
+
+i9_p65d95_pb30_rsNh_mp10 = htfCalc(10, 65, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_mp10_wr, i9_p65d95_pb30_rsNh_mp10_n, i9_p65d95_pb30_rsNh_mp10_ar, i9_p65d95_pb30_rsNh_mp10_pf, i9_p65d95_pb30_rsNh_mp10_dd, i9_p65d95_pb30_rsNh_mp10_sc, i9_p65d95_pb30_rsNh_mp10_swr, i9_p65d95_pb30_rsNh_mp10_slr] = q(i9_p65d95_pb30_rsNh_mp10)
+
+i9_p65d95_pb30_rsNh_mp15 = htfCalc(10, 65, 15, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_mp15_wr, i9_p65d95_pb30_rsNh_mp15_n, i9_p65d95_pb30_rsNh_mp15_ar, i9_p65d95_pb30_rsNh_mp15_pf, i9_p65d95_pb30_rsNh_mp15_dd, i9_p65d95_pb30_rsNh_mp15_sc, i9_p65d95_pb30_rsNh_mp15_swr, i9_p65d95_pb30_rsNh_mp15_slr] = q(i9_p65d95_pb30_rsNh_mp15)
+
+i9_p65d95_pb30_rsNh_slope2 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 2.0)
+[i9_p65d95_pb30_rsNh_slope2_wr, i9_p65d95_pb30_rsNh_slope2_n, i9_p65d95_pb30_rsNh_slope2_ar, i9_p65d95_pb30_rsNh_slope2_pf, i9_p65d95_pb30_rsNh_slope2_dd, i9_p65d95_pb30_rsNh_slope2_sc, i9_p65d95_pb30_rsNh_slope2_swr, i9_p65d95_pb30_rsNh_slope2_slr] = q(i9_p65d95_pb30_rsNh_slope2)
+
+i9_p65d95_pb30_rsNh_slope3 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 3.0)
+[i9_p65d95_pb30_rsNh_slope3_wr, i9_p65d95_pb30_rsNh_slope3_n, i9_p65d95_pb30_rsNh_slope3_ar, i9_p65d95_pb30_rsNh_slope3_pf, i9_p65d95_pb30_rsNh_slope3_dd, i9_p65d95_pb30_rsNh_slope3_sc, i9_p65d95_pb30_rsNh_slope3_swr, i9_p65d95_pb30_rsNh_slope3_slr] = q(i9_p65d95_pb30_rsNh_slope3)
+
+i9_p65d95_pb30_rsNh_range15 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 1.5, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_range15_wr, i9_p65d95_pb30_rsNh_range15_n, i9_p65d95_pb30_rsNh_range15_ar, i9_p65d95_pb30_rsNh_range15_pf, i9_p65d95_pb30_rsNh_range15_dd, i9_p65d95_pb30_rsNh_range15_sc, i9_p65d95_pb30_rsNh_range15_swr, i9_p65d95_pb30_rsNh_range15_slr] = q(i9_p65d95_pb30_rsNh_range15)
+
+i9_p65d95_pb30_rsNh_close60 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.60, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_close60_wr, i9_p65d95_pb30_rsNh_close60_n, i9_p65d95_pb30_rsNh_close60_ar, i9_p65d95_pb30_rsNh_close60_pf, i9_p65d95_pb30_rsNh_close60_dd, i9_p65d95_pb30_rsNh_close60_sc, i9_p65d95_pb30_rsNh_close60_swr, i9_p65d95_pb30_rsNh_close60_slr] = q(i9_p65d95_pb30_rsNh_close60)
+
+i9_p65d95_pb30_rsNh_base7 = htfCalc(7, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_base7_wr, i9_p65d95_pb30_rsNh_base7_n, i9_p65d95_pb30_rsNh_base7_ar, i9_p65d95_pb30_rsNh_base7_pf, i9_p65d95_pb30_rsNh_base7_dd, i9_p65d95_pb30_rsNh_base7_sc, i9_p65d95_pb30_rsNh_base7_swr, i9_p65d95_pb30_rsNh_base7_slr] = q(i9_p65d95_pb30_rsNh_base7)
+
+i9_p65d95_pb30_rs = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 1, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rs_wr, i9_p65d95_pb30_rs_n, i9_p65d95_pb30_rs_ar, i9_p65d95_pb30_rs_pf, i9_p65d95_pb30_rs_dd, i9_p65d95_pb30_rs_sc, i9_p65d95_pb30_rs_swr, i9_p65d95_pb30_rs_slr] = q(i9_p65d95_pb30_rs)
+
+i9_p65d95_pb30_rsNh_reg = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, 0, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_reg_wr, i9_p65d95_pb30_rsNh_reg_n, i9_p65d95_pb30_rsNh_reg_ar, i9_p65d95_pb30_rsNh_reg_pf, i9_p65d95_pb30_rsNh_reg_dd, i9_p65d95_pb30_rsNh_reg_sc, i9_p65d95_pb30_rsNh_reg_swr, i9_p65d95_pb30_rsNh_reg_slr] = q(i9_p65d95_pb30_rsNh_reg)
+
+i9_p65d95_pb30_rsNh_ext5 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 5.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_ext5_wr, i9_p65d95_pb30_rsNh_ext5_n, i9_p65d95_pb30_rsNh_ext5_ar, i9_p65d95_pb30_rsNh_ext5_pf, i9_p65d95_pb30_rsNh_ext5_dd, i9_p65d95_pb30_rsNh_ext5_sc, i9_p65d95_pb30_rsNh_ext5_swr, i9_p65d95_pb30_rsNh_ext5_slr] = q(i9_p65d95_pb30_rsNh_ext5)
+
+i9_p65d95_pb30_rsNh_vol30 = htfCalc(10, 65, 5, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 2, -9, 100.0, 0.0, false, false, true, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_rsNh_vol30_wr, i9_p65d95_pb30_rsNh_vol30_n, i9_p65d95_pb30_rsNh_vol30_ar, i9_p65d95_pb30_rsNh_vol30_pf, i9_p65d95_pb30_rsNh_vol30_dd, i9_p65d95_pb30_rsNh_vol30_sc, i9_p65d95_pb30_rsNh_vol30_swr, i9_p65d95_pb30_rsNh_vol30_slr] = q(i9_p65d95_pb30_rsNh_vol30)
+
+i9_p65d95_pb30_mp10_p60 = htfCalc(10, 60, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_p60_wr, i9_p65d95_pb30_mp10_p60_n, i9_p65d95_pb30_mp10_p60_ar, i9_p65d95_pb30_mp10_p60_pf, i9_p65d95_pb30_mp10_p60_dd, i9_p65d95_pb30_mp10_p60_sc, i9_p65d95_pb30_mp10_p60_swr, i9_p65d95_pb30_mp10_p60_slr] = q(i9_p65d95_pb30_mp10_p60)
+
+i9_p65d95_pb30_mp10_p70 = htfCalc(10, 70, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_p70_wr, i9_p65d95_pb30_mp10_p70_n, i9_p65d95_pb30_mp10_p70_ar, i9_p65d95_pb30_mp10_p70_pf, i9_p65d95_pb30_mp10_p70_dd, i9_p65d95_pb30_mp10_p70_sc, i9_p65d95_pb30_mp10_p70_swr, i9_p65d95_pb30_mp10_p70_slr] = q(i9_p65d95_pb30_mp10_p70)
+
+i9_p65d95_pb30_mp10_dry09 = htfCalc(10, 65, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.90, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_dry09_wr, i9_p65d95_pb30_mp10_dry09_n, i9_p65d95_pb30_mp10_dry09_ar, i9_p65d95_pb30_mp10_dry09_pf, i9_p65d95_pb30_mp10_dry09_dd, i9_p65d95_pb30_mp10_dry09_sc, i9_p65d95_pb30_mp10_dry09_swr, i9_p65d95_pb30_mp10_dry09_slr] = q(i9_p65d95_pb30_mp10_dry09)
+
+i9_p65d95_pb30_mp10_dry10 = htfCalc(10, 65, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_dry10_wr, i9_p65d95_pb30_mp10_dry10_n, i9_p65d95_pb30_mp10_dry10_ar, i9_p65d95_pb30_mp10_dry10_pf, i9_p65d95_pb30_mp10_dry10_dd, i9_p65d95_pb30_mp10_dry10_sc, i9_p65d95_pb30_mp10_dry10_swr, i9_p65d95_pb30_mp10_dry10_slr] = q(i9_p65d95_pb30_mp10_dry10)
+
+i9_p65d95_pb30_mp10_pb28 = htfCalc(10, 65, 10, 28.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_pb28_wr, i9_p65d95_pb30_mp10_pb28_n, i9_p65d95_pb30_mp10_pb28_ar, i9_p65d95_pb30_mp10_pb28_pf, i9_p65d95_pb30_mp10_pb28_dd, i9_p65d95_pb30_mp10_pb28_sc, i9_p65d95_pb30_mp10_pb28_swr, i9_p65d95_pb30_mp10_pb28_slr] = q(i9_p65d95_pb30_mp10_pb28)
+
+i9_p65d95_pb30_mp10_pb32 = htfCalc(10, 65, 10, 32.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_pb32_wr, i9_p65d95_pb30_mp10_pb32_n, i9_p65d95_pb30_mp10_pb32_ar, i9_p65d95_pb30_mp10_pb32_pf, i9_p65d95_pb30_mp10_pb32_dd, i9_p65d95_pb30_mp10_pb32_sc, i9_p65d95_pb30_mp10_pb32_swr, i9_p65d95_pb30_mp10_pb32_slr] = q(i9_p65d95_pb30_mp10_pb32)
+
+i9_p65d95_pb30_mp10_adr4 = htfCalc(10, 65, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 4.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_adr4_wr, i9_p65d95_pb30_mp10_adr4_n, i9_p65d95_pb30_mp10_adr4_ar, i9_p65d95_pb30_mp10_adr4_pf, i9_p65d95_pb30_mp10_adr4_dd, i9_p65d95_pb30_mp10_adr4_sc, i9_p65d95_pb30_mp10_adr4_swr, i9_p65d95_pb30_mp10_adr4_slr] = q(i9_p65d95_pb30_mp10_adr4)
+
+i9_p65d95_pb30_mp10_close60 = htfCalc(10, 65, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.60, 0.0, false, 100.0, 100.0, 0.95, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p65d95_pb30_mp10_close60_wr, i9_p65d95_pb30_mp10_close60_n, i9_p65d95_pb30_mp10_close60_ar, i9_p65d95_pb30_mp10_close60_pf, i9_p65d95_pb30_mp10_close60_dd, i9_p65d95_pb30_mp10_close60_sc, i9_p65d95_pb30_mp10_close60_swr, i9_p65d95_pb30_mp10_close60_slr] = q(i9_p65d95_pb30_mp10_close60)
+
+i9_p60d10_pb30_mp10_p62 = htfCalc(10, 62, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_mp10_p62_wr, i9_p60d10_pb30_mp10_p62_n, i9_p60d10_pb30_mp10_p62_ar, i9_p60d10_pb30_mp10_p62_pf, i9_p60d10_pb30_mp10_p62_dd, i9_p60d10_pb30_mp10_p62_sc, i9_p60d10_pb30_mp10_p62_swr, i9_p60d10_pb30_mp10_p62_slr] = q(i9_p60d10_pb30_mp10_p62)
+
+i9_p60d10_pb30_mp10_pb28 = htfCalc(10, 60, 10, 28.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_mp10_pb28_wr, i9_p60d10_pb30_mp10_pb28_n, i9_p60d10_pb30_mp10_pb28_ar, i9_p60d10_pb30_mp10_pb28_pf, i9_p60d10_pb30_mp10_pb28_dd, i9_p60d10_pb30_mp10_pb28_sc, i9_p60d10_pb30_mp10_pb28_swr, i9_p60d10_pb30_mp10_pb28_slr] = q(i9_p60d10_pb30_mp10_pb28)
+
+i9_p60d10_pb30_mp10_adr4 = htfCalc(10, 60, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 0, -9, 100.0, 0.0, false, false, false, 0.0, 4.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_mp10_adr4_wr, i9_p60d10_pb30_mp10_adr4_n, i9_p60d10_pb30_mp10_adr4_ar, i9_p60d10_pb30_mp10_adr4_pf, i9_p60d10_pb30_mp10_adr4_dd, i9_p60d10_pb30_mp10_adr4_sc, i9_p60d10_pb30_mp10_adr4_swr, i9_p60d10_pb30_mp10_adr4_slr] = q(i9_p60d10_pb30_mp10_adr4)
+
+i9_p60d10_pb30_mp10_rsNh = htfCalc(10, 60, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 2, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 0.0)
+[i9_p60d10_pb30_mp10_rsNh_wr, i9_p60d10_pb30_mp10_rsNh_n, i9_p60d10_pb30_mp10_rsNh_ar, i9_p60d10_pb30_mp10_rsNh_pf, i9_p60d10_pb30_mp10_rsNh_dd, i9_p60d10_pb30_mp10_rsNh_sc, i9_p60d10_pb30_mp10_rsNh_swr, i9_p60d10_pb30_mp10_rsNh_slr] = q(i9_p60d10_pb30_mp10_rsNh)
+
+i9_p60d10_pb30_mp10_slope3 = htfCalc(10, 60, 10, 30.0, 100.0, 25.0, true, true, true, 3.0, true, false, 0.50, 0.0, false, 100.0, 100.0, 1.00, 0, -9, 100.0, 0.0, false, false, false, 0.0, 0.0, 0.0, false, 100.0, 3.0)
+[i9_p60d10_pb30_mp10_slope3_wr, i9_p60d10_pb30_mp10_slope3_n, i9_p60d10_pb30_mp10_slope3_ar, i9_p60d10_pb30_mp10_slope3_pf, i9_p60d10_pb30_mp10_slope3_dd, i9_p60d10_pb30_mp10_slope3_sc, i9_p60d10_pb30_mp10_slope3_swr, i9_p60d10_pb30_mp10_slope3_slr] = q(i9_p60d10_pb30_mp10_slope3)
+
+//------------------------------------------------------------------------------
+//print sig performance table (schema v3: sig | win% | N | avgR | PF | maxDD | score | winR | lossR)
+//------------------------------------------------------------------------------
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 48)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "i9_htf", i9_htf_wr, i9_htf_n, i9_htf_ar, i9_htf_pf, i9_htf_dd, i9_htf_sc, i9_htf_swr, i9_htf_slr)
+    renderRow(tbl, 4, "i9_p65d95_pb30_rsNh", i9_p65d95_pb30_rsNh_wr, i9_p65d95_pb30_rsNh_n, i9_p65d95_pb30_rsNh_ar, i9_p65d95_pb30_rsNh_pf, i9_p65d95_pb30_rsNh_dd, i9_p65d95_pb30_rsNh_sc, i9_p65d95_pb30_rsNh_swr, i9_p65d95_pb30_rsNh_slr)
+    renderRow(tbl, 5, "i9_p60d10_pb30_rsNh", i9_p60d10_pb30_rsNh_wr, i9_p60d10_pb30_rsNh_n, i9_p60d10_pb30_rsNh_ar, i9_p60d10_pb30_rsNh_pf, i9_p60d10_pb30_rsNh_dd, i9_p60d10_pb30_rsNh_sc, i9_p60d10_pb30_rsNh_swr, i9_p60d10_pb30_rsNh_slr)
+    renderRow(tbl, 6, "i9_p60d10_pb30_rsNh_base7", i9_p60d10_pb30_rsNh_base7_wr, i9_p60d10_pb30_rsNh_base7_n, i9_p60d10_pb30_rsNh_base7_ar, i9_p60d10_pb30_rsNh_base7_pf, i9_p60d10_pb30_rsNh_base7_dd, i9_p60d10_pb30_rsNh_base7_sc, i9_p60d10_pb30_rsNh_base7_swr, i9_p60d10_pb30_rsNh_base7_slr)
+    renderRow(tbl, 7, "i9_p65d95_pb30_mp10", i9_p65d95_pb30_mp10_wr, i9_p65d95_pb30_mp10_n, i9_p65d95_pb30_mp10_ar, i9_p65d95_pb30_mp10_pf, i9_p65d95_pb30_mp10_dd, i9_p65d95_pb30_mp10_sc, i9_p65d95_pb30_mp10_swr, i9_p65d95_pb30_mp10_slr)
+    renderRow(tbl, 8, "i9_p60d10_pb30_mp10", i9_p60d10_pb30_mp10_wr, i9_p60d10_pb30_mp10_n, i9_p60d10_pb30_mp10_ar, i9_p60d10_pb30_mp10_pf, i9_p60d10_pb30_mp10_dd, i9_p60d10_pb30_mp10_sc, i9_p60d10_pb30_mp10_swr, i9_p60d10_pb30_mp10_slr)
+    renderRow(tbl, 9, "i9_p60_pb30_rsNh", i9_p60_pb30_rsNh_wr, i9_p60_pb30_rsNh_n, i9_p60_pb30_rsNh_ar, i9_p60_pb30_rsNh_pf, i9_p60_pb30_rsNh_dd, i9_p60_pb30_rsNh_sc, i9_p60_pb30_rsNh_swr, i9_p60_pb30_rsNh_slr)
+    renderRow(tbl, 10, "i9_p62_pb30_rsNh", i9_p62_pb30_rsNh_wr, i9_p62_pb30_rsNh_n, i9_p62_pb30_rsNh_ar, i9_p62_pb30_rsNh_pf, i9_p62_pb30_rsNh_dd, i9_p62_pb30_rsNh_sc, i9_p62_pb30_rsNh_swr, i9_p62_pb30_rsNh_slr)
+    renderRow(tbl, 11, "i9_p68_pb30_rsNh", i9_p68_pb30_rsNh_wr, i9_p68_pb30_rsNh_n, i9_p68_pb30_rsNh_ar, i9_p68_pb30_rsNh_pf, i9_p68_pb30_rsNh_dd, i9_p68_pb30_rsNh_sc, i9_p68_pb30_rsNh_swr, i9_p68_pb30_rsNh_slr)
+    renderRow(tbl, 12, "i9_p70_pb30_rsNh", i9_p70_pb30_rsNh_wr, i9_p70_pb30_rsNh_n, i9_p70_pb30_rsNh_ar, i9_p70_pb30_rsNh_pf, i9_p70_pb30_rsNh_dd, i9_p70_pb30_rsNh_sc, i9_p70_pb30_rsNh_swr, i9_p70_pb30_rsNh_slr)
+    renderRow(tbl, 13, "i9_p65dry09_pb30_rsNh", i9_p65dry09_pb30_rsNh_wr, i9_p65dry09_pb30_rsNh_n, i9_p65dry09_pb30_rsNh_ar, i9_p65dry09_pb30_rsNh_pf, i9_p65dry09_pb30_rsNh_dd, i9_p65dry09_pb30_rsNh_sc, i9_p65dry09_pb30_rsNh_swr, i9_p65dry09_pb30_rsNh_slr)
+    renderRow(tbl, 14, "i9_p65dry10_pb30_rsNh", i9_p65dry10_pb30_rsNh_wr, i9_p65dry10_pb30_rsNh_n, i9_p65dry10_pb30_rsNh_ar, i9_p65dry10_pb30_rsNh_pf, i9_p65dry10_pb30_rsNh_dd, i9_p65dry10_pb30_rsNh_sc, i9_p65dry10_pb30_rsNh_swr, i9_p65dry10_pb30_rsNh_slr)
+    renderRow(tbl, 15, "i9_p65d95_pb28_rsNh", i9_p65d95_pb28_rsNh_wr, i9_p65d95_pb28_rsNh_n, i9_p65d95_pb28_rsNh_ar, i9_p65d95_pb28_rsNh_pf, i9_p65d95_pb28_rsNh_dd, i9_p65d95_pb28_rsNh_sc, i9_p65d95_pb28_rsNh_swr, i9_p65d95_pb28_rsNh_slr)
+    renderRow(tbl, 16, "i9_p65d95_pb32_rsNh", i9_p65d95_pb32_rsNh_wr, i9_p65d95_pb32_rsNh_n, i9_p65d95_pb32_rsNh_ar, i9_p65d95_pb32_rsNh_pf, i9_p65d95_pb32_rsNh_dd, i9_p65d95_pb32_rsNh_sc, i9_p65d95_pb32_rsNh_swr, i9_p65d95_pb32_rsNh_slr)
+    renderRow(tbl, 17, "i9_p65d95_pb33_rsNh", i9_p65d95_pb33_rsNh_wr, i9_p65d95_pb33_rsNh_n, i9_p65d95_pb33_rsNh_ar, i9_p65d95_pb33_rsNh_pf, i9_p65d95_pb33_rsNh_dd, i9_p65d95_pb33_rsNh_sc, i9_p65d95_pb33_rsNh_swr, i9_p65d95_pb33_rsNh_slr)
+    renderRow(tbl, 18, "i9_p65d95_pb30_rsNh_b25", i9_p65d95_pb30_rsNh_b25_wr, i9_p65d95_pb30_rsNh_b25_n, i9_p65d95_pb30_rsNh_b25_ar, i9_p65d95_pb30_rsNh_b25_pf, i9_p65d95_pb30_rsNh_b25_dd, i9_p65d95_pb30_rsNh_b25_sc, i9_p65d95_pb30_rsNh_b25_swr, i9_p65d95_pb30_rsNh_b25_slr)
+    renderRow(tbl, 19, "i9_p65d95_pb30_rsNh_b35", i9_p65d95_pb30_rsNh_b35_wr, i9_p65d95_pb30_rsNh_b35_n, i9_p65d95_pb30_rsNh_b35_ar, i9_p65d95_pb30_rsNh_b35_pf, i9_p65d95_pb30_rsNh_b35_dd, i9_p65d95_pb30_rsNh_b35_sc, i9_p65d95_pb30_rsNh_b35_swr, i9_p65d95_pb30_rsNh_b35_slr)
+    renderRow(tbl, 20, "i9_p65d95_pb30_rsNh_adr3", i9_p65d95_pb30_rsNh_adr3_wr, i9_p65d95_pb30_rsNh_adr3_n, i9_p65d95_pb30_rsNh_adr3_ar, i9_p65d95_pb30_rsNh_adr3_pf, i9_p65d95_pb30_rsNh_adr3_dd, i9_p65d95_pb30_rsNh_adr3_sc, i9_p65d95_pb30_rsNh_adr3_swr, i9_p65d95_pb30_rsNh_adr3_slr)
+    renderRow(tbl, 21, "i9_p65d95_pb30_rsNh_adr4", i9_p65d95_pb30_rsNh_adr4_wr, i9_p65d95_pb30_rsNh_adr4_n, i9_p65d95_pb30_rsNh_adr4_ar, i9_p65d95_pb30_rsNh_adr4_pf, i9_p65d95_pb30_rsNh_adr4_dd, i9_p65d95_pb30_rsNh_adr4_sc, i9_p65d95_pb30_rsNh_adr4_swr, i9_p65d95_pb30_rsNh_adr4_slr)
+    renderRow(tbl, 22, "i9_p65d95_pb30_rsNh_adr5", i9_p65d95_pb30_rsNh_adr5_wr, i9_p65d95_pb30_rsNh_adr5_n, i9_p65d95_pb30_rsNh_adr5_ar, i9_p65d95_pb30_rsNh_adr5_pf, i9_p65d95_pb30_rsNh_adr5_dd, i9_p65d95_pb30_rsNh_adr5_sc, i9_p65d95_pb30_rsNh_adr5_swr, i9_p65d95_pb30_rsNh_adr5_slr)
+    renderRow(tbl, 23, "i9_p65d95_pb30_rsNh_mp7", i9_p65d95_pb30_rsNh_mp7_wr, i9_p65d95_pb30_rsNh_mp7_n, i9_p65d95_pb30_rsNh_mp7_ar, i9_p65d95_pb30_rsNh_mp7_pf, i9_p65d95_pb30_rsNh_mp7_dd, i9_p65d95_pb30_rsNh_mp7_sc, i9_p65d95_pb30_rsNh_mp7_swr, i9_p65d95_pb30_rsNh_mp7_slr)
+    renderRow(tbl, 24, "i9_p65d95_pb30_rsNh_mp10", i9_p65d95_pb30_rsNh_mp10_wr, i9_p65d95_pb30_rsNh_mp10_n, i9_p65d95_pb30_rsNh_mp10_ar, i9_p65d95_pb30_rsNh_mp10_pf, i9_p65d95_pb30_rsNh_mp10_dd, i9_p65d95_pb30_rsNh_mp10_sc, i9_p65d95_pb30_rsNh_mp10_swr, i9_p65d95_pb30_rsNh_mp10_slr)
+    renderRow(tbl, 25, "i9_p65d95_pb30_rsNh_mp15", i9_p65d95_pb30_rsNh_mp15_wr, i9_p65d95_pb30_rsNh_mp15_n, i9_p65d95_pb30_rsNh_mp15_ar, i9_p65d95_pb30_rsNh_mp15_pf, i9_p65d95_pb30_rsNh_mp15_dd, i9_p65d95_pb30_rsNh_mp15_sc, i9_p65d95_pb30_rsNh_mp15_swr, i9_p65d95_pb30_rsNh_mp15_slr)
+    renderRow(tbl, 26, "i9_p65d95_pb30_rsNh_slope2", i9_p65d95_pb30_rsNh_slope2_wr, i9_p65d95_pb30_rsNh_slope2_n, i9_p65d95_pb30_rsNh_slope2_ar, i9_p65d95_pb30_rsNh_slope2_pf, i9_p65d95_pb30_rsNh_slope2_dd, i9_p65d95_pb30_rsNh_slope2_sc, i9_p65d95_pb30_rsNh_slope2_swr, i9_p65d95_pb30_rsNh_slope2_slr)
+    renderRow(tbl, 27, "i9_p65d95_pb30_rsNh_slope3", i9_p65d95_pb30_rsNh_slope3_wr, i9_p65d95_pb30_rsNh_slope3_n, i9_p65d95_pb30_rsNh_slope3_ar, i9_p65d95_pb30_rsNh_slope3_pf, i9_p65d95_pb30_rsNh_slope3_dd, i9_p65d95_pb30_rsNh_slope3_sc, i9_p65d95_pb30_rsNh_slope3_swr, i9_p65d95_pb30_rsNh_slope3_slr)
+    renderRow(tbl, 28, "i9_p65d95_pb30_rsNh_range15", i9_p65d95_pb30_rsNh_range15_wr, i9_p65d95_pb30_rsNh_range15_n, i9_p65d95_pb30_rsNh_range15_ar, i9_p65d95_pb30_rsNh_range15_pf, i9_p65d95_pb30_rsNh_range15_dd, i9_p65d95_pb30_rsNh_range15_sc, i9_p65d95_pb30_rsNh_range15_swr, i9_p65d95_pb30_rsNh_range15_slr)
+    renderRow(tbl, 29, "i9_p65d95_pb30_rsNh_close60", i9_p65d95_pb30_rsNh_close60_wr, i9_p65d95_pb30_rsNh_close60_n, i9_p65d95_pb30_rsNh_close60_ar, i9_p65d95_pb30_rsNh_close60_pf, i9_p65d95_pb30_rsNh_close60_dd, i9_p65d95_pb30_rsNh_close60_sc, i9_p65d95_pb30_rsNh_close60_swr, i9_p65d95_pb30_rsNh_close60_slr)
+    renderRow(tbl, 30, "i9_p65d95_pb30_rsNh_base7", i9_p65d95_pb30_rsNh_base7_wr, i9_p65d95_pb30_rsNh_base7_n, i9_p65d95_pb30_rsNh_base7_ar, i9_p65d95_pb30_rsNh_base7_pf, i9_p65d95_pb30_rsNh_base7_dd, i9_p65d95_pb30_rsNh_base7_sc, i9_p65d95_pb30_rsNh_base7_swr, i9_p65d95_pb30_rsNh_base7_slr)
+    renderRow(tbl, 31, "i9_p65d95_pb30_rs", i9_p65d95_pb30_rs_wr, i9_p65d95_pb30_rs_n, i9_p65d95_pb30_rs_ar, i9_p65d95_pb30_rs_pf, i9_p65d95_pb30_rs_dd, i9_p65d95_pb30_rs_sc, i9_p65d95_pb30_rs_swr, i9_p65d95_pb30_rs_slr)
+    renderRow(tbl, 32, "i9_p65d95_pb30_rsNh_reg", i9_p65d95_pb30_rsNh_reg_wr, i9_p65d95_pb30_rsNh_reg_n, i9_p65d95_pb30_rsNh_reg_ar, i9_p65d95_pb30_rsNh_reg_pf, i9_p65d95_pb30_rsNh_reg_dd, i9_p65d95_pb30_rsNh_reg_sc, i9_p65d95_pb30_rsNh_reg_swr, i9_p65d95_pb30_rsNh_reg_slr)
+    renderRow(tbl, 33, "i9_p65d95_pb30_rsNh_ext5", i9_p65d95_pb30_rsNh_ext5_wr, i9_p65d95_pb30_rsNh_ext5_n, i9_p65d95_pb30_rsNh_ext5_ar, i9_p65d95_pb30_rsNh_ext5_pf, i9_p65d95_pb30_rsNh_ext5_dd, i9_p65d95_pb30_rsNh_ext5_sc, i9_p65d95_pb30_rsNh_ext5_swr, i9_p65d95_pb30_rsNh_ext5_slr)
+    renderRow(tbl, 34, "i9_p65d95_pb30_rsNh_vol30", i9_p65d95_pb30_rsNh_vol30_wr, i9_p65d95_pb30_rsNh_vol30_n, i9_p65d95_pb30_rsNh_vol30_ar, i9_p65d95_pb30_rsNh_vol30_pf, i9_p65d95_pb30_rsNh_vol30_dd, i9_p65d95_pb30_rsNh_vol30_sc, i9_p65d95_pb30_rsNh_vol30_swr, i9_p65d95_pb30_rsNh_vol30_slr)
+    renderRow(tbl, 35, "i9_p65d95_pb30_mp10_p60", i9_p65d95_pb30_mp10_p60_wr, i9_p65d95_pb30_mp10_p60_n, i9_p65d95_pb30_mp10_p60_ar, i9_p65d95_pb30_mp10_p60_pf, i9_p65d95_pb30_mp10_p60_dd, i9_p65d95_pb30_mp10_p60_sc, i9_p65d95_pb30_mp10_p60_swr, i9_p65d95_pb30_mp10_p60_slr)
+    renderRow(tbl, 36, "i9_p65d95_pb30_mp10_p70", i9_p65d95_pb30_mp10_p70_wr, i9_p65d95_pb30_mp10_p70_n, i9_p65d95_pb30_mp10_p70_ar, i9_p65d95_pb30_mp10_p70_pf, i9_p65d95_pb30_mp10_p70_dd, i9_p65d95_pb30_mp10_p70_sc, i9_p65d95_pb30_mp10_p70_swr, i9_p65d95_pb30_mp10_p70_slr)
+    renderRow(tbl, 37, "i9_p65d95_pb30_mp10_dry09", i9_p65d95_pb30_mp10_dry09_wr, i9_p65d95_pb30_mp10_dry09_n, i9_p65d95_pb30_mp10_dry09_ar, i9_p65d95_pb30_mp10_dry09_pf, i9_p65d95_pb30_mp10_dry09_dd, i9_p65d95_pb30_mp10_dry09_sc, i9_p65d95_pb30_mp10_dry09_swr, i9_p65d95_pb30_mp10_dry09_slr)
+    renderRow(tbl, 38, "i9_p65d95_pb30_mp10_dry10", i9_p65d95_pb30_mp10_dry10_wr, i9_p65d95_pb30_mp10_dry10_n, i9_p65d95_pb30_mp10_dry10_ar, i9_p65d95_pb30_mp10_dry10_pf, i9_p65d95_pb30_mp10_dry10_dd, i9_p65d95_pb30_mp10_dry10_sc, i9_p65d95_pb30_mp10_dry10_swr, i9_p65d95_pb30_mp10_dry10_slr)
+    renderRow(tbl, 39, "i9_p65d95_pb30_mp10_pb28", i9_p65d95_pb30_mp10_pb28_wr, i9_p65d95_pb30_mp10_pb28_n, i9_p65d95_pb30_mp10_pb28_ar, i9_p65d95_pb30_mp10_pb28_pf, i9_p65d95_pb30_mp10_pb28_dd, i9_p65d95_pb30_mp10_pb28_sc, i9_p65d95_pb30_mp10_pb28_swr, i9_p65d95_pb30_mp10_pb28_slr)
+    renderRow(tbl, 40, "i9_p65d95_pb30_mp10_pb32", i9_p65d95_pb30_mp10_pb32_wr, i9_p65d95_pb30_mp10_pb32_n, i9_p65d95_pb30_mp10_pb32_ar, i9_p65d95_pb30_mp10_pb32_pf, i9_p65d95_pb30_mp10_pb32_dd, i9_p65d95_pb30_mp10_pb32_sc, i9_p65d95_pb30_mp10_pb32_swr, i9_p65d95_pb30_mp10_pb32_slr)
+    renderRow(tbl, 41, "i9_p65d95_pb30_mp10_adr4", i9_p65d95_pb30_mp10_adr4_wr, i9_p65d95_pb30_mp10_adr4_n, i9_p65d95_pb30_mp10_adr4_ar, i9_p65d95_pb30_mp10_adr4_pf, i9_p65d95_pb30_mp10_adr4_dd, i9_p65d95_pb30_mp10_adr4_sc, i9_p65d95_pb30_mp10_adr4_swr, i9_p65d95_pb30_mp10_adr4_slr)
+    renderRow(tbl, 42, "i9_p65d95_pb30_mp10_close60", i9_p65d95_pb30_mp10_close60_wr, i9_p65d95_pb30_mp10_close60_n, i9_p65d95_pb30_mp10_close60_ar, i9_p65d95_pb30_mp10_close60_pf, i9_p65d95_pb30_mp10_close60_dd, i9_p65d95_pb30_mp10_close60_sc, i9_p65d95_pb30_mp10_close60_swr, i9_p65d95_pb30_mp10_close60_slr)
+    renderRow(tbl, 43, "i9_p60d10_pb30_mp10_p62", i9_p60d10_pb30_mp10_p62_wr, i9_p60d10_pb30_mp10_p62_n, i9_p60d10_pb30_mp10_p62_ar, i9_p60d10_pb30_mp10_p62_pf, i9_p60d10_pb30_mp10_p62_dd, i9_p60d10_pb30_mp10_p62_sc, i9_p60d10_pb30_mp10_p62_swr, i9_p60d10_pb30_mp10_p62_slr)
+    renderRow(tbl, 44, "i9_p60d10_pb30_mp10_pb28", i9_p60d10_pb30_mp10_pb28_wr, i9_p60d10_pb30_mp10_pb28_n, i9_p60d10_pb30_mp10_pb28_ar, i9_p60d10_pb30_mp10_pb28_pf, i9_p60d10_pb30_mp10_pb28_dd, i9_p60d10_pb30_mp10_pb28_sc, i9_p60d10_pb30_mp10_pb28_swr, i9_p60d10_pb30_mp10_pb28_slr)
+    renderRow(tbl, 45, "i9_p60d10_pb30_mp10_adr4", i9_p60d10_pb30_mp10_adr4_wr, i9_p60d10_pb30_mp10_adr4_n, i9_p60d10_pb30_mp10_adr4_ar, i9_p60d10_pb30_mp10_adr4_pf, i9_p60d10_pb30_mp10_adr4_dd, i9_p60d10_pb30_mp10_adr4_sc, i9_p60d10_pb30_mp10_adr4_swr, i9_p60d10_pb30_mp10_adr4_slr)
+    renderRow(tbl, 46, "i9_p60d10_pb30_mp10_rsNh", i9_p60d10_pb30_mp10_rsNh_wr, i9_p60d10_pb30_mp10_rsNh_n, i9_p60d10_pb30_mp10_rsNh_ar, i9_p60d10_pb30_mp10_rsNh_pf, i9_p60d10_pb30_mp10_rsNh_dd, i9_p60d10_pb30_mp10_rsNh_sc, i9_p60d10_pb30_mp10_rsNh_swr, i9_p60d10_pb30_mp10_rsNh_slr)
+    renderRow(tbl, 47, "i9_p60d10_pb30_mp10_slope3", i9_p60d10_pb30_mp10_slope3_wr, i9_p60d10_pb30_mp10_slope3_n, i9_p60d10_pb30_mp10_slope3_ar, i9_p60d10_pb30_mp10_slope3_pf, i9_p60d10_pb30_mp10_slope3_dd, i9_p60d10_pb30_mp10_slope3_sc, i9_p60d10_pb30_mp10_slope3_swr, i9_p60d10_pb30_mp10_slope3_slr)
