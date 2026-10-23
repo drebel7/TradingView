@@ -226,7 +226,7 @@ import drebel/DREPerf/27 as dreperf
 //   the days must carry very high volume (a real institutional print), and the stock must not
 //   already be at the top of its range - accumulation happens before the breakout, not after.
 //
-// Qul:EP2 / Qul:EP3 - Qullamaggie Episodic Pivot (EP)
+// KQu:EP2 / KQu:EP3 - Qullamaggie Episodic Pivot (EP)
 //   Idea: an unexpected positive catalyst (earnings/guidance, FDA, contract, theme) produces a gap
 //   up on heavy volume out of a base, not in a downtrend. Daily proxy: gap >= 10% (EP2) or 8% (EP3),
 //   relative volume >= 2x (EP2) or 1.5x (EP3), close above the prior 50-day high (EP2)
@@ -235,21 +235,21 @@ import drebel/DREPerf/27 as dreperf
 //   Stop is the ETSB convention (2-day low / 8% cap). The two rows are the same epCalc logic
 //   with two parameter sets: EP2 = v2 (10%, 2x, 0.50, base 50, green), EP3 =
 //   c09_v15_g8_b20_greenOff (8%, 1.5x, 0.90, base 20, no green requirement). The EP3 variant is
-//   named Qul:EP3 because Qul:EP2 is already taken by the v2 set.
+//   named KQu:EP3 because KQu:EP2 is already taken by the v2 set.
 //   Volume is time-of-day projected like strongBreakout: the full-day requirement is projected
 //   from the elapsed session (early threshold = 2x the day-end threshold) and the raw full-day
 //   volume remains a fallback. On closed bars this reduces to the original full-day condition,
 //   so the historical table is unchanged; on the live bar the alert can fire before the close.
 //
-// Qul:HTF / Qul:HTF2 - Qullamaggie High Tight Flag (HTF)
+// KQu:HTF / KQu:HTF2 - Qullamaggie High Tight Flag (HTF)
 //   Idea: a large prior advance (the pole), then a tight flag / pullback with higher lows and a
 //   contracting range, followed by a fresh breakout on expanding volume. Daily HTF is the
 //   Qullamaggie "high tight flag": pole >= 50% over at least 5 sessions, flag 10 sessions,
 //   peak-to-trough pullback <= 25% and flag range <= 25%, close > SMA10 > SMA20 > SMA50 with
 //   SMA50 rising, and a breakout close above the flag high on volume > 1.5x SMA50 with the
 //   close in the upper half of the bar. Stop is the ETSB convention (2-day low / 8% cap).
-//   Qul:HTF  = i2_margin3:      breakout margin 3%, pullback 25%.
-//   Qul:HTF2 = i2_margin1_pb33: breakout margin 1%, pullback 33%.
+//   KQu:HTF  = i2_margin3:      breakout margin 3%, pullback 25%.
+//   KQu:HTF2 = i2_margin1_pb33: breakout margin 1%, pullback 33%.
 //   Both rows call the same simplified htfCalc with five parameters: breakout margin, max
 //   pullback, max base range, close-pivot switch and minimum close location. The pole threshold
 //   (>=50%, >=5 sessions), tight/higher-lows, MA alignment and breakout volume (>1.5x SMA50)
@@ -317,10 +317,10 @@ iShowRidingVwapDebug = input.bool(defval = false, title = "Show Riding Vwap Touc
 iShowCapitulationLow = input.bool(defval = true, title = "Show Capitulation Low", display = display.none, group = 'Signals')
 iShowFlatBreakout = input.bool(defval = true, title = "Show FlatBreakout", display = display.none, group = 'Signals')
 iShowVIP = input.bool(defval = true, title = "Show Volume Institutional Push", display = display.none, group = 'Signals')
-iShowQulEp2 = input.bool(defval = true, title = 'Show Qul:EP2', display = display.none, group = 'Signals')
-iShowQulEp3 = input.bool(defval = true, title = 'Show Qul:EP3', display = display.none, group = 'Signals')
-iShowQulHtf = input.bool(defval = true, title = 'Show Qul:HTF', display = display.none, group = 'Signals')
-iShowQulHtf2 = input.bool(defval = true, title = 'Show Qul:HTF2', display = display.none, group = 'Signals')
+iShowQulEp2 = input.bool(defval = true, title = 'Show KQu:EP2', display = display.none, group = 'Signals')
+iShowQulEp3 = input.bool(defval = true, title = 'Show KQu:EP3', display = display.none, group = 'Signals')
+iShowQulHtf = input.bool(defval = true, title = 'Show KQu:HTF', display = display.none, group = 'Signals')
+iShowQulHtf2 = input.bool(defval = true, title = 'Show KQu:HTF2', display = display.none, group = 'Signals')
 iShowMmiVcp = input.bool(defval = true, title = 'Show MMi:VCP', display = display.none, group = 'Signals')
 
 //MMi:VCP (Minervini) - the five knobs that carried the quality/quantity trade-off in the VCP sweep
@@ -689,7 +689,7 @@ int htfPoleBars = htfTroughOff - htfPeakOff
 float htfPullback = 100.0 * (htfPolePeak - htfBaseLow) / htfPolePeak
 float htfBaseRange = 100.0 * (htfBaseHigh - htfBaseLow) / htfBaseHigh
 
-//simplified factory: only the five parameters used by the Qul:HTF rows
+//simplified factory: only the five parameters used by the KQu:HTF rows
 htfCalc(float _breakoutMarginPct, float _maxPullbackPct, float _maxBaseRangePct, bool _useClosePivot, float _minCloseLoc) =>
     float _pivot = _useClosePivot ? htfBaseHighClose : htfBaseHigh
     float _barRange = high - low
@@ -702,8 +702,8 @@ htfCalc(float _breakoutMarginPct, float _maxPullbackPct, float _maxBaseRangePct,
     bool _breakoutOk = not na(_pivot) and close > _pivot * (1.0 + _breakoutMarginPct / 100.0) and _closeLoc >= _minCloseLoc and volume > 1.5 * gVol50Ma
     _poleOk and _pullbackOk and _rangeOk and _structureOk and _maOk and _breakoutOk
 
-//Qul:HTF = i2_margin3 (3% breakout margin, 25% pullback)
-//Qul:HTF2 = i2_margin1_pb33 (1% breakout margin, 33% pullback)
+//KQu:HTF = i2_margin3 (3% breakout margin, 25% pullback)
+//KQu:HTF2 = i2_margin1_pb33 (1% breakout margin, 33% pullback)
 qulHtf = htfCalc(3.0, 25.0, 25.0, false, 0.50)
 qulHtf2 = htfCalc(1.0, 33.0, 25.0, false, 0.50)
 
@@ -1016,10 +1016,10 @@ if barstate.islast and iShowSigPerfTable
     renderQualityRow(tbl, 21, "CapLow", CapLowSigColor, CapLowEffOk, iShowCapitulationLow, CapLowWinRate, CapLowSigCount, CapLowAvgR, CapLowPf, CapLowMaxDd, CapLowScore, CapLowSumWinR, CapLowSumLossR)
     renderQualityRow(tbl, 22, "FlatB", FBSigColor, FBEffOk, iShowFlatBreakout, FBWinRate, FBSigCount, FBAvgR, FBPf, FBMaxDd, FBScore, FBSumWinR, FBSumLossR)
     renderQualityRow(tbl, 23, "vip", vipSigColor, vipEffOk, iShowVIP, vipWinRate, vipSigCount, vipAvgR, vipPf, vipMaxDd, vipScore, vipSumWinR, vipSumLossR)
-    renderQualityRow(tbl, 24, "Qul:EP2", qulEp2SigColor, qulEp2EffOk, iShowQulEp2, qulEp2WinRate, qulEp2SigCount, qulEp2AvgR, qulEp2Pf, qulEp2MaxDd, qulEp2Score, qulEp2SumWinR, qulEp2SumLossR)
-    renderQualityRow(tbl, 25, "Qul:EP3", qulEp3SigColor, qulEp3EffOk, iShowQulEp3, qulEp3WinRate, qulEp3SigCount, qulEp3AvgR, qulEp3Pf, qulEp3MaxDd, qulEp3Score, qulEp3SumWinR, qulEp3SumLossR)
-    renderQualityRow(tbl, 26, "Qul:HTF", qulHtfSigColor, qulHtfEffOk, iShowQulHtf, qulHtfWinRate, qulHtfSigCount, qulHtfAvgR, qulHtfPf, qulHtfMaxDd, qulHtfScore, qulHtfSumWinR, qulHtfSumLossR)
-    renderQualityRow(tbl, 27, "Qul:HTF2", qulHtf2SigColor, qulHtf2EffOk, iShowQulHtf2, qulHtf2WinRate, qulHtf2SigCount, qulHtf2AvgR, qulHtf2Pf, qulHtf2MaxDd, qulHtf2Score, qulHtf2SumWinR, qulHtf2SumLossR)
+    renderQualityRow(tbl, 24, "KQu:EP2", qulEp2SigColor, qulEp2EffOk, iShowQulEp2, qulEp2WinRate, qulEp2SigCount, qulEp2AvgR, qulEp2Pf, qulEp2MaxDd, qulEp2Score, qulEp2SumWinR, qulEp2SumLossR)
+    renderQualityRow(tbl, 25, "KQu:EP3", qulEp3SigColor, qulEp3EffOk, iShowQulEp3, qulEp3WinRate, qulEp3SigCount, qulEp3AvgR, qulEp3Pf, qulEp3MaxDd, qulEp3Score, qulEp3SumWinR, qulEp3SumLossR)
+    renderQualityRow(tbl, 26, "KQu:HTF", qulHtfSigColor, qulHtfEffOk, iShowQulHtf, qulHtfWinRate, qulHtfSigCount, qulHtfAvgR, qulHtfPf, qulHtfMaxDd, qulHtfScore, qulHtfSumWinR, qulHtfSumLossR)
+    renderQualityRow(tbl, 27, "KQu:HTF2", qulHtf2SigColor, qulHtf2EffOk, iShowQulHtf2, qulHtf2WinRate, qulHtf2SigCount, qulHtf2AvgR, qulHtf2Pf, qulHtf2MaxDd, qulHtf2Score, qulHtf2SumWinR, qulHtf2SumLossR)
     renderQualityRow(tbl, 28, "MMi:VCP", mmiVcpSigColor, mmiVcpEffOk, iShowMmiVcp, mmiVcpWinRate, mmiVcpSigCount, mmiVcpAvgR, mmiVcpPf, mmiVcpMaxDd, mmiVcpScore, mmiVcpSumWinR, mmiVcpSumLossR)
 
 //plot signals on price chart
@@ -1049,10 +1049,10 @@ plotshape((minorLow4 or minorLow5 or minorLow6) and showRow(iShowOnlyGoodSigs, m
 plotshape(CapLow and showRow(iShowOnlyGoodSigs, CapLowEffOk, iShowCapitulationLow), title = 'CapLow', location = location.belowbar, color = CapLowSigColor, style = shape.triangleup, text = 'CapLow', textcolor = CapLowSigColor)
 plotshape(fb and showRow(iShowOnlyGoodSigs, FBEffOk, iShowFlatBreakout), title = 'FlatB', location = location.belowbar, color = FBSigColor, style = shape.triangleup, text = 'FlatB', textcolor = FBSigColor)
 plotshape(vip and showRow(iShowOnlyGoodSigs, vipEffOk, iShowVIP), title = 'vip', location = location.belowbar, color = vipSigColor, style = shape.triangleup, text = 'vip', textcolor = vipSigColor)
-plotshape(qulEp2 and showRow(iShowOnlyGoodSigs, qulEp2EffOk, iShowQulEp2), title = 'Qul:EP2', location = location.belowbar, color = qulEp2SigColor, style = shape.triangleup, text = 'Qul:EP2', textcolor = qulEp2SigColor)
-plotshape(qulEp3 and showRow(iShowOnlyGoodSigs, qulEp3EffOk, iShowQulEp3), title = 'Qul:EP3', location = location.belowbar, color = qulEp3SigColor, style = shape.triangleup, text = 'Qul:EP3', textcolor = qulEp3SigColor)
-plotshape(qulHtf and showRow(iShowOnlyGoodSigs, qulHtfEffOk, iShowQulHtf), title = 'Qul:HTF', location = location.belowbar, color = qulHtfSigColor, style = shape.triangleup, text = 'Qul:HTF', textcolor = qulHtfSigColor)
-plotshape(qulHtf2 and showRow(iShowOnlyGoodSigs, qulHtf2EffOk, iShowQulHtf2), title = 'Qul:HTF2', location = location.belowbar, color = qulHtf2SigColor, style = shape.triangleup, text = 'Qul:HTF2', textcolor = qulHtf2SigColor)
+plotshape(qulEp2 and showRow(iShowOnlyGoodSigs, qulEp2EffOk, iShowQulEp2), title = 'KQu:EP2', location = location.belowbar, color = qulEp2SigColor, style = shape.triangleup, text = 'KQu:EP2', textcolor = qulEp2SigColor)
+plotshape(qulEp3 and showRow(iShowOnlyGoodSigs, qulEp3EffOk, iShowQulEp3), title = 'KQu:EP3', location = location.belowbar, color = qulEp3SigColor, style = shape.triangleup, text = 'KQu:EP3', textcolor = qulEp3SigColor)
+plotshape(qulHtf and showRow(iShowOnlyGoodSigs, qulHtfEffOk, iShowQulHtf), title = 'KQu:HTF', location = location.belowbar, color = qulHtfSigColor, style = shape.triangleup, text = 'KQu:HTF', textcolor = qulHtfSigColor)
+plotshape(qulHtf2 and showRow(iShowOnlyGoodSigs, qulHtf2EffOk, iShowQulHtf2), title = 'KQu:HTF2', location = location.belowbar, color = qulHtf2SigColor, style = shape.triangleup, text = 'KQu:HTF2', textcolor = qulHtf2SigColor)
 plotshape(mmiVcpSig and showRow(iShowOnlyGoodSigs, mmiVcpEffOk, iShowMmiVcp), title = 'MMi:VCP', location = location.belowbar, color = mmiVcpSigColor, style = shape.triangleup, text = 'MMi:VCP', textcolor = mmiVcpSigColor)
 plot(series = iShowRidingVwapDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
@@ -1115,8 +1115,8 @@ alertcondition(gFilter and (minVwapTAGSig or minVwapTAGSig_p1D), title = "bullis
 alertcondition(gFilter and sessionCloseToEnd and (CapLowSig or CapLowSig_p1D), title = 'bullish CapLow', message = 'CapLow')
 alertcondition(gFilter and (FBSig or FBSig_p1D), title = 'bullish FlatB', message = 'FlatB')
 alertcondition(gFilter and (vipSig or vipSig_p1D), title = "bullish VIP", message = 'VIP')
-alertcondition(gFilter and qulEp2Sig, title = "bullish Qul:EP2", message = 'Qul:EP2')
-alertcondition(gFilter and qulEp3Sig, title = "bullish Qul:EP3", message = 'Qul:EP3')
-alertcondition(gFilter and qulHtfSig, title = "bullish Qul:HTF", message = 'Qul:HTF')
-alertcondition(gFilter and qulHtf2Sig, title = "bullish Qul:HTF2", message = 'Qul:HTF2')
+alertcondition(gFilter and qulEp2Sig, title = "bullish KQu:EP2", message = 'KQu:EP2')
+alertcondition(gFilter and qulEp3Sig, title = "bullish KQu:EP3", message = 'KQu:EP3')
+alertcondition(gFilter and qulHtfSig, title = "bullish KQu:HTF", message = 'KQu:HTF')
+alertcondition(gFilter and qulHtf2Sig, title = "bullish KQu:HTF2", message = 'KQu:HTF2')
 alertcondition(gFilter and mmiVcpSigEff, title = "bullish MMi:VCP", message = 'MMi:VCP')
