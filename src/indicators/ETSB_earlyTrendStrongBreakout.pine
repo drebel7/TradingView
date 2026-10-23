@@ -321,6 +321,14 @@ iShowQulEp2 = input.bool(defval = true, title = 'Show Qul:EP2', display = displa
 iShowQulEp3 = input.bool(defval = true, title = 'Show Qul:EP3', display = display.none, group = 'Signals')
 iShowQulHtf = input.bool(defval = true, title = 'Show Qul:HTF', display = display.none, group = 'Signals')
 iShowQulHtf2 = input.bool(defval = true, title = 'Show Qul:HTF2', display = display.none, group = 'Signals')
+iShowMmiVcp = input.bool(defval = true, title = 'Show MMi:VCP', display = display.none, group = 'Signals')
+
+//MMi:VCP (Minervini) - the five knobs that carried the quality/quantity trade-off in the VCP sweep
+iMmiMinContr = input.int(defval = 1, title = 'MMi:VCP min. contractions', minval = 1, maxval = 6, display = display.none, group = 'Signal: MMi:VCP (Minervini)')
+iMmiRng = input.float(defval = 16.0, title = 'MMi:VCP max. last-10d range [pct of pivot]', minval = 2.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Signal: MMi:VCP (Minervini)')
+iMmiDry = input.float(defval = 1.0, title = 'MMi:VCP max. volume dry-up (5d/ADV50)', minval = 0.2, maxval = 2.0, step = 0.05, display = display.none, group = 'Signal: MMi:VCP (Minervini)')
+iMmiVol = input.float(defval = 1.0, title = 'MMi:VCP breakout volume multiple', minval = 0.5, maxval = 5.0, step = 0.05, display = display.none, group = 'Signal: MMi:VCP (Minervini)')
+iMmiTrend = input.int(defval = 1, title = 'MMi:VCP trend mode (0 none, 1 light, 2 full, 3 house)', minval = 0, maxval = 3, display = display.none, group = 'Signal: MMi:VCP (Minervini)')
 
 iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Signals')
 iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Signals')
@@ -699,6 +707,177 @@ htfCalc(float _breakoutMarginPct, float _maxPullbackPct, float _maxBaseRangePct,
 qulHtf = htfCalc(3.0, 25.0, 25.0, false, 0.50)
 qulHtf2 = htfCalc(1.0, 33.0, 25.0, false, 0.50)
 
+// ============================================================================================
+// MMi:VCP - Minervini Volatility Contraction Pattern
+// --------------------------------------------------------------------------------------------
+// Implementation of the variant that won the VCP parameter sweep (vcpC1Rng16, see
+// variants/VCP_ITERATIONS.md): a Stage-2 base with at least one contraction, a tight last
+// 10-session range, volume dry-up into the breakout and a two-day confirmation entry.
+//
+// The main method takes only the FIVE arguments that moved quality/quantity in the sweep:
+//   _minContr   - minimum number of contractions (1 = flat base, 2-3 = classic VCP)
+//   _maxRange   - last-10-session range as a % of the pivot (16% won over 20%)
+//   _maxVolDry  - volume dry-up before the trigger (5d / ADV50; 1.0 = mild, 0.8 = strict)
+//   _breakVol   - breakout volume multiple of ADV50 (1.0 = any, 1.2-1.5 = confirmation)
+//   _trendMode  - 0 none, 1 light MA stack, 2 full 8-criteria template, 3 DRELib house
+// Everything else is fixed to the winning configuration of the sweep.
+//
+// Structure: confirmed 3-bar swing pivots (no repainting, 2% noise filter) -> the most recent
+// high within 2% of the 180-session high starts the base -> every high->low leg is a
+// contraction (at most six) -> the pivot is the high of the last contraction, the stop
+// reference is its low. Entry is confirmed (close in the upper 40% of the bar and above the
+// previous high) and not more than 12% above the pivot. Stop is structural: just below the
+// final contraction low, at least 3% and never more than 8% below the entry.
+// ============================================================================================
+mmiAdv50 = ta.sma(volume, 50)
+mmiVolMa5 = ta.sma(volume, 5)
+mmiVolDry5 = mmiAdv50[1] > 0 ? mmiVolMa5[1] / mmiAdv50[1] : 1.0
+mmiDownVol = math.sum(close < close[1] ? volume : 0.0, 60)
+mmiUpVol = math.sum(close >= close[1] ? volume : 0.0, 60)
+mmiDownUpRatio = mmiUpVol > 0 ? mmiDownVol / mmiUpVol : 10.0
+mmiRange10 = ta.highest(high, 10)[1] - ta.lowest(low, 10)[1]
+mmiRefHigh180 = ta.highest(high, 180)[1]
+mmiPriorLow = ta.lowest(low, 180)
+mmiCloseLoc = high > low ? (close - low) / (high - low) : 0.0
+mmiGeneralFilter = drelib.generalFilter(0.2, 0.0, 1.0, 1750.0, 30)
+mmiSma50 = ta.sma(close, 50)
+mmiSma150 = ta.sma(close, 150)
+mmiSma200 = ta.sma(close, 200)
+mmiLow52 = ta.lowest(low, 252)
+mmiHigh52 = ta.highest(high, 252)
+mmiSma200Rising = mmiSma200 > mmiSma200[22]
+mmiTtLight = close > mmiSma50 and mmiSma50 > mmiSma150 and mmiSma150 > mmiSma200 and mmiSma200Rising
+mmiTtFull = close > mmiSma50 and close > mmiSma150 and close > mmiSma200 and mmiSma50 > mmiSma150 and mmiSma50 > mmiSma200 and mmiSma150 > mmiSma200 and mmiSma200Rising and close >= 1.30 * mmiLow52 and close >= 0.75 * mmiHigh52
+
+var array<float> mmiPivP = array.new_float()
+var array<int> mmiPivB = array.new_int()
+var array<int> mmiPivT = array.new_int()
+
+mmiPushPivot(float _price, int _bar, int _type) =>
+    int _n = array.size(mmiPivP)
+    bool _sameType = _n > 0 and array.get(mmiPivT, _n - 1) == _type
+    if _sameType
+        bool _better = _type == 1 ? _price > array.get(mmiPivP, _n - 1) : _price < array.get(mmiPivP, _n - 1)
+        if _better
+            array.set(mmiPivP, _n - 1, _price)
+            array.set(mmiPivB, _n - 1, _bar)
+    else
+        float _lastP = _n > 0 ? array.get(mmiPivP, _n - 1) : na
+        bool _bigEnough = na(_lastP) or math.abs(_price / _lastP - 1.0) >= 0.02
+        if _bigEnough and (_n == 0 or _bar > array.get(mmiPivB, _n - 1))
+            array.push(mmiPivP, _price)
+            array.push(mmiPivB, _bar)
+            array.push(mmiPivT, _type)
+    if array.size(mmiPivP) > 120
+        array.shift(mmiPivP)
+        array.shift(mmiPivB)
+        array.shift(mmiPivT)
+
+float mmiPh = ta.pivothigh(high, 3, 3)
+float mmiPl = ta.pivotlow(low, 3, 3)
+if not na(mmiPh)
+    mmiPushPivot(mmiPh, bar_index - 3, 1)
+if not na(mmiPl)
+    mmiPushPivot(mmiPl, bar_index - 3, -1)
+
+var array<float> mmiCHi = array.new_float()
+var array<float> mmiCLo = array.new_float()
+var float mmiBaseHighV = na
+var float mmiBaseLowV = na
+var float mmiPivotV = na
+var float mmiFinalLowV = na
+var int mmiContrN = 0
+var int mmiBaseBarsV = 0
+
+array.clear(mmiCHi)
+array.clear(mmiCLo)
+mmiBaseHighV := na
+mmiBaseLowV := na
+mmiPivotV := na
+mmiFinalLowV := na
+mmiContrN := 0
+mmiBaseBarsV := 0
+
+if array.size(mmiPivP) >= 4
+    int _k = -1
+    for _i = 0 to array.size(mmiPivP) - 1
+        if array.get(mmiPivT, _i) == 1
+            int _b = array.get(mmiPivB, _i)
+            int _age = bar_index - _b
+            if _age >= 10 and _age <= 180 and array.get(mmiPivP, _i) >= 0.98 * mmiRefHigh180
+                _k := _i
+    if _k >= 0
+        float _curH = array.get(mmiPivP, _k)
+        int _curHB = array.get(mmiPivB, _k)
+        for _j = 0 to array.size(mmiPivP) - 1
+            if _j > _k
+                if array.get(mmiPivT, _j) == -1
+                    array.push(mmiCHi, _curH)
+                    array.push(mmiCLo, array.get(mmiPivP, _j))
+                else
+                    _curH := array.get(mmiPivP, _j)
+                    _curHB := array.get(mmiPivB, _j)
+        while array.size(mmiCHi) > 6
+            array.shift(mmiCHi)
+            array.shift(mmiCLo)
+        mmiContrN := array.size(mmiCHi)
+        if mmiContrN > 0
+            mmiBaseBarsV := bar_index - array.get(mmiPivB, _k)
+            mmiPivotV := array.get(mmiCHi, mmiContrN - 1)
+            mmiFinalLowV := array.get(mmiCLo, mmiContrN - 1)
+            float _bh = array.get(mmiCHi, 0)
+            float _bl = array.get(mmiCLo, 0)
+            for _m = 0 to mmiContrN - 1
+                _bh := math.max(_bh, array.get(mmiCHi, _m))
+                _bl := math.min(_bl, array.get(mmiCLo, _m))
+            mmiBaseHighV := _bh
+            mmiBaseLowV := _bl
+
+//the five knobs are the whole interface: everything else is fixed to the winning sweep row
+mmiVcpCalc(simple int _minContr, float _maxRange, float _maxVolDry, float _breakVol, simple int _trendMode) =>
+    bool _baseOk = mmiContrN > 0 and not na(mmiPivotV)
+    float _pivot = nz(mmiPivotV)
+    float _finalLow = nz(mmiFinalLowV)
+    float _baseHigh = nz(mmiBaseHighV)
+    float _baseLow = nz(mmiBaseLowV)
+    float _baseDepth = _baseHigh > 0 ? 100.0 * (_baseHigh - _baseLow) / _baseHigh : 100.0
+    float _finalDepth = _pivot > 0 ? 100.0 * (_pivot - _finalLow) / _pivot : 100.0
+    float _overhead = _pivot > 0 ? 100.0 * (_baseHigh / _pivot - 1.0) : 100.0
+    float _finalRange = _pivot > 0 ? 100.0 * mmiRange10 / _pivot : 100.0
+    bool _structOk = _finalDepth <= 20.0 and _baseDepth <= 60.0 and _overhead <= 15.0 and _finalRange <= _maxRange
+    bool _monoOk = true
+    if mmiContrN >= 2
+        for _i = 1 to mmiContrN - 1
+            float _h0 = array.get(mmiCHi, _i - 1)
+            float _h1 = array.get(mmiCHi, _i)
+            float _d0 = _h0 > 0 ? 100.0 * (_h0 - array.get(mmiCLo, _i - 1)) / _h0 : 0.0
+            float _d1 = _h1 > 0 ? 100.0 * (_h1 - array.get(mmiCLo, _i)) / _h1 : 0.0
+            if _d1 > _d0 * 1.15 or _d1 < 1.0
+                _monoOk := false
+    float _hlRatio = 1.0
+    if mmiContrN >= 2
+        int _hl = 0
+        for _i = 1 to mmiContrN - 1
+            if array.get(mmiCLo, _i) >= array.get(mmiCLo, _i - 1) * 0.99
+                _hl += 1
+        _hlRatio := 1.0 * _hl / (mmiContrN - 1)
+    bool _trendOk = _trendMode == 0 ? true : _trendMode == 1 ? mmiTtLight : _trendMode == 2 ? mmiTtFull : minevriniTrend
+    bool _volOk = _maxVolDry >= 2.0 ? true : mmiVolDry5 <= _maxVolDry
+    bool _duOk = mmiDownUpRatio <= 1.50
+    bool _baseLenOk = mmiBaseBarsV >= 5 and mmiBaseBarsV <= 180
+    float _trig = _pivot
+    bool _chaseOk = close <= _pivot * 1.12
+    bool _volBreakOk = volume >= _breakVol * mmiAdv50
+    bool _breakOk = close > _trig and _chaseOk and _volBreakOk
+    bool _confirmOk = _breakOk and mmiCloseLoc >= 0.60 and close > high[1]
+    bool _raw = mmiGeneralFilter and _baseOk and mmiContrN >= _minContr and _monoOk and _hlRatio >= 0.40 and _structOk and _trendOk and _volOk and _duOk and _baseLenOk and _confirmOk
+    float _debSum = math.sum(_raw ? 1.0 : 0.0, 6)
+    bool _sig = _raw and _debSum == 1.0
+    float _sl = math.max(math.min(_finalLow * 0.995, close * 0.97), close * 0.92)
+    [_sig, _sl]
+
+[mmiVcpSig, mmiVcpSl] = mmiVcpCalc(iMmiMinContr, iMmiRng, iMmiDry, iMmiVol, iMmiTrend)
+
 //check performance
 iShowSigPerfTable = input.bool(defval = false, title = 'show table', display = display.none, group = 'Sig. performance check')
 iShowOnlyGoodSigs = input.bool(defval = true, title = 'show only good sigs.', display = display.none, group = 'Sig. performance check')
@@ -738,6 +917,7 @@ float sl = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossM
 [qulEp3SuccRate, qulEp3SuccCount, qulEp3SigCount, qulEp3AvgReturn, qulEp3SuccRateOk, qulEp3SuccRateStr, qulEp3WinRate, qulEp3WinCount, qulEp3AvgR, qulEp3MedR, qulEp3StdR, qulEp3Pf, qulEp3WilsonLb, qulEp3AvgMfe, qulEp3AvgMae, qulEp3MaxDd, qulEp3MaxLossStreak, qulEp3Score, qulEp3QualityOk, qulEp3SumWinR, qulEp3SumLossR] = dreperf.signalQualityFull(qulEp3, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [qulHtfSuccRate, qulHtfSuccCount, qulHtfSigCount, qulHtfAvgReturn, qulHtfSuccRateOk, qulHtfSuccRateStr, qulHtfWinRate, qulHtfWinCount, qulHtfAvgR, qulHtfMedR, qulHtfStdR, qulHtfPf, qulHtfWilsonLb, qulHtfAvgMfe, qulHtfAvgMae, qulHtfMaxDd, qulHtfMaxLossStreak, qulHtfScore, qulHtfQualityOk, qulHtfSumWinR, qulHtfSumLossR] = dreperf.signalQualityFull(qulHtf, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 [qulHtf2SuccRate, qulHtf2SuccCount, qulHtf2SigCount, qulHtf2AvgReturn, qulHtf2SuccRateOk, qulHtf2SuccRateStr, qulHtf2WinRate, qulHtf2WinCount, qulHtf2AvgR, qulHtf2MedR, qulHtf2StdR, qulHtf2Pf, qulHtf2WilsonLb, qulHtf2AvgMfe, qulHtf2AvgMae, qulHtf2MaxDd, qulHtf2MaxLossStreak, qulHtf2Score, qulHtf2QualityOk, qulHtf2SumWinR, qulHtf2SumLossR] = dreperf.signalQualityFull(qulHtf2, sl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
+[mmiVcpSuccRate, mmiVcpSuccCount, mmiVcpSigCount, mmiVcpAvgReturn, mmiVcpSuccRateOk, mmiVcpSuccRateStr, mmiVcpWinRate, mmiVcpWinCount, mmiVcpAvgR, mmiVcpMedR, mmiVcpStdR, mmiVcpPf, mmiVcpWilsonLb, mmiVcpAvgMfe, mmiVcpAvgMae, mmiVcpMaxDd, mmiVcpMaxLossStreak, mmiVcpScore, mmiVcpQualityOk, mmiVcpSumWinR, mmiVcpSumLossR] = dreperf.signalQualityFull(mmiVcpSig, mmiVcpSl, true, iMinSigSuccessRate, adrCond, iSigCheckTime, iMinSigCount, iMinSigWilsonLb)
 
 et3sbEffOk = iUseQualityGate ? et3sbQualityOk : et3sbSuccRateOk
 et4sbEffOk = iUseQualityGate ? et4sbQualityOk : et4sbSuccRateOk
@@ -764,6 +944,7 @@ qulEp2EffOk = iUseQualityGate ? qulEp2QualityOk : qulEp2SuccRateOk
 qulEp3EffOk = iUseQualityGate ? qulEp3QualityOk : qulEp3SuccRateOk
 qulHtfEffOk = iUseQualityGate ? qulHtfQualityOk : qulHtfSuccRateOk
 qulHtf2EffOk = iUseQualityGate ? qulHtf2QualityOk : qulHtf2SuccRateOk
+mmiVcpEffOk = iUseQualityGate ? mmiVcpQualityOk : mmiVcpSuccRateOk
 
 //plot sig performance
 et3sbSigColor = color.new(color.blue, 0)
@@ -784,6 +965,7 @@ qulEp2SigColor = color.new(color.orange, 0)
 qulEp3SigColor = color.new(color.purple, 0)
 qulHtfSigColor = color.new(#e91e63, 0)
 qulHtf2SigColor = color.new(#3f51b5, 0)
+mmiVcpSigColor = color.new(#ff9800, 0)
 
 
 //print sig performance table
@@ -800,7 +982,7 @@ renderQualityRow(table _tbl, int _row, string _name, color _color, bool _sigOk, 
         table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
 
 if barstate.islast and iShowSigPerfTable
-    var tbl = table.new(position = position.top_right, columns = 9, rows = 28)
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 30)
     txtSize = size.small
     table.cell(table_id = tbl, column = 0, row = 0, text = '')
     table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
@@ -838,6 +1020,7 @@ if barstate.islast and iShowSigPerfTable
     renderQualityRow(tbl, 25, "Qul:EP3", qulEp3SigColor, qulEp3EffOk, iShowQulEp3, qulEp3WinRate, qulEp3SigCount, qulEp3AvgR, qulEp3Pf, qulEp3MaxDd, qulEp3Score, qulEp3SumWinR, qulEp3SumLossR)
     renderQualityRow(tbl, 26, "Qul:HTF", qulHtfSigColor, qulHtfEffOk, iShowQulHtf, qulHtfWinRate, qulHtfSigCount, qulHtfAvgR, qulHtfPf, qulHtfMaxDd, qulHtfScore, qulHtfSumWinR, qulHtfSumLossR)
     renderQualityRow(tbl, 27, "Qul:HTF2", qulHtf2SigColor, qulHtf2EffOk, iShowQulHtf2, qulHtf2WinRate, qulHtf2SigCount, qulHtf2AvgR, qulHtf2Pf, qulHtf2MaxDd, qulHtf2Score, qulHtf2SumWinR, qulHtf2SumLossR)
+    renderQualityRow(tbl, 28, "MMi:VCP", mmiVcpSigColor, mmiVcpEffOk, iShowMmiVcp, mmiVcpWinRate, mmiVcpSigCount, mmiVcpAvgR, mmiVcpPf, mmiVcpMaxDd, mmiVcpScore, mmiVcpSumWinR, mmiVcpSumLossR)
 
 //plot signals on price chart
 plotshape(et3sb and showRow(iShowOnlyGoodSigs, et3sbEffOk, iShowEt3sbSig), title = 'et3sb', location = location.belowbar, color = et3sbSigColor, style = shape.triangleup, text = 'et3sb', textcolor = et3sbSigColor)
@@ -870,6 +1053,7 @@ plotshape(qulEp2 and showRow(iShowOnlyGoodSigs, qulEp2EffOk, iShowQulEp2), title
 plotshape(qulEp3 and showRow(iShowOnlyGoodSigs, qulEp3EffOk, iShowQulEp3), title = 'Qul:EP3', location = location.belowbar, color = qulEp3SigColor, style = shape.triangleup, text = 'Qul:EP3', textcolor = qulEp3SigColor)
 plotshape(qulHtf and showRow(iShowOnlyGoodSigs, qulHtfEffOk, iShowQulHtf), title = 'Qul:HTF', location = location.belowbar, color = qulHtfSigColor, style = shape.triangleup, text = 'Qul:HTF', textcolor = qulHtfSigColor)
 plotshape(qulHtf2 and showRow(iShowOnlyGoodSigs, qulHtf2EffOk, iShowQulHtf2), title = 'Qul:HTF2', location = location.belowbar, color = qulHtf2SigColor, style = shape.triangleup, text = 'Qul:HTF2', textcolor = qulHtf2SigColor)
+plotshape(mmiVcpSig and showRow(iShowOnlyGoodSigs, mmiVcpEffOk, iShowMmiVcp), title = 'MMi:VCP', location = location.belowbar, color = mmiVcpSigColor, style = shape.triangleup, text = 'MMi:VCP', textcolor = mmiVcpSigColor)
 plot(series = iShowRidingVwapDebug ? majorLowVwap : na, title = "majorLowVwap", color = minVwapTAGSigColor, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow1Vwap : na, title = "minorLow1Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
 plot(series = iShowRidingVwapDebug ? minorLow2Vwap : na, title = "minorLow2Vwap", color = minVwapTAGSigColor, linestyle = plot.linestyle_dashed, style = plot.style_linebr)
@@ -911,8 +1095,9 @@ qulEp2Sig = qulEp2 and qulEp2EffOk
 qulEp3Sig = qulEp3 and qulEp3EffOk
 qulHtfSig = qulHtf and qulHtfEffOk
 qulHtf2Sig = qulHtf2 and qulHtf2EffOk
+mmiVcpSigEff = mmiVcpSig and mmiVcpEffOk
 
-allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or et1YHsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLowSig or CapLowSig_p1D or FBSig or FBSig_p1D or vipSig or vipSig_p1D or qulEp2Sig or qulEp3Sig or qulHtfSig or qulHtf2Sig
+allGoodSig = et3sbSig or et3sbSig_p1D or et4sbSig or et4sbSig_p1D or et1YHsbSig or et1YHsbSig_p1D or bullishRmvSig or bullishRmvSig_p1D or etcsbSig or etcsbSig_p1D or obvDivSig or obvDivSig_p1D or mtsbSig or mtsbSig_p1D or ragPbSig or ragPbSig_p1D or wonHpSbSig or wonHpSbSig_p1D or wonTurnGoUpSig or wonTurnGoUpSig_p1D or minVwapTAGSig or minVwapTAGSig_p1D or CapLowSig or CapLowSig_p1D or FBSig or FBSig_p1D or vipSig or vipSig_p1D or qulEp2Sig or qulEp3Sig or qulHtfSig or qulHtf2Sig or mmiVcpSigEff
 
 alertcondition(gFilter and (allGoodSig), title = 'best LONG', message = 'best LONG')
 
@@ -934,3 +1119,4 @@ alertcondition(gFilter and qulEp2Sig, title = "bullish Qul:EP2", message = 'Qul:
 alertcondition(gFilter and qulEp3Sig, title = "bullish Qul:EP3", message = 'Qul:EP3')
 alertcondition(gFilter and qulHtfSig, title = "bullish Qul:HTF", message = 'Qul:HTF')
 alertcondition(gFilter and qulHtf2Sig, title = "bullish Qul:HTF2", message = 'Qul:HTF2')
+alertcondition(gFilter and mmiVcpSigEff, title = "bullish MMi:VCP", message = 'MMi:VCP')

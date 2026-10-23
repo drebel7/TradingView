@@ -1,0 +1,570 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+//calc_bars_count = 3024 (12 years of 252 bars/year) - no need for more
+
+//@version=6
+indicator("Minervini VCP (perf sweep)", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+// ============================================================================================
+// DESIGN NOTES - Minervini VCP (Volatility Contraction Pattern)
+// --------------------------------------------------------------------------------------------
+// Source: docs/trading/Minevrini/Minervini-strategy.md (in the yt repository), sections 6 and 10.
+// This block describes the IDEA and which parts of the document are implemented. It deliberately
+// avoids the parameter values of the rows below - those are the sweep, not the definition.
+//
+// WHAT A VCP IS (section 10.1-10.3)
+//   A base inside an existing Stage-2 uptrend, made of two to six progressively smaller pullbacks.
+//   Volume dries up through the contractions, the final contraction is tight and quiet, and the
+//   stock breaks above the pivot (the high of the final contraction) on expanding volume. The
+//   pattern is a supply/demand story: each pullback removes weaker holders, so the final breakout
+//   needs little demand to move the price.
+//
+// TREND TEMPLATE (section 6.1) - the qualifier, not the trigger
+//   Eight criteria, simple moving averages, no EMA substitution:
+//     1. close > SMA150 and close > SMA200
+//     2. SMA150 > SMA200
+//     3. SMA200 rising (vs 22 sessions ago)
+//     4. SMA50 > SMA150 and SMA50 > SMA200
+//     5. close > SMA50
+//     6. close >= 1.30 x 52-week low
+//     7. close >= 0.75 x 52-week high
+//     8. relative strength rank >= 70
+//   Criterion 8 is the hard one to compute on a single-symbol chart: a true RS rank is
+//   cross-sectional (percentile against the whole universe). This script offers three proxies and
+//   the sweep measures which one carries the edge:
+//     rsLine  - close/benchmark above its own 100-session average (the ETSB house proxy),
+//     rsPct   - percentile (0..100) of a weighted 3/6/9/12-month relative return against its own
+//               1-year history (the section 6.3 formula, self-ranked),
+//     rs80    - the same percentile with an 80 threshold.
+//   None of them is IBD's proprietary ranking; treat them as approximations.
+//
+// BASE DETECTION - confirmed swing pivots, no repainting (section 10.11)
+//   Pivots are 3-bar fractals (left = right = 3), so a pivot is only visible three bars after it
+//   happened. Pivots closer than 2% to the previous opposite pivot are dropped (noise filter).
+//   The base start is the most recent confirmed swing high that is (a) at least 10 and at most 180
+//   sessions old and (b) not more than 2% below the highest high of the last 180 sessions. From
+//   that high the code walks the alternating pivot list and records every high -> low leg as one
+//   contraction. The last six contractions are kept (Minervini: 2-6).
+//   The pivot is the high of the LAST contraction; the stop reference is its low. The final
+//   contraction may still be forming - the breakout trigger is what turns "forming" into a signal.
+//
+//   Simplifications, stated explicitly:
+//     - the base start is anchored to the 180-session high instead of an unbounded scan,
+//     - the contraction list is shared by all rows; a row's base-length parameter is a GATE on
+//       the measured base, not a re-detection with a different window,
+//     - the G9 "down-leg volume < up-leg volume" clause is approximated by a 60-session
+//       down-volume / up-volume ratio (per-contraction volume means are not reconstructed).
+//
+// HARD GATES OF THE CANONICAL ROW (section 10.4, G1-G13)
+//   G1 Stage 2 (trend template), G2 prior advance >= 30%, G3 base 15-90 sessions, G4 2-6
+//   contractions, G5 monotonic contraction, G6 final depth <= 10%, G7 base depth <= 40%, G8 higher
+//   lows >= 60%, G9 volume dry-up (5d / ADV50) <= 0.65 and down/up volume <= 1.0, G10 last 10-day
+//   range / pivot <= 10% and ATR5/ATR20 <= 0.70, G11 overhead <= 3%, G12 close/pivot <= 1.05,
+//   G13 RS >= 70. G14 (fundamentals) and G17 (earnings blackout) are NOT implemented: the scan
+//   runs on daily OHLCV only and the corpus has no point-in-time fundamentals feed. G15 (market
+//   regime) is approximated by DRELib's wide-index + sector modifier. G16 (liquidity) is the
+//   DRELib general filter with the ADR floor disabled, because the VCP family tested in this
+//   repository is a "quiet" family and an ADR floor hurt it (see variants/ITERATIONS.md).
+//
+// ENTRY (section 10.6)
+//   Standard breakout: close above pivot x (1 + buffer), volume >= multiple x ADV, and close not
+//   more than maxChase above the pivot (do not chase an extended move). Alternative entries are
+//   tested as separate rows: anticipation / "cheat" (buy the upper half of the final contraction
+//   before the pivot breaks), two-day confirmation (close in the upper 40% of the bar and above
+//   the previous high), and failed-breakout reclaim (undercut of the final low within five
+//   sessions, then a close back above the pivot).
+//
+// STOP AND OUTCOME MODEL (section 10.7, DREPerf)
+//   DREPerf evaluates a signal at the close of the signal bar and checks a fixed window of bars.
+//   "Success" = the stop is not violated inside the window; the return is measured at the end of
+//   the window, or at the stop when it was hit. Two stop models:
+//     structural - max( min(finalLow x 0.995, close x 0.97), close x 0.92 ), i.e. just below the
+//                  final contraction low, at least 3% and never more than 8% below the entry
+//                  (section 10.7 verbatim),
+//     house      - max(lowest(low, 3), close x 0.92), the convention used by ETSB and by every
+//                  previous analysis in this repository, kept for comparability.
+//   The table reports win%, N, avgR, PF, maxDD, score, sumWinR and sumLossR - the schema consumed
+//   by scripts/tv_table_scraper.py.
+//
+// VARIANT NAMING
+//   vcpCanon  - the canonical row (all gates of section 10.4 at their documented values)
+//   vcpC3/4   - minimum number of contractions
+//   vcpF6/8/12- max final contraction depth [%]
+//   vcpR85/95 - max ratio "current depth / previous depth" (0.99 = strictly decreasing)
+//   vcpR100   - non-increasing depth (ratio 1.00)
+//   vcpDry50/Off - volume dry-up threshold (5d / ADV50)
+//   vcpVol20  - breakout volume multiple 2.0
+//   vcpVol30Ma- volume reference = 30-session average instead of 50
+//   vcpBaseDepth30 - max base depth 30%
+//   vcpPrior20/50  - min prior advance 20% / 50%
+//   vcpBase60/120  - max base length 60 / 120 sessions
+//   vcpOh5/10      - max overhead above the pivot 5% / 10%
+//   vcpTight6      - last 10-day range <= 6% of the pivot
+//   vcpAtr60       - ATR5/ATR20 <= 0.60
+//   vcpHl80        - higher-lows ratio >= 80%
+//   vcpTtOff/Light/House - trend gate: none / MA stack only / DRELib Minervini template
+//   vcpRsOff/Line/80     - RS gate: none / RS line above SMA100 / self-percentile >= 80
+//   vcpRegime0/1   - require a non-bearish / bullish wide-index+sector regime
+//   vcpChase3      - max 3% above the pivot
+//   vcpCheat       - anticipation entry inside the final contraction
+//   vcpFail        - failed-breakout reclaim
+//   vcpConfirm     - two-day confirmation entry
+//   vcpStopHouse/5 - house stop / structural stop capped at 5%
+//   vcpCheck60     - 60-bar outcome window instead of 30
+//   vcpFlat        - flat base: one contraction, shallow base, tight range
+//   vcpRange       - pure range-contraction breakout, no pivot structure at all
+//
+// The canonical row is deliberately kept in every iteration as the reference point.
+// ============================================================================================
+
+//signal performance check inputs (same defaults as ETSB)
+iShowTable = input.bool(defval = true, title = 'Show table', display = display.none, group = 'Sig. performance check')
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+// ============================================================================================
+// SHARED BUILDING BLOCKS (computed once per bar, used by all rows)
+// ============================================================================================
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+
+//trend template ingredients (section 6.1) - simple moving averages on purpose
+sma50 = ta.sma(close, 50)
+sma150 = ta.sma(close, 150)
+sma200 = ta.sma(close, 200)
+low52 = ta.lowest(low, 252)
+high52 = ta.highest(high, 252)
+sma200Rising = sma200 > sma200[22]
+ttFull = close > sma50 and close > sma150 and close > sma200 and sma50 > sma150 and sma50 > sma200 and sma150 > sma200 and sma200Rising and close >= 1.30 * low52 and close >= 0.75 * high52
+ttLight = close > sma50 and sma50 > sma150 and sma150 > sma200 and sma200Rising
+ttHouse = drelib.isMinevriniBullishTrend(true, false, 0.5)
+
+//relative strength proxies (section 6.3 - RS is NOT RSI)
+benchClose = drelib.getDefaultBenchmarkClose()
+rsLine = benchClose > 0 ? close / benchClose : na
+rsLineStrong = rsLine > ta.sma(rsLine, 100)
+rsRel63 = nz(close / close[63] - 1.0) - nz(benchClose / benchClose[63] - 1.0)
+rsRel126 = nz(close / close[126] - 1.0) - nz(benchClose / benchClose[126] - 1.0)
+rsRel189 = nz(close / close[189] - 1.0) - nz(benchClose / benchClose[189] - 1.0)
+rsRel252 = nz(close / close[252] - 1.0) - nz(benchClose / benchClose[252] - 1.0)
+rsRaw = 0.40 * rsRel63 + 0.20 * rsRel126 + 0.20 * rsRel189 + 0.20 * rsRel252
+rsPct = ta.percentrank(rsRaw, 252)
+
+//market regime proxy (section 8): wide index + matching sector, -2..+2
+sigMod = drelib.getWideIndexAndSectorSignalMod(31)
+
+//liquidity / price filter: turnover and a sane price band, ADR floor disabled on purpose
+generalFilter = drelib.generalFilter(0.2, 0.0, 1.0, 1750.0, 30)
+
+//volume and volatility references
+adv30 = ta.sma(volume, 30)
+adv50 = ta.sma(volume, 50)
+adv100 = ta.sma(volume, 100)
+volMa5 = ta.sma(volume, 5)
+volDry5 = adv50[1] > 0 ? volMa5[1] / adv50[1] : 1.0 //measured BEFORE the trigger bar
+atr20v = ta.atr(20)
+atr5v = ta.atr(5)
+atrRatio = atr20v[1] > 0 ? atr5v[1] / atr20v[1] : 1.0 //measured BEFORE the trigger bar
+downVol = math.sum(close < close[1] ? volume : 0.0, 60)
+upVol = math.sum(close >= close[1] ? volume : 0.0, 60)
+downUpRatio = upVol > 0 ? downVol / upVol : 10.0
+range10 = ta.highest(high, 10)[1] - ta.lowest(low, 10)[1] //final-contraction range, trigger bar excluded
+range30Abs = ta.highest(high, 30)[1] - ta.lowest(low, 30)[1]
+refHigh180 = ta.highest(high, 180)[1]
+priorLow = ta.lowest(low, 180)
+closeLoc = high > low ? (close - low) / (high - low) : 0.0
+failLow5 = ta.lowest(low, 5)
+houseSl = math.max(ta.lowest(low, 3), close * 0.92)
+atrSl = math.max(close - 2.0 * atr20v, close * 0.92)
+
+// ============================================================================================
+// CONFIRMED SWING PIVOTS (3-bar fractal, 2% noise filter, alternating high/low)
+// ============================================================================================
+var array<float> pivP = array.new_float()
+var array<int> pivB = array.new_int()
+var array<int> pivT = array.new_int()
+
+pushPivot(float _price, int _bar, int _type) =>
+    int _n = array.size(pivP)
+    bool _sameType = _n > 0 and array.get(pivT, _n - 1) == _type
+    if _sameType
+        //two highs (or two lows) in a row: keep the extreme, drop the other
+        bool _better = _type == 1 ? _price > array.get(pivP, _n - 1) : _price < array.get(pivP, _n - 1)
+        if _better
+            array.set(pivP, _n - 1, _price)
+            array.set(pivB, _n - 1, _bar)
+    else
+        //opposite type: require a minimum swing amplitude and chronological order
+        float _lastP = _n > 0 ? array.get(pivP, _n - 1) : na
+        bool _bigEnough = na(_lastP) or math.abs(_price / _lastP - 1.0) >= 0.02
+        if _bigEnough and (_n == 0 or _bar > array.get(pivB, _n - 1))
+            array.push(pivP, _price)
+            array.push(pivB, _bar)
+            array.push(pivT, _type)
+    if array.size(pivP) > 120
+        array.shift(pivP)
+        array.shift(pivB)
+        array.shift(pivT)
+
+float ph = ta.pivothigh(high, 3, 3)
+float pl = ta.pivotlow(low, 3, 3)
+if not na(ph)
+    pushPivot(ph, bar_index - 3, 1)
+if not na(pl)
+    pushPivot(pl, bar_index - 3, -1)
+
+// ============================================================================================
+// BASE AND CONTRACTION STRUCTURE (shared by all rows)
+// ============================================================================================
+var array<float> cHi = array.new_float()
+var array<float> cLo = array.new_float()
+var array<int> cHiB = array.new_int()
+var array<int> cLoB = array.new_int()
+var float baseStartP = na
+var int baseStartB = na
+var float baseHighV = na
+var float baseLowV = na
+var int baseBarsV = 0
+var float pivotV = na
+var float finalLowV = na
+var int contrN = 0
+
+array.clear(cHi)
+array.clear(cLo)
+array.clear(cHiB)
+array.clear(cLoB)
+baseStartP := na
+baseStartB := na
+baseHighV := na
+baseLowV := na
+baseBarsV := 0
+pivotV := na
+finalLowV := na
+contrN := 0
+
+if array.size(pivP) >= 4
+    //most recent confirmed high that is not more than 2% below the 180-session high
+    int _k = -1
+    for _i = 0 to array.size(pivP) - 1
+        if array.get(pivT, _i) == 1
+            int _b = array.get(pivB, _i)
+            int _age = bar_index - _b
+            if _age >= 10 and _age <= 180 and array.get(pivP, _i) >= 0.98 * refHigh180
+                _k := _i
+    if _k >= 0
+        float _curH = array.get(pivP, _k)
+        int _curHB = array.get(pivB, _k)
+        for _j = 0 to array.size(pivP) - 1
+            if _j > _k
+                if array.get(pivT, _j) == -1
+                    array.push(cHi, _curH)
+                    array.push(cLo, array.get(pivP, _j))
+                    array.push(cHiB, _curHB)
+                    array.push(cLoB, array.get(pivB, _j))
+                else
+                    _curH := array.get(pivP, _j)
+                    _curHB := array.get(pivB, _j)
+        //keep the six most recent contractions (Minervini: 2-6)
+        while array.size(cHi) > 6
+            array.shift(cHi)
+            array.shift(cLo)
+            array.shift(cHiB)
+            array.shift(cLoB)
+        contrN := array.size(cHi)
+        if contrN > 0
+            baseStartP := array.get(pivP, _k)
+            baseStartB := array.get(pivB, _k)
+            baseBarsV := bar_index - baseStartB
+            pivotV := array.get(cHi, contrN - 1)
+            finalLowV := array.get(cLo, contrN - 1)
+            float _bh = array.get(cHi, 0)
+            float _bl = array.get(cLo, 0)
+            for _m = 0 to contrN - 1
+                _bh := math.max(_bh, array.get(cHi, _m))
+                _bl := math.min(_bl, array.get(cLo, _m))
+            baseHighV := _bh
+            baseLowV := _bl
+
+// ============================================================================================
+// VARIANT FACTORY
+// ============================================================================================
+//all thresholds are applied to the shared structure above; the parameters ARE the variant
+vcpCalc(simple int _minContr, float _maxFinalDepthPct, float _depthRatio, float _minContrDepthPct, float _maxBaseDepthPct, float _minPriorAdvPct, int _minBaseBars, int _maxBaseBars, float _maxOverheadPct, float _maxFinalRangePct, float _maxAtrRatio, float _maxVolDryup, float _maxDownUpVol, float _breakoutVolMult, float _breakoutMarginPct, float _maxChasePct, simple int _trendMode, simple int _rsMode, int _regimeMin, simple int _entryMode, simple int _stopMode, simple int _volRef, float _higherLowsMin, simple int _debounce) =>
+    bool _baseOk = contrN > 0 and not na(pivotV) and not na(baseStartB)
+    float _adv = _volRef == 30 ? adv30 : _volRef == 100 ? adv100 : adv50
+    float _pivot = nz(pivotV)
+    float _finalLow = nz(finalLowV)
+    float _baseHigh = nz(baseHighV)
+    float _baseLow = nz(baseLowV)
+    float _baseDepth = _baseHigh > 0 ? 100.0 * (_baseHigh - _baseLow) / _baseHigh : 100.0
+    float _finalDepth = _pivot > 0 ? 100.0 * (_pivot - _finalLow) / _pivot : 100.0
+    float _overhead = _pivot > 0 ? 100.0 * (_baseHigh / _pivot - 1.0) : 100.0
+    float _finalRange = _pivot > 0 ? 100.0 * range10 / _pivot : 100.0
+    float _priorAdv = _pivot > 0 and priorLow > 0 ? 100.0 * (_pivot / priorLow - 1.0) : 0.0
+    //contraction progression: every leg must be a real contraction and must not expand
+    bool _monoOk = true
+    if contrN >= 2
+        for _i = 1 to contrN - 1
+            float _h0 = array.get(cHi, _i - 1)
+            float _h1 = array.get(cHi, _i)
+            float _d0 = _h0 > 0 ? 100.0 * (_h0 - array.get(cLo, _i - 1)) / _h0 : 0.0
+            float _d1 = _h1 > 0 ? 100.0 * (_h1 - array.get(cLo, _i)) / _h1 : 0.0
+            if _d1 > _d0 * _depthRatio
+                _monoOk := false
+            if _d1 < _minContrDepthPct
+                _monoOk := false
+    //higher lows: fraction of contractions whose low holds the previous low
+    float _hlRatio = 1.0
+    if contrN >= 2
+        int _hl = 0
+        for _i = 1 to contrN - 1
+            if array.get(cLo, _i) >= array.get(cLo, _i - 1) * 0.99
+                _hl += 1
+        _hlRatio := 1.0 * _hl / (contrN - 1)
+    bool _structOk = _finalDepth <= _maxFinalDepthPct and _baseDepth <= _maxBaseDepthPct
+    bool _trendOk = _trendMode == 0 ? true : _trendMode == 1 ? ttLight : _trendMode == 2 ? ttFull : ttHouse
+    bool _rsOk = _rsMode == 0 ? true : _rsMode == 1 ? rsLineStrong : _rsMode == 2 ? rsPct >= 70.0 : rsPct >= 80.0
+    bool _regimeOk = sigMod >= _regimeMin
+    bool _volOk = _maxVolDryup >= 2.0 ? true : volDry5 <= _maxVolDryup
+    bool _duOk = _maxDownUpVol >= 2.0 ? true : downUpRatio <= _maxDownUpVol
+    bool _atrOk = _maxAtrRatio >= 2.0 ? true : atrRatio <= _maxAtrRatio
+    bool _overheadOk = _overhead <= _maxOverheadPct
+    bool _baseLenOk = _baseOk and baseBarsV >= _minBaseBars and baseBarsV <= _maxBaseBars
+    bool _priorOk = _priorAdv >= _minPriorAdvPct
+    //triggers
+    float _trig = _pivot * (1.0 + _breakoutMarginPct / 100.0)
+    bool _chaseOk = close <= _pivot * (1.0 + _maxChasePct / 100.0)
+    bool _volBreakOk = volume >= _breakoutVolMult * _adv
+    bool _breakOk = close > _trig and _chaseOk and _volBreakOk
+    bool _cheatOk = close < _pivot and close > _finalLow and _finalDepth <= 14.0 and close >= _finalLow + 0.5 * (_pivot - _finalLow) and volume >= _adv
+    bool _failOk = failLow5 < _finalLow * 0.995 and close > _trig and _volBreakOk
+    bool _confirmOk = _breakOk and closeLoc >= 0.60 and close > high[1]
+    bool _entryOk = _entryMode == 0 ? _breakOk : _entryMode == 1 ? _cheatOk : _entryMode == 2 ? _confirmOk : _failOk
+    bool _raw = generalFilter and _baseOk and contrN >= _minContr and _monoOk and _hlRatio >= _higherLowsMin and _structOk and _trendOk and _rsOk and _regimeOk and _volOk and _duOk and _atrOk and _overheadOk and _baseLenOk and _priorOk and _finalRange <= _maxFinalRangePct and _entryOk
+    float _debSum = math.sum(_raw ? 1.0 : 0.0, _debounce + 1)
+    bool _sig = _raw and (_debounce == 0 or _debSum == 1.0)
+    float _structSl = math.max(math.min(_finalLow * 0.995, close * 0.97), close * (_stopMode == 2 ? 0.95 : 0.92))
+    float _sl = _stopMode == 0 ? houseSl : _stopMode == 3 ? atrSl : _structSl
+    [_sig, _sl]
+
+
+// ============================================================================================
+// THE 40 ROWS
+// --------------------------------------------------------------------------------------------
+// Row 1 is the faithful canonical VCP: every documented gate at its documented value. It is
+// deliberately kept in every iteration as the reference, and it is expected to be rare.
+// Row 2 is the working baseline of the sweep: the same engine with the five gates that made
+// the canonical practically unfireable (ATR5/ATR20, volume dry-up, final depth, overhead,
+// trend/RS strictness) relaxed to values that still describe a quiet Stage-2 base. Rows 3-40
+// change one thing at a time against row 2; the last rows switch the entry or the stop model.
+// ============================================================================================
+
+//1 vcpCanon
+[s01, x01] = vcpCalc(2, 10, 0.99, 2, 40, 30, 15, 90, 3, 10, 0.7, 0.65, 1, 1.4, 1, 5, 2, 2, -1, 0, 1, 50, 0.6, 3)
+//2 vcpBase80
+[s02, x02] = vcpCalc(2, 10, 0.99, 2, 40, 30, 15, 90, 3, 10, 0.7, 0.65, 1, 1.4, 1, 5, 2, 2, -1, 0, 1, 50, 0.6, 3)
+//3 vcpC3
+[s03, x03] = vcpCalc(3, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//4 vcpFlat
+[s04, x04] = vcpCalc(1, 6, 1.1, 0, 12, 10, 10, 60, 5, 6, 0.9, 1, 2, 1, 0.3, 7, 1, 0, -99, 0, 1, 50, 0, 3)
+//5 vcpF8
+[s05, x05] = vcpCalc(2, 8, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//6 vcpF10
+[s06, x06] = vcpCalc(2, 10, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//7 vcpF16
+[s07, x07] = vcpCalc(2, 16, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//8 vcpR90
+[s08, x08] = vcpCalc(2, 12, 0.9, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//9 vcpR95
+[s09, x09] = vcpCalc(2, 12, 0.95, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//10 vcpR105
+[s10, x10] = vcpCalc(2, 12, 1.05, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//11 vcpDry65
+[s11, x11] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.65, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//12 vcpDryOff
+[s12, x12] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 2, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//13 vcpVol15
+[s13, x13] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.5, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//14 vcpVol20
+[s14, x14] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//15 vcpVol30Ma
+[s15, x15] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 30, 0.5, 3)
+//16 vcpPrior50
+[s16, x16] = vcpCalc(2, 12, 1, 1.5, 50, 50, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//17 vcpBase60
+[s17, x17] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 60, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//18 vcpBase180
+[s18, x18] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 180, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//19 vcpOh3
+[s19, x19] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 3, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//20 vcpOh10
+[s20, x20] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 10, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//21 vcpTight8
+[s21, x21] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 8, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//22 vcpTight16
+[s22, x22] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 16, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//23 vcpAtr70
+[s23, x23] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 0.7, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//24 vcpAtrOff
+[s24, x24] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 2, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//25 vcpHl80
+[s25, x25] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.8, 3)
+//26 vcpTtOff
+[s26, x26] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 0, 0, -99, 0, 1, 50, 0.5, 3)
+//27 vcpTtFull
+[s27, x27] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 2, 0, -99, 0, 1, 50, 0.5, 3)
+//28 vcpTtHouse
+[s28, x28] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 3, 0, -99, 0, 1, 50, 0.5, 3)
+//29 vcpRsLine
+[s29, x29] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 1, -99, 0, 1, 50, 0.5, 3)
+//30 vcpRs70
+[s30, x30] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 2, -99, 0, 1, 50, 0.5, 3)
+//31 vcpRegime0
+[s31, x31] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, 0, 0, 1, 50, 0.5, 3)
+//32 vcpRegime1
+[s32, x32] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, 1, 0, 1, 50, 0.5, 3)
+//33 vcpChase3
+[s33, x33] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 3, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//34 vcpChase10
+[s34, x34] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 10, 1, 0, -99, 0, 1, 50, 0.5, 3)
+//35 vcpCheat
+[s35, x35] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 1, 1, 50, 0.5, 3)
+//36 vcpFail
+[s36, x36] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 3, 1, 50, 0.5, 3)
+//37 vcpConfirm
+[s37, x37] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 2, 1, 50, 0.5, 3)
+//38 vcpStopHouse
+[s38, x38] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 0, 50, 0.5, 3)
+//39 vcpCheck60
+[s39, x39] = vcpCalc(2, 12, 1, 1.5, 50, 20, 10, 120, 5, 12, 1, 0.8, 1.2, 1.2, 0.5, 7, 1, 0, -99, 0, 1, 50, 0.5, 3)
+
+//40 vcpRange - pure range-contraction breakout, no pivot structure at all
+high20prev = ta.highest(high, 20)[1]
+rangeSig = generalFilter and ttLight and close > high20prev and range10 < 0.55 * range30Abs and volume > 1.2 * adv50 and close > sma50 and close > sma200
+s40 = rangeSig
+x40 = houseSl
+
+// ============================================================================================
+// SIGNAL QUALITY WRAPPER (DREPerf)
+// ============================================================================================
+q8(bool _sig, float _sl, simple int _checkBars) =>
+    [sr, scnt, n, ar, sro, srs, wr, wc, avgr, medr, stdr, pf, wlb, mfe, mae, dd, mls, score, qok, swr, slr] = dreperf.signalQualityFull(_sig, _sl, true, iMinSigSuccessRate, adrCond, _checkBars, iMinSigCount, iMinSigWilsonLb)
+    [wr, n, avgr, pf, dd, score, swr, slr]
+
+//quality metrics per row (DREPerf)
+[w01, n01, a01, f01, d01, c01, gw01, gl01] = q8(s01, x01, 30)
+[w02, n02, a02, f02, d02, c02, gw02, gl02] = q8(s02, x02, 30)
+[w03, n03, a03, f03, d03, c03, gw03, gl03] = q8(s03, x03, 30)
+[w04, n04, a04, f04, d04, c04, gw04, gl04] = q8(s04, x04, 30)
+[w05, n05, a05, f05, d05, c05, gw05, gl05] = q8(s05, x05, 30)
+[w06, n06, a06, f06, d06, c06, gw06, gl06] = q8(s06, x06, 30)
+[w07, n07, a07, f07, d07, c07, gw07, gl07] = q8(s07, x07, 30)
+[w08, n08, a08, f08, d08, c08, gw08, gl08] = q8(s08, x08, 30)
+[w09, n09, a09, f09, d09, c09, gw09, gl09] = q8(s09, x09, 30)
+[w10, n10, a10, f10, d10, c10, gw10, gl10] = q8(s10, x10, 30)
+[w11, n11, a11, f11, d11, c11, gw11, gl11] = q8(s11, x11, 30)
+[w12, n12, a12, f12, d12, c12, gw12, gl12] = q8(s12, x12, 30)
+[w13, n13, a13, f13, d13, c13, gw13, gl13] = q8(s13, x13, 30)
+[w14, n14, a14, f14, d14, c14, gw14, gl14] = q8(s14, x14, 30)
+[w15, n15, a15, f15, d15, c15, gw15, gl15] = q8(s15, x15, 30)
+[w16, n16, a16, f16, d16, c16, gw16, gl16] = q8(s16, x16, 30)
+[w17, n17, a17, f17, d17, c17, gw17, gl17] = q8(s17, x17, 30)
+[w18, n18, a18, f18, d18, c18, gw18, gl18] = q8(s18, x18, 30)
+[w19, n19, a19, f19, d19, c19, gw19, gl19] = q8(s19, x19, 30)
+[w20, n20, a20, f20, d20, c20, gw20, gl20] = q8(s20, x20, 30)
+[w21, n21, a21, f21, d21, c21, gw21, gl21] = q8(s21, x21, 30)
+[w22, n22, a22, f22, d22, c22, gw22, gl22] = q8(s22, x22, 30)
+[w23, n23, a23, f23, d23, c23, gw23, gl23] = q8(s23, x23, 30)
+[w24, n24, a24, f24, d24, c24, gw24, gl24] = q8(s24, x24, 30)
+[w25, n25, a25, f25, d25, c25, gw25, gl25] = q8(s25, x25, 30)
+[w26, n26, a26, f26, d26, c26, gw26, gl26] = q8(s26, x26, 30)
+[w27, n27, a27, f27, d27, c27, gw27, gl27] = q8(s27, x27, 30)
+[w28, n28, a28, f28, d28, c28, gw28, gl28] = q8(s28, x28, 30)
+[w29, n29, a29, f29, d29, c29, gw29, gl29] = q8(s29, x29, 30)
+[w30, n30, a30, f30, d30, c30, gw30, gl30] = q8(s30, x30, 30)
+[w31, n31, a31, f31, d31, c31, gw31, gl31] = q8(s31, x31, 30)
+[w32, n32, a32, f32, d32, c32, gw32, gl32] = q8(s32, x32, 30)
+[w33, n33, a33, f33, d33, c33, gw33, gl33] = q8(s33, x33, 30)
+[w34, n34, a34, f34, d34, c34, gw34, gl34] = q8(s34, x34, 30)
+[w35, n35, a35, f35, d35, c35, gw35, gl35] = q8(s35, x35, 30)
+[w36, n36, a36, f36, d36, c36, gw36, gl36] = q8(s36, x36, 30)
+[w37, n37, a37, f37, d37, c37, gw37, gl37] = q8(s37, x37, 30)
+[w38, n38, a38, f38, d38, c38, gw38, gl38] = q8(s38, x38, 30)
+[w39, n39, a39, f39, d39, c39, gw39, gl39] = q8(s39, x39, 60)
+[w40, n40, a40, f40, d40, c40, gw40, gl40] = q8(s40, x40, 30)
+
+// ============================================================================================
+// PERFORMANCE TABLE (schema consumed by scripts/tv_table_scraper.py)
+// ============================================================================================
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast and iShowTable
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 44)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 0, text = '')
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "vcpCanon", w01, n01, a01, f01, d01, c01, gw01, gl01)
+    renderRow(tbl, 4, "vcpBase80", w02, n02, a02, f02, d02, c02, gw02, gl02)
+    renderRow(tbl, 5, "vcpC3", w03, n03, a03, f03, d03, c03, gw03, gl03)
+    renderRow(tbl, 6, "vcpFlat", w04, n04, a04, f04, d04, c04, gw04, gl04)
+    renderRow(tbl, 7, "vcpF8", w05, n05, a05, f05, d05, c05, gw05, gl05)
+    renderRow(tbl, 8, "vcpF10", w06, n06, a06, f06, d06, c06, gw06, gl06)
+    renderRow(tbl, 9, "vcpF16", w07, n07, a07, f07, d07, c07, gw07, gl07)
+    renderRow(tbl, 10, "vcpR90", w08, n08, a08, f08, d08, c08, gw08, gl08)
+    renderRow(tbl, 11, "vcpR95", w09, n09, a09, f09, d09, c09, gw09, gl09)
+    renderRow(tbl, 12, "vcpR105", w10, n10, a10, f10, d10, c10, gw10, gl10)
+    renderRow(tbl, 13, "vcpDry65", w11, n11, a11, f11, d11, c11, gw11, gl11)
+    renderRow(tbl, 14, "vcpDryOff", w12, n12, a12, f12, d12, c12, gw12, gl12)
+    renderRow(tbl, 15, "vcpVol15", w13, n13, a13, f13, d13, c13, gw13, gl13)
+    renderRow(tbl, 16, "vcpVol20", w14, n14, a14, f14, d14, c14, gw14, gl14)
+    renderRow(tbl, 17, "vcpVol30Ma", w15, n15, a15, f15, d15, c15, gw15, gl15)
+    renderRow(tbl, 18, "vcpPrior50", w16, n16, a16, f16, d16, c16, gw16, gl16)
+    renderRow(tbl, 19, "vcpBase60", w17, n17, a17, f17, d17, c17, gw17, gl17)
+    renderRow(tbl, 20, "vcpBase180", w18, n18, a18, f18, d18, c18, gw18, gl18)
+    renderRow(tbl, 21, "vcpOh3", w19, n19, a19, f19, d19, c19, gw19, gl19)
+    renderRow(tbl, 22, "vcpOh10", w20, n20, a20, f20, d20, c20, gw20, gl20)
+    renderRow(tbl, 23, "vcpTight8", w21, n21, a21, f21, d21, c21, gw21, gl21)
+    renderRow(tbl, 24, "vcpTight16", w22, n22, a22, f22, d22, c22, gw22, gl22)
+    renderRow(tbl, 25, "vcpAtr70", w23, n23, a23, f23, d23, c23, gw23, gl23)
+    renderRow(tbl, 26, "vcpAtrOff", w24, n24, a24, f24, d24, c24, gw24, gl24)
+    renderRow(tbl, 27, "vcpHl80", w25, n25, a25, f25, d25, c25, gw25, gl25)
+    renderRow(tbl, 28, "vcpTtOff", w26, n26, a26, f26, d26, c26, gw26, gl26)
+    renderRow(tbl, 29, "vcpTtFull", w27, n27, a27, f27, d27, c27, gw27, gl27)
+    renderRow(tbl, 30, "vcpTtHouse", w28, n28, a28, f28, d28, c28, gw28, gl28)
+    renderRow(tbl, 31, "vcpRsLine", w29, n29, a29, f29, d29, c29, gw29, gl29)
+    renderRow(tbl, 32, "vcpRs70", w30, n30, a30, f30, d30, c30, gw30, gl30)
+    renderRow(tbl, 33, "vcpRegime0", w31, n31, a31, f31, d31, c31, gw31, gl31)
+    renderRow(tbl, 34, "vcpRegime1", w32, n32, a32, f32, d32, c32, gw32, gl32)
+    renderRow(tbl, 35, "vcpChase3", w33, n33, a33, f33, d33, c33, gw33, gl33)
+    renderRow(tbl, 36, "vcpChase10", w34, n34, a34, f34, d34, c34, gw34, gl34)
+    renderRow(tbl, 37, "vcpCheat", w35, n35, a35, f35, d35, c35, gw35, gl35)
+    renderRow(tbl, 38, "vcpFail", w36, n36, a36, f36, d36, c36, gw36, gl36)
+    renderRow(tbl, 39, "vcpConfirm", w37, n37, a37, f37, d37, c37, gw37, gl37)
+    renderRow(tbl, 40, "vcpStopHouse", w38, n38, a38, f38, d38, c38, gw38, gl38)
+    renderRow(tbl, 41, "vcpCheck60", w39, n39, a39, f39, d39, c39, gw39, gl39)
+    renderRow(tbl, 42, "vcpRange", w40, n40, a40, f40, d40, c40, gw40, gl40)
