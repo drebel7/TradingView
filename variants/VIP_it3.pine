@@ -1,0 +1,304 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © drebel
+//calc_bars_count = 3024 (12 years of 252 bars/year) - no need for more
+
+//@version=6
+indicator("VIP Volume Institutional Push (perf sweep)", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
+
+import drebel/DRELib/39 as drelib
+import drebel/DREPerf/27 as dreperf
+
+// ============================================================================================
+// DESIGN NOTES - iteration 3: extension lag + general filter as a separate factor
+// --------------------------------------------------------------------------------------------
+// IT1 found the core: 4 good days in 5, volume 1.2x, percentile(close,200) <= 30.
+// IT2 found that a higher breakout-day volume multiple (1.3-1.5x) is the strongest quality lever.
+// IT3 tests two things the earlier iterations mixed up:
+//
+// 1) WHERE the "not extended" percentile is measured. Measuring it on the signal bar punishes
+//    exactly the stocks that have just started to move, because the move itself lifts the rank.
+//    The percentile is therefore measured at a lag: 0 (signal day), 1-3 (inside the move),
+//    4 (first day of the 5-day cluster window) or 5 (the day before the window). A special mode
+//    (-1) takes the MAXIMUM percentile over lags 0..4, i.e. "the whole move was not extended".
+//
+// 2) WHETHER the general filter belongs to the signal. In ETSB the general filter only gates
+//    alerts/plots; in IT1/IT2 it was placed inside the signal, which made every comparison
+//    against the original unclean. IT3 runs the same configurations with the filter ON and OFF
+//    as paired rows, so the filter effect is measurable on its own.
+//
+// generalFilter modes: 0 off, 1 standard (turnover 0.2M, price 1-1750, stock), 2 ADR >= 2%,
+// 3 ADR >= 3%, 4 turnover >= 1M, 5 price >= 5, 6 price >= 12.
+//
+// Everything else stays at the IT1 winner: cluster 4 good days in 5, freshness 10 bars,
+// good day = volume > multiple x SMA30(volume) and close >= previous close, house stop
+// (lowest(low,3), 8% cap), 30-bar check window unless stated otherwise.
+// ============================================================================================
+
+iShowTable = input.bool(defval = true, title = 'Show table', display = display.none, group = 'Sig. performance check')
+iSigCheckTime = input.int(defval = 30, title = 'Signal check time [candles]', minval = 5, maxval = 200, display = display.none, group = 'Sig. performance check')
+iSigStopLossDay = input.int(defval = 2, title = 'Stop loss (day of low)', minval = 0, maxval = 10, display = display.none, group = 'Sig. performance check')
+iSigStopLossMaxPct = input.float(defval = 8.0, title = 'Stop loss [pct]', minval = 0.0, maxval = 20.0, step = 0.5, display = display.none, group = 'Sig. performance check')
+iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Sig. performance check')
+iMinSigCount = input.int(defval = 30, title = 'min. signals count', minval = 0, display = display.none, group = 'Sig. performance check')
+iMinSigWilsonLb = input.float(defval = 30.0, title = 'min. win-rate lower bound (Wilson) [pct]', minval = 0.0, maxval = 100.0, step = 1.0, display = display.none, group = 'Sig. performance check')
+
+adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
+adrCond = iMinSigReturnAdrMultiple * adrPct
+gVolMa = ta.sma(volume, 30)
+float slHouse = math.max(ta.lowest(iSigStopLossDay + 1), close * (1.0 - iSigStopLossMaxPct / 100.0))
+closeLoc = high > low ? (close - low) / (high - low) : 0.0
+sma200 = ta.sma(close, 200)
+sma50 = ta.sma(close, 50)
+benchClose = drelib.getDefaultBenchmarkClose()
+rsLine = benchClose > 0 ? close / benchClose : na
+rsLineStrong = rsLine > ta.sma(rsLine, 100)
+
+//extension percentile at every lag we test (precomputed: no dynamic offsets)
+pctl0 = ta.percentrank(close, 200)
+pctl1 = ta.percentrank(close[1], 200)
+pctl2 = ta.percentrank(close[2], 200)
+pctl3 = ta.percentrank(close[3], 200)
+pctl4 = ta.percentrank(close[4], 200)
+pctl5 = ta.percentrank(close[5], 200)
+pctlMaxMove = math.max(math.max(pctl0, pctl1), math.max(math.max(pctl2, pctl3), pctl4))
+
+//general filter modes (the same helper ETSB uses for alerts, plus ADR/price/turnover variants)
+filtStd = drelib.generalFilter(0.2, 0.0, 1.0, 1750.0, 30)
+filtAdr2 = drelib.generalFilter(0.2, 2.0, 1.0, 1750.0, 30)
+filtAdr3 = drelib.generalFilter(0.2, 3.0, 1.0, 1750.0, 30)
+filtTurn1M = drelib.generalFilter(1.0, 0.0, 1.0, 1750.0, 30)
+filtPrice5 = drelib.generalFilter(0.2, 0.0, 5.0, 1750.0, 30)
+filtPrice12 = drelib.generalFilter(0.2, 0.0, 12.0, 1750.0, 30)
+
+vipCalc(simple int _clusterMode, simple int _runLen, simple int _window, simple int _freshBars, float _pctMax, simple int _pctLag, simple int _filterMode, float _volMult, simple int _dayMode, simple int _trendMode, simple int _confirmMode, simple int _vhv, simple int _stopMode, simple int _checkBars) =>
+    bool _good = _dayMode == 0 ? (volume > _volMult * gVolMa and close >= close[1]) : _dayMode == 1 ? (volume > _volMult * gVolMa and close > open) : _dayMode == 2 ? (volume > _volMult * gVolMa and closeLoc >= 0.5) : (volume > _volMult * gVolMa and close > high[1])
+    int _cntW = int(math.sum(_good ? 1.0 : 0.0, _window))
+    int _cnt4 = int(math.sum(_good ? 1.0 : 0.0, 4))
+    int _cnt6 = int(math.sum(_good ? 1.0 : 0.0, 6))
+    bool _c44 = _cnt4 == 4
+    bool _c56 = _cnt6 >= 5
+    bool _cluster = _clusterMode == 0 ? (_c44 or _c56) : _cntW >= _runLen
+    float _since44 = nz(ta.barssince(_c44[1]), 50)
+    float _since56 = nz(ta.barssince(_c56[1]), 50)
+    float _sinceAny = nz(ta.barssince(_cluster[1]), 999)
+    bool _fresh = _clusterMode == 0 ? ((_since44 > _freshBars and _c44) or (_since56 > _freshBars and _c56)) : _sinceAny > _freshBars
+    float _pct = _pctLag == 0 ? pctl0 : _pctLag == 1 ? pctl1 : _pctLag == 2 ? pctl2 : _pctLag == 3 ? pctl3 : _pctLag == 4 ? pctl4 : _pctLag == 5 ? pctl5 : pctlMaxMove
+    bool _pctOk = bar_index < 200 or _pctMax >= 100.0 ? true : _pct <= _pctMax
+    bool _trendOk = _trendMode == 0 ? true : _trendMode == 2 ? close > sma200 : _trendMode == 3 ? (close > sma50 and sma50 > sma200) : true
+    bool _confirmOk = _confirmMode == 0 ? true : _confirmMode == 1 ? close > high[1] : closeLoc >= 0.60
+    bool _vhvOk = _vhv == 0 ? true : math.sum(volume > 2.0 * gVolMa ? 1.0 : 0.0, _window) >= 1
+    bool _filtOk = _filterMode == 0 ? true : _filterMode == 1 ? filtStd : _filterMode == 2 ? filtAdr2 : _filterMode == 3 ? filtAdr3 : _filterMode == 4 ? filtTurn1M : _filterMode == 5 ? filtPrice5 : filtPrice12
+    bool _sig = _filtOk and _cluster and _fresh and _pctOk and _trendOk and _confirmOk and _vhvOk
+    float _sl = _stopMode == 0 ? slHouse : _stopMode == 1 ? math.max(ta.lowest(low, 5), close * 0.92) : math.max(math.min(ta.lowest(low, 2), close * 0.97), close * 0.92)
+    [_sig, _sl]
+
+// ============================================================================================
+// THE 40 ROWS - ITERATION 3
+// --------------------------------------------------------------------------------------------
+// A  lag 0-5 at pct 30, filter ON          (6)
+// B  the same six with the filter OFF      (6)  <- paired comparison
+// C  pct 25/35 at lag 2 and 4, filter ON    (4)
+// D  the same four with the filter OFF      (4)
+// E  max percentile over lags 0..4, 30/35, ON and OFF (4)
+// F  filter variants at lag 2, pct 30       (5)
+// G  robustness around lag 2                (8)
+// H  combinations                           (3)
+// ============================================================================================
+//1 vipL0 - reference: percentile on the signal day
+[s01, x01] = vipCalc(1, 4, 5, 10, 30.0, 0, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//2 vipL1
+[s02, x02] = vipCalc(1, 4, 5, 10, 30.0, 1, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//3 vipL2
+[s03, x03] = vipCalc(1, 4, 5, 10, 30.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//4 vipL3
+[s04, x04] = vipCalc(1, 4, 5, 10, 30.0, 3, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//5 vipL4
+[s05, x05] = vipCalc(1, 4, 5, 10, 30.0, 4, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//6 vipL5
+[s06, x06] = vipCalc(1, 4, 5, 10, 30.0, 5, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//7 vipL0NF - reference without the general filter
+[s07, x07] = vipCalc(1, 4, 5, 10, 30.0, 0, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//8 vipL1NF
+[s08, x08] = vipCalc(1, 4, 5, 10, 30.0, 1, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//9 vipL2NF
+[s09, x09] = vipCalc(1, 4, 5, 10, 30.0, 2, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//10 vipL3NF
+[s10, x10] = vipCalc(1, 4, 5, 10, 30.0, 3, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//11 vipL4NF
+[s11, x11] = vipCalc(1, 4, 5, 10, 30.0, 4, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//12 vipL5NF
+[s12, x12] = vipCalc(1, 4, 5, 10, 30.0, 5, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//13 vipL2P25
+[s13, x13] = vipCalc(1, 4, 5, 10, 25.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//14 vipL2P35
+[s14, x14] = vipCalc(1, 4, 5, 10, 35.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//15 vipL4P25
+[s15, x15] = vipCalc(1, 4, 5, 10, 25.0, 4, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//16 vipL4P35
+[s16, x16] = vipCalc(1, 4, 5, 10, 35.0, 4, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//17 vipL2P25NF
+[s17, x17] = vipCalc(1, 4, 5, 10, 25.0, 2, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//18 vipL2P35NF
+[s18, x18] = vipCalc(1, 4, 5, 10, 35.0, 2, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//19 vipL4P25NF
+[s19, x19] = vipCalc(1, 4, 5, 10, 25.0, 4, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//20 vipL4P35NF
+[s20, x20] = vipCalc(1, 4, 5, 10, 35.0, 4, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//21 vipMax30 - max percentile over lags 0..4
+[s21, x21] = vipCalc(1, 4, 5, 10, 30.0, -1, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//22 vipMax35
+[s22, x22] = vipCalc(1, 4, 5, 10, 35.0, -1, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//23 vipMax30NF
+[s23, x23] = vipCalc(1, 4, 5, 10, 30.0, -1, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//24 vipMax35NF
+[s24, x24] = vipCalc(1, 4, 5, 10, 35.0, -1, 0, 1.20, 0, 0, 0, 0, 0, 30)
+//25 vipFAdr2
+[s25, x25] = vipCalc(1, 4, 5, 10, 30.0, 2, 2, 1.20, 0, 0, 0, 0, 0, 30)
+//26 vipFAdr3
+[s26, x26] = vipCalc(1, 4, 5, 10, 30.0, 2, 3, 1.20, 0, 0, 0, 0, 0, 30)
+//27 vipFTurn1M
+[s27, x27] = vipCalc(1, 4, 5, 10, 30.0, 2, 4, 1.20, 0, 0, 0, 0, 0, 30)
+//28 vipFPrice5
+[s28, x28] = vipCalc(1, 4, 5, 10, 30.0, 2, 5, 1.20, 0, 0, 0, 0, 0, 30)
+//29 vipFPrice12
+[s29, x29] = vipCalc(1, 4, 5, 10, 30.0, 2, 6, 1.20, 0, 0, 0, 0, 0, 30)
+//30 vipL2Vol13
+[s30, x30] = vipCalc(1, 4, 5, 10, 30.0, 2, 1, 1.30, 0, 0, 0, 0, 0, 30)
+//31 vipL2Vol15
+[s31, x31] = vipCalc(1, 4, 5, 10, 30.0, 2, 1, 1.50, 0, 0, 0, 0, 0, 30)
+//32 vipL2Run3of4
+[s32, x32] = vipCalc(1, 3, 4, 10, 30.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//33 vipL2Run4of6
+[s33, x33] = vipCalc(1, 4, 6, 10, 30.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//34 vipL2Fresh5
+[s34, x34] = vipCalc(1, 4, 5, 5, 30.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//35 vipL2Fresh20
+[s35, x35] = vipCalc(1, 4, 5, 20, 30.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 30)
+//36 vipL2DayGreen
+[s36, x36] = vipCalc(1, 4, 5, 10, 30.0, 2, 1, 1.20, 1, 0, 0, 0, 0, 30)
+//37 vipL2Check45
+[s37, x37] = vipCalc(1, 4, 5, 10, 30.0, 2, 1, 1.20, 0, 0, 0, 0, 0, 45)
+//38 vipH_Lag3Vol13
+[s38, x38] = vipCalc(1, 4, 5, 10, 30.0, 3, 1, 1.30, 0, 0, 0, 0, 0, 30)
+//39 vipH_Lag2P25Vol13
+[s39, x39] = vipCalc(1, 4, 5, 10, 25.0, 2, 1, 1.30, 0, 0, 0, 0, 0, 30)
+//40 vipH_Lag2NFVol13
+[s40, x40] = vipCalc(1, 4, 5, 10, 30.0, 2, 0, 1.30, 0, 0, 0, 0, 0, 30)
+
+// ============================================================================================
+// SIGNAL QUALITY (DREPerf)
+// ============================================================================================
+q8(bool _sig, float _sl, simple int _checkBars) =>
+    [sr, scnt, n, ar, sro, srs, wr, wc, avgr, medr, stdr, pf, wlb, mfe, mae, dd, mls, score, qok, swr, slr] = dreperf.signalQualityFull(_sig, _sl, true, iMinSigSuccessRate, adrCond, _checkBars, iMinSigCount, iMinSigWilsonLb)
+    [wr, n, avgr, pf, dd, score, swr, slr]
+
+[w01, n01, a01, f01, d01, c01, gw01, gl01] = q8(s01, x01, 30)
+[w02, n02, a02, f02, d02, c02, gw02, gl02] = q8(s02, x02, 30)
+[w03, n03, a03, f03, d03, c03, gw03, gl03] = q8(s03, x03, 30)
+[w04, n04, a04, f04, d04, c04, gw04, gl04] = q8(s04, x04, 30)
+[w05, n05, a05, f05, d05, c05, gw05, gl05] = q8(s05, x05, 30)
+[w06, n06, a06, f06, d06, c06, gw06, gl06] = q8(s06, x06, 30)
+[w07, n07, a07, f07, d07, c07, gw07, gl07] = q8(s07, x07, 30)
+[w08, n08, a08, f08, d08, c08, gw08, gl08] = q8(s08, x08, 30)
+[w09, n09, a09, f09, d09, c09, gw09, gl09] = q8(s09, x09, 30)
+[w10, n10, a10, f10, d10, c10, gw10, gl10] = q8(s10, x10, 30)
+[w11, n11, a11, f11, d11, c11, gw11, gl11] = q8(s11, x11, 30)
+[w12, n12, a12, f12, d12, c12, gw12, gl12] = q8(s12, x12, 30)
+[w13, n13, a13, f13, d13, c13, gw13, gl13] = q8(s13, x13, 30)
+[w14, n14, a14, f14, d14, c14, gw14, gl14] = q8(s14, x14, 30)
+[w15, n15, a15, f15, d15, c15, gw15, gl15] = q8(s15, x15, 30)
+[w16, n16, a16, f16, d16, c16, gw16, gl16] = q8(s16, x16, 30)
+[w17, n17, a17, f17, d17, c17, gw17, gl17] = q8(s17, x17, 30)
+[w18, n18, a18, f18, d18, c18, gw18, gl18] = q8(s18, x18, 30)
+[w19, n19, a19, f19, d19, c19, gw19, gl19] = q8(s19, x19, 30)
+[w20, n20, a20, f20, d20, c20, gw20, gl20] = q8(s20, x20, 30)
+[w21, n21, a21, f21, d21, c21, gw21, gl21] = q8(s21, x21, 30)
+[w22, n22, a22, f22, d22, c22, gw22, gl22] = q8(s22, x22, 30)
+[w23, n23, a23, f23, d23, c23, gw23, gl23] = q8(s23, x23, 30)
+[w24, n24, a24, f24, d24, c24, gw24, gl24] = q8(s24, x24, 30)
+[w25, n25, a25, f25, d25, c25, gw25, gl25] = q8(s25, x25, 30)
+[w26, n26, a26, f26, d26, c26, gw26, gl26] = q8(s26, x26, 30)
+[w27, n27, a27, f27, d27, c27, gw27, gl27] = q8(s27, x27, 30)
+[w28, n28, a28, f28, d28, c28, gw28, gl28] = q8(s28, x28, 30)
+[w29, n29, a29, f29, d29, c29, gw29, gl29] = q8(s29, x29, 30)
+[w30, n30, a30, f30, d30, c30, gw30, gl30] = q8(s30, x30, 30)
+[w31, n31, a31, f31, d31, c31, gw31, gl31] = q8(s31, x31, 30)
+[w32, n32, a32, f32, d32, c32, gw32, gl32] = q8(s32, x32, 30)
+[w33, n33, a33, f33, d33, c33, gw33, gl33] = q8(s33, x33, 30)
+[w34, n34, a34, f34, d34, c34, gw34, gl34] = q8(s34, x34, 30)
+[w35, n35, a35, f35, d35, c35, gw35, gl35] = q8(s35, x35, 30)
+[w36, n36, a36, f36, d36, c36, gw36, gl36] = q8(s36, x36, 30)
+[w37, n37, a37, f37, d37, c37, gw37, gl37] = q8(s37, x37, 45)
+[w38, n38, a38, f38, d38, c38, gw38, gl38] = q8(s38, x38, 30)
+[w39, n39, a39, f39, d39, c39, gw39, gl39] = q8(s39, x39, 30)
+[w40, n40, a40, f40, d40, c40, gw40, gl40] = q8(s40, x40, 30)
+
+// ============================================================================================
+// PERFORMANCE TABLE (schema consumed by scripts/tv_table_scraper.py)
+// ============================================================================================
+renderRow(table _tbl, int _row, string _name, float _winRatePct, int _sigCnt, float _avgR, float _pf, float _maxDdR, float _score, float _sumWinR, float _sumLossR) =>
+    table.cell(table_id = _tbl, column = 0, row = _row, text = _name, text_size = size.small)
+    table.cell(table_id = _tbl, column = 1, row = _row, text = str.tostring(_winRatePct, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 2, row = _row, text = str.tostring(_sigCnt), text_size = size.small)
+    table.cell(table_id = _tbl, column = 3, row = _row, text = str.tostring(_avgR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 4, row = _row, text = na(_pf) ? "∞" : str.tostring(_pf, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 5, row = _row, text = str.tostring(_maxDdR, "#.##"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 6, row = _row, text = str.tostring(_score, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 7, row = _row, text = str.tostring(_sumWinR, "#.#"), text_size = size.small)
+    table.cell(table_id = _tbl, column = 8, row = _row, text = str.tostring(_sumLossR, "#.#"), text_size = size.small)
+
+if barstate.islast and iShowTable
+    var tbl = table.new(position = position.top_right, columns = 9, rows = 44)
+    txtSize = size.small
+    table.cell(table_id = tbl, column = 0, row = 0, text = '')
+    table.cell(table_id = tbl, column = 0, row = 2, text = "sig", text_size = txtSize)
+    table.cell(table_id = tbl, column = 1, row = 2, text = "win%", text_size = txtSize)
+    table.cell(table_id = tbl, column = 2, row = 2, text = "N", text_size = txtSize)
+    table.cell(table_id = tbl, column = 3, row = 2, text = "avgR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 4, row = 2, text = "PF", text_size = txtSize)
+    table.cell(table_id = tbl, column = 5, row = 2, text = "maxDD", text_size = txtSize)
+    table.cell(table_id = tbl, column = 6, row = 2, text = "score", text_size = txtSize)
+    table.cell(table_id = tbl, column = 7, row = 2, text = "winR", text_size = txtSize)
+    table.cell(table_id = tbl, column = 8, row = 2, text = "lossR", text_size = txtSize)
+
+    renderRow(tbl, 3, "vipL0", w01, n01, a01, f01, d01, c01, gw01, gl01)
+    renderRow(tbl, 4, "vipL1", w02, n02, a02, f02, d02, c02, gw02, gl02)
+    renderRow(tbl, 5, "vipL2", w03, n03, a03, f03, d03, c03, gw03, gl03)
+    renderRow(tbl, 6, "vipL3", w04, n04, a04, f04, d04, c04, gw04, gl04)
+    renderRow(tbl, 7, "vipL4", w05, n05, a05, f05, d05, c05, gw05, gl05)
+    renderRow(tbl, 8, "vipL5", w06, n06, a06, f06, d06, c06, gw06, gl06)
+    renderRow(tbl, 9, "vipL0NF", w07, n07, a07, f07, d07, c07, gw07, gl07)
+    renderRow(tbl, 10, "vipL1NF", w08, n08, a08, f08, d08, c08, gw08, gl08)
+    renderRow(tbl, 11, "vipL2NF", w09, n09, a09, f09, d09, c09, gw09, gl09)
+    renderRow(tbl, 12, "vipL3NF", w10, n10, a10, f10, d10, c10, gw10, gl10)
+    renderRow(tbl, 13, "vipL4NF", w11, n11, a11, f11, d11, c11, gw11, gl11)
+    renderRow(tbl, 14, "vipL5NF", w12, n12, a12, f12, d12, c12, gw12, gl12)
+    renderRow(tbl, 15, "vipL2P25", w13, n13, a13, f13, d13, c13, gw13, gl13)
+    renderRow(tbl, 16, "vipL2P35", w14, n14, a14, f14, d14, c14, gw14, gl14)
+    renderRow(tbl, 17, "vipL4P25", w15, n15, a15, f15, d15, c15, gw15, gl15)
+    renderRow(tbl, 18, "vipL4P35", w16, n16, a16, f16, d16, c16, gw16, gl16)
+    renderRow(tbl, 19, "vipL2P25NF", w17, n17, a17, f17, d17, c17, gw17, gl17)
+    renderRow(tbl, 20, "vipL2P35NF", w18, n18, a18, f18, d18, c18, gw18, gl18)
+    renderRow(tbl, 21, "vipL4P25NF", w19, n19, a19, f19, d19, c19, gw19, gl19)
+    renderRow(tbl, 22, "vipL4P35NF", w20, n20, a20, f20, d20, c20, gw20, gl20)
+    renderRow(tbl, 23, "vipMax30", w21, n21, a21, f21, d21, c21, gw21, gl21)
+    renderRow(tbl, 24, "vipMax35", w22, n22, a22, f22, d22, c22, gw22, gl22)
+    renderRow(tbl, 25, "vipMax30NF", w23, n23, a23, f23, d23, c23, gw23, gl23)
+    renderRow(tbl, 26, "vipMax35NF", w24, n24, a24, f24, d24, c24, gw24, gl24)
+    renderRow(tbl, 27, "vipFAdr2", w25, n25, a25, f25, d25, c25, gw25, gl25)
+    renderRow(tbl, 28, "vipFAdr3", w26, n26, a26, f26, d26, c26, gw26, gl26)
+    renderRow(tbl, 29, "vipFTurn1M", w27, n27, a27, f27, d27, c27, gw27, gl27)
+    renderRow(tbl, 30, "vipFPrice5", w28, n28, a28, f28, d28, c28, gw28, gl28)
+    renderRow(tbl, 31, "vipFPrice12", w29, n29, a29, f29, d29, c29, gw29, gl29)
+    renderRow(tbl, 32, "vipL2Vol13", w30, n30, a30, f30, d30, c30, gw30, gl30)
+    renderRow(tbl, 33, "vipL2Vol15", w31, n31, a31, f31, d31, c31, gw31, gl31)
+    renderRow(tbl, 34, "vipL2Run3of4", w32, n32, a32, f32, d32, c32, gw32, gl32)
+    renderRow(tbl, 35, "vipL2Run4of6", w33, n33, a33, f33, d33, c33, gw33, gl33)
+    renderRow(tbl, 36, "vipL2Fresh5", w34, n34, a34, f34, d34, c34, gw34, gl34)
+    renderRow(tbl, 37, "vipL2Fresh20", w35, n35, a35, f35, d35, c35, gw35, gl35)
+    renderRow(tbl, 38, "vipL2DayGreen", w36, n36, a36, f36, d36, c36, gw36, gl36)
+    renderRow(tbl, 39, "vipL2Check45", w37, n37, a37, f37, d37, c37, gw37, gl37)
+    renderRow(tbl, 40, "vipH_Lag3Vol13", w38, n38, a38, f38, d38, c38, gw38, gl38)
+    renderRow(tbl, 41, "vipH_Lag2P25Vol13", w39, n39, a39, f39, d39, c39, gw39, gl39)
+    renderRow(tbl, 42, "vipH_Lag2NFVol13", w40, n40, a40, f40, d40, c40, gw40, gl40)
