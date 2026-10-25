@@ -298,11 +298,6 @@ iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, display = disp
 iUseEntryTiming = input.bool(defval = true, title = 'Use entry timing filter', display = display.none, group = 'Entry timing (intraday)')
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, display = display.none, group = 'Entry timing (intraday)')
 
-//regime inputs
-iRegimeModWindow = input.int(defval = 31, title = 'Regime inertia [bars]', minval = 0, maxval = 63, tooltip = 'How long a finished bull/bear state keeps affecting sigMod (inertia). 0 = neutral, 1 = current state only, 31/63 = state stays counted for 30/62 bars after it ends.', display = display.none, group = 'Regime')
-iUseRegimeGate = input.bool(defval = false, title = 'Use explicit benchmark regime gate', display = display.none, group = 'Regime')
-iRegimeGateWindow = input.int(defval = 31, title = 'Min. days from benchmark bearish (gate)', minval = 0, maxval = 63, display = display.none, group = 'Regime')
-
 //sig success rate filter
 iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', display = display.none, group = 'Signals')
 iShowEt4sbSig = input.bool(defval = true, title = 'Show et4sb', display = display.none, group = 'Signals')
@@ -346,9 +341,15 @@ iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [
 iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
 //common filters calculations 
+// Market-level profiles:
+//   gFilter1 (PL): F4-like profile - regime gate OFF, sigMod neutral.
+//   gFilter2 (other markets): F5-like profile - regime gate ON, window 63.
+bool isPL = syminfo.prefix == 'GPW' or syminfo.prefix == 'NEWCONNECT'
+int regimeModWindow = isPL ? 0 : 63
+
 // Regime state is computed once (close-only wide index + sector) and shared by the signal
-// modifier, the entry timing filter and the explicit regime gate.
-[sigMod, wideBullish, wideBearish, wideBullBars, wideBearBars, sectorBullish, sectorBearish, sectorBullBars, sectorBearBars] = drelib.getRegimeState(iRegimeModWindow)
+// modifier, the entry timing filter and the regime gate.
+[sigMod, wideBullish, wideBearish, wideBullBars, wideBearBars, sectorBullish, sectorBearish, sectorBullBars, sectorBearBars] = drelib.getRegimeState(regimeModWindow)
 
 // Universe filter: tradeable stock, price band, turnover and ADR.
 bool universeOk = drelib.universeFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30)
@@ -357,10 +358,17 @@ bool universeOk = drelib.universeFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPr
 bool entryDistanceOk = drelib.entryNotOverextended(30, iMaxDistFromLoDPct, sigMod)
 bool entryOk = not iUseEntryTiming or entryDistanceOk
 
-// Explicit benchmark regime gate (disabled by default to preserve the legacy behaviour).
-bool regimeOk = drelib.benchmarkRegimeOk(iUseRegimeGate, iRegimeGateWindow, wideBearBars)
+bool baseFilter = (universeOk and iGeneralFilterCond or not iGeneralFilterCond) and entryOk
 
-bool gFilter = (universeOk and iGeneralFilterCond or not iGeneralFilterCond) and entryOk and regimeOk
+// gFilter1: PL profile (gate OFF).
+bool gFilter1 = baseFilter
+
+// gFilter2: other markets profile (gate ON, window 63).
+bool regimeOkOther = drelib.benchmarkRegimeOk(true, 63, wideBearBars)
+bool gFilter2 = baseFilter and regimeOkOther
+
+// All signal calculations and alerts use the market-appropriate filter.
+bool gFilter = isPL ? gFilter1 : gFilter2
 
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct
