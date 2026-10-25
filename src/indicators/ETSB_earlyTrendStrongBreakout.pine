@@ -299,7 +299,7 @@ iUseEntryTiming = input.bool(defval = true, title = 'Use entry timing filter', d
 iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, display = display.none, group = 'Entry timing (intraday)')
 
 //regime inputs
-iRegimeModWindow = input.int(defval = 31, title = 'Regime modifier window [bars]', minval = 0, maxval = 63, display = display.none, group = 'Regime')
+iRegimeModWindow = input.int(defval = 31, title = 'Regime inertia [bars]', minval = 0, maxval = 63, tooltip = 'How long a finished bull/bear state keeps affecting sigMod (inertia). 0 = neutral, 1 = current state only, 31/63 = state stays counted for 30/62 bars after it ends.', display = display.none, group = 'Regime')
 iUseRegimeGate = input.bool(defval = false, title = 'Use explicit benchmark regime gate', display = display.none, group = 'Regime')
 iRegimeGateWindow = input.int(defval = 31, title = 'Min. days from benchmark bearish (gate)', minval = 0, maxval = 63, display = display.none, group = 'Regime')
 

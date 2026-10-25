@@ -400,6 +400,7 @@ export classifyTrend(series float _close) =>
 //           The default benchmark and the matching sector index are classified close-only;
 //           the result contains both raw trend states and the net signal modifier (sigMod).
 // @param _daysSinceTrend Lookback in bars used to decide whether a trend state is "recent".
+//                        This is regime inertia: a finished state stays "recent" for _daysSinceTrend - 1 bars.
 // @returns [sigMod, wideBullish, wideBearish, wideBullBars, wideBearBars, sectorBullish, sectorBearish, sectorBullBars, sectorBearBars]
 export getRegimeState(int _daysSinceTrend) =>
     wideClose = getDefaultBenchmark(close)
