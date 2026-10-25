@@ -5,7 +5,8 @@
 //@version=6
 indicator("early trend strong breakout", overlay = true, calc_bars_count = 12 * 252, max_bars_back = 500)
 
-import drebel/DRELib/39 as drelib
+// DRELib/40 adds the unified regime state, universe filter and entry-timing helpers.
+import drebel/DRELib/40 as drelib
 import drebel/DREPerf/27 as dreperf
 
 // ============================================================================================
@@ -286,13 +287,21 @@ import drebel/DREPerf/27 as dreperf
 // ============================================================================================
 
 //common filters inputs
-iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', display = display.none, group = 'General filter for signal')
-iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, display = display.none, group = 'General filter for signal')
-iMinAdr = input.float(defval = 3, title = 'Min. ADR[%]', minval = 0, step = 0.2, display = display.none, group = 'General filter for signal')
-iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, display = display.none, inline = 'min max price', group = 'General filter for signal')
-iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, display = display.none, inline = 'min max price', group = 'General filter for signal')
-iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, display = display.none, group = 'General filter for signal')
-iMinBenchmarkNotBearishSince = input.int(defval = 31, title = 'Min. days from benchmark bearish', minval = 0, maxval = 63, display = display.none, group = 'General filter for signal')
+//universe filter inputs
+iGeneralFilterCond = input.bool(defval = true, title = 'Filter ON', display = display.none, group = 'Universe filter for signal')
+iMinTurnover = input.float(defval = 0.20, title = 'Min. Turnover[M]', minval = 0.2, display = display.none, group = 'Universe filter for signal')
+iMinAdr = input.float(defval = 3, title = 'Min. ADR[%]', minval = 0, step = 0.2, display = display.none, group = 'Universe filter for signal')
+iMinPrice = input.float(defval = 1.0, title = 'Min.-max. price', minval = 0, display = display.none, inline = 'min max price', group = 'Universe filter for signal')
+iMaxPrice = input.float(defval = 1750.0, title = '-', minval = 0, display = display.none, inline = 'min max price', group = 'Universe filter for signal')
+
+//entry timing inputs
+iUseEntryTiming = input.bool(defval = true, title = 'Use entry timing filter', display = display.none, group = 'Entry timing (intraday)')
+iMaxDistFromLoDPct = input.int(defval = 67, title = 'Max. distance from LoD [%]', minval = 0, maxval = 300, step = 5, display = display.none, group = 'Entry timing (intraday)')
+
+//regime inputs
+iRegimeModWindow = input.int(defval = 31, title = 'Regime modifier window [bars]', minval = 0, maxval = 63, display = display.none, group = 'Regime')
+iUseRegimeGate = input.bool(defval = false, title = 'Use explicit benchmark regime gate', display = display.none, group = 'Regime')
+iRegimeGateWindow = input.int(defval = 31, title = 'Min. days from benchmark bearish (gate)', minval = 0, maxval = 63, display = display.none, group = 'Regime')
 
 //sig success rate filter
 iShowEt3sbSig = input.bool(defval = true, title = 'Show et3sb', display = display.none, group = 'Signals')
@@ -337,9 +346,21 @@ iMinSigSuccessRate = input.float(defval = 46.0, title = 'Min. sig success rate [
 iMinSigReturnAdrMultiple = input.float(defval = 1.2, title = 'Min. avg. return by ADR multiple', minval = -1.0, maxval = 5.0, step = 0.05, display = display.none, group = 'Signals')
 
 //common filters calculations 
-int sigMod = drelib.getWideIndexAndSectorSignalMod(iMinBenchmarkNotBearishSince)
-bool generalFilter = drelib.generalFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30, iMaxDistFromLoDPct, sigMod)
-bool gFilter = generalFilter and iGeneralFilterCond or not iGeneralFilterCond
+// Regime state is computed once (close-only wide index + sector) and shared by the signal
+// modifier, the entry timing filter and the explicit regime gate.
+[sigMod, wideBullish, wideBearish, wideBullBars, wideBearBars, sectorBullish, sectorBearish, sectorBullBars, sectorBearBars] = drelib.getRegimeState(iRegimeModWindow)
+
+// Universe filter: tradeable stock, price band, turnover and ADR.
+bool universeOk = drelib.universeFilter(iMinTurnover, iMinAdr, iMinPrice, iMaxPrice, 30)
+
+// Entry timing: do not enter if the price has already extended too far above the day's low.
+bool entryDistanceOk = drelib.entryNotOverextended(30, iMaxDistFromLoDPct, sigMod)
+bool entryOk = not iUseEntryTiming or entryDistanceOk
+
+// Explicit benchmark regime gate (disabled by default to preserve the legacy behaviour).
+bool regimeOk = drelib.benchmarkRegimeOk(iUseRegimeGate, iRegimeGateWindow, wideBearBars)
+
+bool gFilter = (universeOk and iGeneralFilterCond or not iGeneralFilterCond) and entryOk and regimeOk
 
 adrPct = 100.0 * (ta.sma(high / low, 100) - 1)
 adrCond = iMinSigReturnAdrMultiple * adrPct

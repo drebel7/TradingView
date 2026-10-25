@@ -371,6 +371,8 @@ export isMinevriniBearishTrend(int _tradingDaysInAYear, bool _includeRelativeStr
 export isMinevriniBearishTrend(bool _includeRelativeStrength, bool _includeEarnings, float _minEarningsChangeRate) =>
     isMinevriniBearishTrend(getDefaultStockTradingDaysInAYear(), _includeRelativeStrength, _includeEarnings, _minEarningsChangeRate)
 
+// @function Legacy regime modifier. Kept for backward compatibility; new scripts should use
+//           getRegimeState, which returns the same sigMod together with the raw trend state.
 export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
     wideIndexClose = getDefaultBenchmark(close)
     [wideIndexBullish, wideIndexBearish] = priceMasTrendAligned(wideIndexClose)
@@ -383,6 +385,55 @@ export getWideIndexAndSectorSignalMod(int daysSinceTrend) =>
     isSectorRecentlyBearishCond = nz(ta.barssince(sectorIndexBearish), 9999) < daysSinceTrend
     sigMod = (isWideIndexRecentlyBullishCond ? 1 : 0) - (isWideIndexRecentlyBearishCond ? 1 : 0) + (isSectorRecentlyBullishCond ? 1 : 0) - (isSectorRecentlyBearishCond ? 1 : 0)
     sigMod
+
+// @function Classifies the trend of an index or sector using close prices only.
+//           Close-only is intentional: for broad indices/sectors the difference between
+//           close-based and OHLC-based 52-week extremes is small, while avoiding extra
+//           request.security(low/high) calls keeps the regime calculation cheap.
+// @param _close Close series of the index/sector.
+// @returns [isBullish, isBearish, barsSinceBullish, barsSinceBearish]
+export classifyTrend(series float _close) =>
+    [isBullish, isBearish] = priceMasTrendAligned(_close)
+    [isBullish, isBearish, nz(ta.barssince(isBullish), 9999), nz(ta.barssince(isBearish), 9999)]
+
+// @function Computes the market regime state for the current symbol.
+//           The default benchmark and the matching sector index are classified close-only;
+//           the result contains both raw trend states and the net signal modifier (sigMod).
+// @param _daysSinceTrend Lookback in bars used to decide whether a trend state is "recent".
+// @returns [sigMod, wideBullish, wideBearish, wideBullBars, wideBearBars, sectorBullish, sectorBearish, sectorBullBars, sectorBearBars]
+export getRegimeState(int _daysSinceTrend) =>
+    wideClose = getDefaultBenchmark(close)
+    [wideBullish, wideBearish, wideBullBars, wideBearBars] = classifyTrend(wideClose)
+    sectorIndex = getSectorIndex()
+    sectorClose = sectorIndex != '' ? request.security(sectorIndex, "D", close) : na
+    [sectorBullish, sectorBearish, sectorBullBars, sectorBearBars] = classifyTrend(sectorClose)
+    wideBullishRecent = wideBullBars < _daysSinceTrend
+    wideBearishRecent = wideBearBars < _daysSinceTrend
+    sectorBullishRecent = sectorBullBars < _daysSinceTrend
+    sectorBearishRecent = sectorBearBars < _daysSinceTrend
+    sigMod = (wideBullishRecent ? 1 : 0) - (wideBearishRecent ? 1 : 0) + (sectorBullishRecent ? 1 : 0) - (sectorBearishRecent ? 1 : 0)
+    [sigMod, wideBullish, wideBearish, wideBullBars, wideBearBars, sectorBullish, sectorBearish, sectorBullBars, sectorBearBars]
+
+// @function Explicit benchmark regime gate.
+//           The gate is disabled when _enabled is false; otherwise it passes only when the
+//           default benchmark has not been bearish for at least _minDaysSinceBearish bars.
+// @param _enabled Gate switch.
+// @param _minDaysSinceBearish Minimum number of bars since the last benchmark bearish state.
+// @returns true when the gate is disabled or when the benchmark is not recently bearish.
+export benchmarkRegimeOk(bool _enabled, int _minDaysSinceBearish) =>
+    benchmarkBearish = defaultBenchmarkMasBearishAligned()
+    barsSinceBearish = nz(ta.barssince(benchmarkBearish), 9999)
+    not _enabled or barsSinceBearish > _minDaysSinceBearish
+
+// @function Explicit benchmark regime gate using an already computed bars-since-bearish value.
+//           Use this overload when the regime state is shared with other filters to avoid
+//           recomputing the benchmark trend.
+// @param _enabled Gate switch.
+// @param _minDaysSinceBearish Minimum number of bars since the last benchmark bearish state.
+// @param _barsSinceBearish Bars since the benchmark bearish state (from getRegimeState).
+// @returns true when the gate is disabled or when the benchmark is not recently bearish.
+export benchmarkRegimeOk(bool _enabled, int _minDaysSinceBearish, int _barsSinceBearish) =>
+    not _enabled or _barsSinceBearish > _minDaysSinceBearish
 
 export nonBrokenExtremesPct(int _lookback) =>
     int lowsCount = 0
@@ -517,6 +568,30 @@ export generalFilter(float _minTurnoverM, float _minAdr, float _minPrice, float 
     loDDistCond = loDDistPct <= _maxDistFromLoDPct
     allCond = turnoverCond and adrCond and priceCond and isBenchmarkNotRecentlyBearishCond and loDDistCond
     allCond
+
+// @function Pure universe filter: tradeable stock, price band, turnover and ADR.
+//           Deliberately excludes entry-timing (distance from LoD) and regime conditions,
+//           so those concerns can be combined explicitly by the signal script.
+// @param _minTurnoverM Minimum average and median turnover in millions.
+// @param _minAdr Minimum average daily range in percent.
+// @param _minPrice Minimum close price.
+// @param _maxPrice Maximum close price.
+// @param _len Lookback for turnover and ADR.
+// @returns true when the symbol passes the universe filter.
+export universeFilter(float _minTurnoverM, float _minAdr, float _minPrice, float _maxPrice, int _len) =>
+    generalFilter(_minTurnoverM, _minAdr, _minPrice, _maxPrice, _len)
+
+// @function Entry timing filter: checks that the current close is not too far above the
+//           current bar's low, measured in average bar ranges. This works both on daily bars
+//           and intraday: it prevents entering after the price has already extended.
+// @param _len Lookback for the average bar range.
+// @param _maxDistPct Maximum allowed distance from the low, in % of the average bar range.
+// @param _sigMod Regime modifier; each point loosens (positive) or tightens (negative) the limit by 10%.
+// @returns true when the distance is within the limit.
+export entryNotOverextended(int _len, float _maxDistPct, int _sigMod) =>
+    hiloAvg = ta.sma(high - low, _len)
+    distPct = hiloAvg > 0 ? 100.0 * (close - low) / hiloAvg : na
+    not na(distPct) and distPct <= _maxDistPct * (1 + _sigMod * 0.1)
 
 // breakouts
 export isAboveRecentHighVwap(int _lookback) =>
