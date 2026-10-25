@@ -798,12 +798,15 @@ async def click_connect_button(cdp, max_attempts=5, interval=1.0):
 # ----------------------------------------------------------------------------
 # Extended metric columns of the ETSB table, in order, following the signal
 # name column:
-#   win%   N   avgR   PF   maxDD   score   gross win R   gross loss R
+#   win%   N   avgR   PF   maxDD   score   gross win R   gross loss R   avgRet%
 # Legacy tables (e.g. ridingVwapOptimizer) insert a "perf" column
 # ("x% (a/b) y%") right after the signal name; it is detected from the header
 # and skipped so the metrics still line up. It is no longer exported.
+# avg_ret_pct is the optional trailing average return per trade [%]; older
+# tables that do not render it simply leave the column blank.
 EXT_METRIC_NAMES = [
     "win_pct", "n", "avg_r", "pf", "max_dd", "score", "sum_win_r", "sum_loss_r",
+    "avg_ret_pct",
 ]
 
 # Full CSV schema.
@@ -1007,7 +1010,7 @@ def write_csv_header(path, indicator, watchlist):
         f.write(f"# watchlist: {watchlist}\n")
         f.write(f"# generated: {datetime.now().isoformat(timespec='seconds')}\n")
         f.write("# columns: " + ",".join(CSV_COLUMNS) + "\n")
-        f.write("# metrics: win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r "
+        f.write("# metrics: win_pct, n, avg_r, pf, max_dd, score, sum_win_r, sum_loss_r, avg_ret_pct "
                 "(blank when the signal did not occur)\n")
         f.write("# a legacy leading 'perf' column ('x% (a/b) y%'), if present, is skipped\n")
         f.write("# pf is shown as the infinity sign and left blank here when there are no losing trades\n")

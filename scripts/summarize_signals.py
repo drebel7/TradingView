@@ -83,6 +83,7 @@ def aggregate(records):
             "sum_pf_n": 0.0, "pf_n": 0.0, "sum_dd_n": 0.0,
             "gross_win_r": 0.0, "gross_loss_r": 0.0, "has_gross": False,
             "score_sum": 0.0, "score_cnt": 0, "score_pos": 0,
+            "sum_ret_n": 0.0, "ret_n": 0.0,
             "avg_r_list": [], "pf_list": [],
         })
         n = fnum(r.get("n"))
@@ -110,6 +111,10 @@ def aggregate(records):
                 a["score_cnt"] += 1
                 if sc > 0:
                     a["score_pos"] += 1
+            ret = fnum(r.get("avg_ret_pct"))
+            if ret is not None:
+                a["sum_ret_n"] += ret * n
+                a["ret_n"] += n
         swr = fnum(r.get("sum_win_r"))
         slr = fnum(r.get("sum_loss_r"))
         if swr is not None or slr is not None:
@@ -144,6 +149,7 @@ def aggregate(records):
             "median_pf": round(statistics.median(a["pf_list"]), 2) if a["pf_list"] else "",
             "gross_win_r": round(a["gross_win_r"], 1) if a["has_gross"] else "",
             "gross_loss_r": round(a["gross_loss_r"], 1) if a["has_gross"] else "",
+            "avg_ret_pct": round(a["sum_ret_n"] / a["ret_n"], 3) if a["ret_n"] else "",
         })
     out.sort(key=lambda x: (x["score_mean"] if x["score_mean"] != "" else -1e9), reverse=True)
     return out
@@ -152,7 +158,7 @@ def aggregate(records):
 COLUMNS = ["indicator", "sig", "symbols", "occurrences", "win_pct", "avg_r",
            "pf", "max_dd", "score_mean", "score_sum",
            "score_pos_pct", "median_avg_r", "median_pf", "gross_win_r",
-           "gross_loss_r"]
+           "gross_loss_r", "avg_ret_pct"]
 
 
 def main():
