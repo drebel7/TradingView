@@ -63,6 +63,7 @@ import glob
 import json
 import os
 import platform
+import re
 import shutil
 import signal
 import subprocess
@@ -724,6 +725,41 @@ async def show_only_indicator(cdp, indicator):
         return {"ok": False, "err": str(e)}
 
 
+def normalize_input_title(text):
+    """Normalize an input title the same way JS_SET_INPUTS does."""
+    s = str(text).strip().lower()
+    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r"[.\s]+$", "", s)
+    return s
+
+
+def parse_input_overrides(items):
+    """Parse repeated --set-input TITLE=VALUE arguments into a dict.
+
+    Values are typed as bool, int, float or string. Keys are normalized input
+    titles (lowercase, collapsed spaces, no trailing dot/space), matching the
+    JavaScript side in JS_SET_INPUTS.
+    """
+    out = {}
+    for item in items or []:
+        if "=" not in item:
+            raise ValueError(f"--set-input expects TITLE=VALUE, got: {item!r}")
+        key, raw = item.split("=", 1)
+        key = normalize_input_title(key)
+        raw = raw.strip()
+        if raw.lower() in ("true", "false"):
+            val = raw.lower() == "true"
+        else:
+            try:
+                val = float(raw)
+                if "." not in raw and "e" not in raw.lower():
+                    val = int(val)
+            except ValueError:
+                val = raw
+        out[key] = val
+    return out
+
+
 async def configure_inputs(cdp, indicator, reset_defaults=True, overrides=None):
     """Set the scraped indicator's inputs before scraping.
 
@@ -1082,7 +1118,13 @@ async def main_async(args):
         # reset to script defaults (best effort) and force the table-related
         # booleans (show table on; show only good sigs. / extended quality gate
         # off), then wait for the study to finish recomputing.
-        cfg = await configure_inputs(cdp, args.indicator, args.set_input_defaults)
+        try:
+            custom_overrides = dict(INPUT_OVERRIDES)
+            custom_overrides.update(parse_input_overrides(args.set_input))
+        except ValueError as e:
+            print(f"[error] {e}")
+            return
+        cfg = await configure_inputs(cdp, args.indicator, args.set_input_defaults, custom_overrides)
         if cfg.get("ok"):
             print(f"[i] inputs: applied {cfg.get('applied')} "
                   f"({cfg.get('overrides')} forced), skipped {cfg.get('skipped')}")
@@ -1233,6 +1275,10 @@ def main():
                          "defaults before scraping (default: on); the table-related "
                          "inputs (show table on; show only good sigs. / extended "
                          "quality gate off) are always forced afterwards")
+    ap.add_argument("--set-input", action="append", default=[], metavar="TITLE=VALUE",
+                    help="override an indicator input by its normalized title; "
+                         "repeatable, e.g. --set-input 'Min. ADR[%%]=2.5' "
+                         "--set-input 'Use explicit benchmark regime gate=false'")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
