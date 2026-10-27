@@ -634,25 +634,9 @@ fbPercentileOverSmaCond = fbPercentileOverSma200[1] < iFlatBreakoutMaxPercentile
 fb = fbRankCond and fbHighest[1] == fbHighest[6] and volumeGood and fbPercentileOverSmaCond
 
 //VIP (Volume Instituional Push)
-iVIPMaxPercentileOverSMA200 = input.int(defval = 50, title = "Max percentile over sma200", minval = 10, maxval = 100, step = 10, display = display.none, group = "Signal: Volume Institutional Push")
-iVIPMin1DayVeryHighVol = input.bool(defval = false, title = 'min. 1 day of very high volume', display = display.none, group = "Signal: Volume Institutional Push")
-
 vipDayGood = volume > gVolMa and close >= close[1]
-vipDayGood_10 = vipDayGood ? 1 : 0
-vipDayGood4 = math.sum(vipDayGood_10, 4)
-vipDayGood6 = math.sum(vipDayGood_10, 6)
-vip44 = vipDayGood4 == 4
-vip44New = nz(ta.barssince(vip44[1]), 50) > 10 and vip44
-vip56 = vipDayGood6 >= 5
-vip56New = nz(ta.barssince(vip56[1]), 50) > 10 and vip56
-vipHasEnoughBars = bar_index >= 200
-vipPercentRankCond = not vipHasEnoughBars or fBPercentRank <= iVIPMaxPercentileOverSMA200
-vipVHighVol = volume > 2 * gVolMa and close >= close[1]
-vipVHighVol_10 = vipVHighVol ? 1 : 0
-vipVHighVolCount = math.sum(vipVHighVol_10, 6)
-vipVHighVolCountOk = vipVHighVolCount >= 1
-vipRecentVHighVolCond = iVIPMin1DayVeryHighVol and vipVHighVolCountOk or not iVIPMin1DayVeryHighVol
-vip = (vip44New or vip56New) and vipPercentRankCond and vipRecentVHighVolCond
+vipPattern = math.sum(vipDayGood ? 1 : 0, 5) >= 3
+vip = nz(ta.barssince(vipPattern[1]), 50) > 10 and vipPattern
 
 //Qullamaggie EP: gap up + volume + base breakout; three parameter sets
 baseHigh20 = ta.highest(high, 20)[1]
