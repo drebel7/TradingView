@@ -14,6 +14,11 @@
 - Before proposing complex logic or new features, the agent should check the above resources when relevant.
 - Do not modify or delete comment lines.
 
+**Editing priorities (in order; when they conflict, the lower number wins)**
+1. **Clean code** - explicit names, no dead code, no duplicated formulas, follow the existing patterns of the file. A reader must understand the change without asking. Keep existing comments; never delete them.
+2. **Fast, efficient code** - Pine executes on TradingView's servers on every bar, so per-bar cost is a design constraint: reuse series and helpers that already exist (e.g. `mainMa`, `shortMa`, `strongBreakout`, `sigMod`) instead of recomputing them, prefer vectorized `ta.*` / `math.*` over loops, avoid extra `request.security`, and do not add plots, inputs or separate helper calls that multiply work per signal without a measured reason.
+3. **Minimal diff per iteration** - one iteration = one scoped change. No opportunistic refactors, no reformatting, no renames unrelated to the change, no touching neighbouring signals. If a helper is genuinely needed, add it once and reuse it.
+
 **Core principles**
 - **Simplicity first** - minimal code that solves the problem. Nothing speculative.
 - **No Laziness** - Find root causes. No temporary fixes. Senior developer standards.
