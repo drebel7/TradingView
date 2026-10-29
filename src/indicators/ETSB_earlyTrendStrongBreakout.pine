@@ -477,13 +477,13 @@ etc1sb = etsb and (rmv1Cond or lowRmv1)
 etc2sb = etsb and (rmv2Cond or lowRmv2)
 etc3sb = etsb and (rmv3Cond or lowRmv3)
 
-iDivergence = input.int(30, title = 'Min. obv-price div. pct', minval = 0, maxval = 100, display = display.none, group = 'Signal: Obv-price divergence sb')
+iDivergence = input.int(10, title = 'Min. obv-price div. bars', minval = 0, maxval = 150, display = display.none, group = 'Signal: Obv-price divergence sb')
 obvMa = ta.sma(ta.obv, 100)
 priceMa = ta.sma(close, 100)
 risingObv = obvMa > obvMa[1]
 risingPrice = priceMa > priceMa[1]
 divergence = risingObv and not risingPrice
-divergenceSum = math.sum(divergence ? 1 : 0, 100)
+divergenceSum = math.sum(divergence ? 1 : 0, 150)
 obvDiv = divergenceSum > iDivergence and strongBreakout
 
 //minevrini trend /contraction/ strong breakout
