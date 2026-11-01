@@ -566,23 +566,27 @@ lowsBelowMjVwap = math.sum(low < majorLVwap ? 1 : 0, 10)
 vwapTouch = majorLowAgo > 10 and majorLowAgo < iRidingVwapNoTouchCancelThreshold and drelib.crossover(majorLVwap) and lowsBelowMjVwap <= iRidingVwapLowsBelow and ridingVwapVolOk and ridngVwapLowFlushCond[majorLowAgo]
 lowestRecent = ta.lowest(iRidingVwapMinLowestCandle)
 
-nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo) =>
+nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo, series bool _levelReset) =>
     var int touchCount = 0
     newLow = low < _prevVWap and lowestRecent == low and _prevLowsMinAgo > 0
     lVwap = ta.vwap(_src, newLow)
     ago = ta.barssince(newLow)
     agedNewLowVwap = ago > _prevLowsMinAgo or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
     lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
-    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and touchCount <= iRidingVwapMaxTouchesPerVwap and ridngVwapLowFlushCond[_prevLowsMinAgo] and ridingVwapRisingMainMaCond
+    // The touch budget belongs to one level instance, so it restarts when the touched VWAP is
+    // re-anchored. Without the reset the counter accumulates over the whole chart and a level
+    // touched a few times early on stays dead for every later anchor.
+    touchCount := _levelReset ? 0 : touchCount
+    prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and touchCount < iRidingVwapMaxTouchesPerVwap and ridngVwapLowFlushCond[_prevLowsMinAgo] and ridingVwapRisingMainMaCond
     touchCount := prevVwapTouch ? touchCount + 1 : touchCount
     [newLow, ago, agedNewLowVwap, prevVwapTouch]
 
-[minorLow1, minorLow1Ago, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLowAgo)
-[minorLow2, minorLow2Ago, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago))
-[minorLow3, minorLow3Ago, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago))
-[minorLow4, minorLow4Ago, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago))
-[minorLow5, minorLow5Ago, minorLow5Vwap, vwapTouch6] = nextVwapTouch(minorLow4Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago))
-[minorLow6, minorLow6Ago, minorLow6Vwap, vwapTouch7] = nextVwapTouch(minorLow5Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago, minorLow5Ago))
+[minorLow1, minorLow1Ago, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLowAgo, majorLow)
+[minorLow2, minorLow2Ago, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago), minorLow1)
+[minorLow3, minorLow3Ago, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago), minorLow2)
+[minorLow4, minorLow4Ago, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago), minorLow3)
+[minorLow5, minorLow5Ago, minorLow5Vwap, vwapTouch6] = nextVwapTouch(minorLow4Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago), minorLow4)
+[minorLow6, minorLow6Ago, minorLow6Vwap, vwapTouch7] = nextVwapTouch(minorLow5Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago, minorLow5Ago), minorLow5)
 
 minVwapTAG = (
     ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5 or vwapTouch6 or vwapTouch7))
