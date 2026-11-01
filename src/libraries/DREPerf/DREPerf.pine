@@ -206,7 +206,7 @@ export wilsonLowerBoundPct(int _winCount, int _sigCount, float _z) =>
 export wilsonLowerBoundPct(int _winCount, int _sigCount) =>
 	wilsonLowerBoundPct(_winCount, _sigCount, DEFAULT_WILSON_Z)
 
-// @function Sample-aware signal score based on R-multiple statistics (t-statistic-like formula avgR / max(stdR, MIN_R_STD) * sqrt(sigCount)). The standard deviation of R is floored at MIN_R_STD (1R) so that degenerate samples (single trades or zero-variance R series) do not produce inflated scores. Unlike the legacy sigScore it does not depend on bar_index, so values are comparable between charts with different history length. It rewards positive expectancy, return stability and sample size.
+// @function Sample-aware signal score based on R-multiple statistics (t-statistic-like formula avgR / max(stdR, MIN_R_STD) * sigCount^0.4). The standard deviation of R is floored at MIN_R_STD (1R) so that degenerate samples (single trades or zero-variance R series) do not produce inflated scores. Unlike the legacy sigScore it does not depend on bar_index, so values are comparable between charts with different history length. It rewards positive expectancy, return stability and sample size; the sub-linear exponent 0.4 (was 0.5 before 2026-11-01) keeps the sample-size bonus but gives less weight to sheer frequency, so scores are not comparable with values computed by the older sqrt variant.
 // @param _avgR Average R-multiple of completed signals.
 // @param _stdR Standard deviation of R-multiples of completed signals.
 // @param _sigCount Number of completed signals with a valid risk.
