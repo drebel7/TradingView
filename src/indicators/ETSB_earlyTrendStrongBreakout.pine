@@ -193,7 +193,9 @@ import drebel/DREPerf/28 as dreperf
 //   Idea: anchored VWAPs as the market's memory of the average price paid since a meaningful
 //   low. Starting from the major low of the recent past, every new local low below the previous
 //   anchored VWAP starts a new anchor - a ladder of cost-basis levels, each defended by a
-//   different cohort of buyers. The signal fires when price touches and reclaims one of these
+//   different cohort of buyers. A local low that undercuts the level right after it was anchored
+//   moves that anchor instead of opening a new rung, because a low broken on the next bar was not
+//   a low. The signal fires when price touches and reclaims one of these
 //   levels (touch-and-go) while the structure stays clean: few violations below the level, only
 //   the most recent / single level in play (not a late-stage pile-up of simultaneous levels),
 //   a volume flush at the low (capitulation-style selling absorbed), price back above
@@ -568,9 +570,15 @@ lowestRecent = ta.lowest(iRidingVwapMinLowestCandle)
 
 nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo, series bool _levelReset) =>
     var int touchCount = 0
+    var float levelVwap = na
     newLow = low < _prevVWap and lowestRecent == low and _prevLowsMinAgo > 0
-    lVwap = ta.vwap(_src, newLow)
-    ago = ta.barssince(newLow)
+    // A lower low right after the anchor proves the anchor bar was not a low: the rung keeps its
+    // identity but its anchor slides to the new low instead of spawning a new rung. Without this
+    // the ladder can step down every bar and each rung sits on a low that was immediately broken.
+    slide = not na(levelVwap) and low < levelVwap and lowestRecent == low
+    anchor = newLow or slide
+    lVwap = ta.vwap(_src, anchor)
+    ago = ta.barssince(anchor)
     agedNewLowVwap = ago > _prevLowsMinAgo or ago > iRidingVwapNoTouchCancelThreshold ? na : lVwap
     lowsBelowLVwap = math.sum(low < agedNewLowVwap ? 1 : 0, 10)
     // The touch budget belongs to one level instance, so it restarts when the touched VWAP is
@@ -579,14 +587,15 @@ nextVwapTouch(series float _prevVWap, series float _src, int _prevLowsMinAgo, se
     touchCount := _levelReset ? 0 : touchCount
     prevVwapTouch = drelib.crossover(_prevVWap) and lowsBelowLVwap <= iRidingVwapLowsBelow and touchCount < iRidingVwapMaxTouchesPerVwap and ridngVwapLowFlushCond[_prevLowsMinAgo] and ridingVwapRisingMainMaCond
     touchCount := prevVwapTouch ? touchCount + 1 : touchCount
-    [newLow, ago, agedNewLowVwap, prevVwapTouch]
+    levelVwap := agedNewLowVwap
+    [anchor, ago, agedNewLowVwap, prevVwapTouch]
 
-[minorLow1, minorLow1Ago, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLowAgo, majorLow)
-[minorLow2, minorLow2Ago, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago), minorLow1)
-[minorLow3, minorLow3Ago, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago), minorLow2)
-[minorLow4, minorLow4Ago, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago), minorLow3)
-[minorLow5, minorLow5Ago, minorLow5Vwap, vwapTouch6] = nextVwapTouch(minorLow4Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago), minorLow4)
-[minorLow6, minorLow6Ago, minorLow6Vwap, vwapTouch7] = nextVwapTouch(minorLow5Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago, minorLow5Ago), minorLow5)
+[minorLow1Anchor, minorLow1Ago, minorLow1Vwap, vwapTouch2] = nextVwapTouch(majorLowVwap, ridingVwapSrc, majorLowAgo, majorLow)
+[minorLow2Anchor, minorLow2Ago, minorLow2Vwap, vwapTouch3] = nextVwapTouch(minorLow1Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago), minorLow1Anchor)
+[minorLow3Anchor, minorLow3Ago, minorLow3Vwap, vwapTouch4] = nextVwapTouch(minorLow2Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago), minorLow2Anchor)
+[minorLow4Anchor, minorLow4Ago, minorLow4Vwap, vwapTouch5] = nextVwapTouch(minorLow3Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago), minorLow3Anchor)
+[minorLow5Anchor, minorLow5Ago, minorLow5Vwap, vwapTouch6] = nextVwapTouch(minorLow4Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago), minorLow4Anchor)
+[minorLow6Anchor, minorLow6Ago, minorLow6Vwap, vwapTouch7] = nextVwapTouch(minorLow5Vwap, ridingVwapSrc, math.min(majorLowAgo, minorLow1Ago, minorLow2Ago, minorLow3Ago, minorLow4Ago, minorLow5Ago), minorLow5Anchor)
 
 minVwapTAG = (
     ((vwapTouch or vwapTouch2) and not (vwapTouch3 or vwapTouch4 or vwapTouch5 or vwapTouch6 or vwapTouch7))
