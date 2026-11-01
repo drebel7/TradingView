@@ -408,7 +408,7 @@ et4sb = et4 and strongBreakout
 etsb = et3sb or et4sb
 float et1YHMinPriceOfHigh = 0.85
 et1YHnearHigh = close >= et1YHMinPriceOfHigh * ta.highest(close, drelib.getDefaultStockTradingDaysInAYear())
-et1YHsb = ta.barssince(not et3) < et1YHRecency and et1YHnearHigh and close >= high[1] and strongBreakout
+et1YHsb = ta.barssince(not et3) < et1YHRecency and et1YHnearHigh and strongBreakout
 
 //Qullamaggie inspired - additional signal if there is an OpeningRangeBrakeout the next day after main signal
 //for low turnover 60 minute orb, for mid-high turnover 5 minute orb
