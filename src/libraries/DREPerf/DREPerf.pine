@@ -212,7 +212,7 @@ export wilsonLowerBoundPct(int _winCount, int _sigCount) =>
 // @param _sigCount Number of completed signals with a valid risk.
 // @returns signal score, 0 when there are no signals or when inputs are na.
 export sigScoreV2(float _avgR, float _stdR, int _sigCount) =>
-	_sigCount > 0 and not na(_avgR) and not na(_stdR) ? _avgR / math.max(_stdR, MIN_R_STD) * math.sqrt(_sigCount) : 0.0
+	_sigCount > 0 and not na(_avgR) and not na(_stdR) ? _avgR / math.max(_stdR, MIN_R_STD) * math.pow(_sigCount, 0.4) : 0.0
 
 // @function Win rate of a signal (bool series) over all completed signal checks. A check is completed _checkTime candles after the signal. Entry is the close of the signal candle, the result is the mixed return (at check time when price did not hit _sigCandleStopLoss, at the stop loss level otherwise). A win is a positive result. Requires a sample with a valid risk (stop loss level different than the signal candle close).
 // @param _sig A bool series indicating signal was triggered on given candle or not.
